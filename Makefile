@@ -22,9 +22,9 @@ tiniertest: tinierstrb.o tiniertest.o
 
 # Static dependencies:
 strb.o:
-	$(CC) $(CCFlags) -DTINY -o strb.o strb.c
+	$(CC) $(CCFlags) -o strb.o strb.c
 test.o:
-	$(CC) $(CCFlags) -DTINY -o test.o test.c
+	$(CC) $(CCFlags) -o test.o test.c
 
 tinystrb.o:
 	$(CC) $(CCFlags) -DTINY -o tinystrb.o strb.c
