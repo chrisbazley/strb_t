@@ -137,8 +137,11 @@ _Optional strb_t *strbstate_reuse(strbstate_t *sb, size_t size, char buf[STRB_SI
 
     {
         size_t len = strnlen(buf, size);
-        if (len == size)
-            return NULL; // no null found
+        if (len == size) {
+            // Could be outside of the caller's control because of STRB_MAX_SIZE.
+            // Don't want to force use of strb_error after any call.
+            return NULL;
+        }
 
         return init_use(sb, size, buf, len);
     }
@@ -180,8 +183,11 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
 
     {
         size_t len = strnlen(buf, size);
-        if (len == size)
-            return NULL; // no null found
+        if (len == size) {
+            // Could be outside of the caller's control because of STRB_MAX_SIZE.
+            // Don't want to force use of strb_error after any call.
+            return NULL;
+        }
 
         sb = alloc_metadata(0);
         if (!sb) return NULL;
