@@ -495,10 +495,10 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
                               sb->p.size * STRB_GROW_FACTOR :
                               STRB_MAX_SIZE;
 
+    assert(top + n + 1 <= STRB_MAX_SIZE);
+
     if (new_size <= top + n)
         new_size = top + n + 1; // +1 for terminator
-
-    assert(new_size <= STRB_MAX_SIZE);
 
     char *new_buf = NULL;
     if (sb->p.flags & F_ALLOCATED) {
