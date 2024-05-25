@@ -367,7 +367,7 @@ size_t strb_tell(strb_t const *sb )
     assert(sb);
     {
         size_t pos = sb->p.pos;
-        DEBUGF("Pos %zu, len %zu, size %zu\n", pos, sb->p.len, sb->p.size);
+        DEBUGF("Pos %zu, len %" PRIstrbsize ", size %" PRIstrbsize "\n", pos, sb->p.len, sb->p.size);
         return pos;
     }
 }
@@ -473,13 +473,13 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
     assert(sb);
 
     if (n >= (size_t)STRB_MAX_SIZE - top) {
-        DEBUGF("Integer range exhausted (top=%zu, n=%zu)\n", top, n);
+        DEBUGF("Integer range exhausted (top=%" PRIstrbsize ", n=%zu)\n", top, n);
         return false; // can't represent new length
     }
 
     {
         strbsize_t room = sb->p.size > top ? sb->p.size - top : 0;
-        DEBUGF("Need %zu bytes, have %zu bytes\n", n, room);
+        DEBUGF("Need %zu bytes, have %" PRIstrbsize " bytes\n", n, room);
         if (n < room)
             return true; // enough room for n chars and terminator
     }
@@ -517,7 +517,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
     sb->p.flags |= F_ALLOCATED;
     sb->p.buf = new_buf;
     sb->p.size = new_size;
-    DEBUGF("Substituted buffer %p of %zu bytes\n", new_buf, new_size);
+    DEBUGF("Substituted buffer %p of %" PRIstrbsize " bytes\n", new_buf, new_size);
     return true;
 #endif
 }
@@ -548,7 +548,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(sb->p.pos < sb->p.size);
 
         if (outside) {
-            DEBUGF("Zeroing gap between len %zu and pos %zu\n", sb->p.len, sb->p.pos);
+            DEBUGF("Zeroing gap between len %" PRIstrbsize " and pos %zu\n", sb->p.len, sb->p.pos);
             // +1 because there is no null terminator at pos yet
             memset(sb->p.buf + sb->p.len, '\0', sb->p.pos - sb->p.len + 1);
             sb->p.len = sb->p.pos;
@@ -571,7 +571,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(sb->p.pos < sb->p.size);
 
         if (sb->p.pos > sb->p.len) {
-            DEBUGF("Bumping length from %zu to %zu\n", sb->p.len, sb->p.pos);
+            DEBUGF("Bumping length from %" PRIstrbsize " to %zu\n", sb->p.len, sb->p.pos);
             sb->p.len = sb->p.pos;
             buf[n] = '\0';
         }

@@ -2,11 +2,13 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #if TINIER
 // No static or dynamic allocation
 #define STRB_MAX SIZE_MAX
 typedef uint8_t strbsize_t;
+#define PRIstrbsize PRIu8
 #define STRB_MAX_SIZE UINT8_MAX
 #define STRB_SIZE_HINT(X)
 
@@ -14,6 +16,7 @@ typedef uint8_t strbsize_t;
 // About 2KB of static storage
 #define STRB_MAX (8) // must not exceed 8
 typedef uint8_t strbsize_t;
+#define PRIstrbsize PRIu8
 #define STRB_MAX_SIZE (256-9)
 #define STRB_MAX_INTERNAL_SIZE STRB_MAX_SIZE
 #define STRB_SIZE_HINT(X)
@@ -22,6 +25,7 @@ typedef uint8_t strbsize_t;
 // Unlimited dynamic allocation
 #define STRB_MAX SIZE_MAX
 typedef uint16_t strbsize_t;
+#define PRIstrbsize PRIu16
 #define STRB_MAX_SIZE UINT16_MAX
 #define STRB_DFL_SIZE (256)
 #define STRB_MAX_INTERNAL_SIZE (256)
