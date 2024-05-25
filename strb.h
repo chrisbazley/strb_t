@@ -6,12 +6,14 @@
 #if TINIER
 // No static or dynamic allocation
 #define STRB_MAX SIZE_MAX
+typedef uint8_t strbsize_t;
 #define STRB_MAX_SIZE UINT8_MAX
 #define STRB_SIZE_HINT(X)
 
 #elif TINY
 // About 2KB of static storage
 #define STRB_MAX (8) // must not exceed 8
+typedef uint8_t strbsize_t;
 #define STRB_MAX_SIZE (256-9)
 #define STRB_MAX_INTERNAL_SIZE STRB_MAX_SIZE
 #define STRB_SIZE_HINT(X)
@@ -19,6 +21,7 @@
 #else
 // Unlimited dynamic allocation
 #define STRB_MAX SIZE_MAX
+typedef uint16_t strbsize_t;
 #define STRB_MAX_SIZE UINT16_MAX
 #define STRB_DFL_SIZE (256)
 #define STRB_MAX_INTERNAL_SIZE (256)
@@ -30,12 +33,6 @@
 #define _Optional
 
 typedef struct strb_t strb_t;
-
-#if TINY || TINIER
-typedef uint8_t strbsize_t;
-#else
-typedef uint16_t strbsize_t;
-#endif
 
 typedef struct {
     char restore_char, write_char, flags;
