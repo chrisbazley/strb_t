@@ -125,7 +125,7 @@ strb_t *strbstate_use(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size
     return init_use(sb, size, buf, 0);
 }
 
-_Optional strb_t *strbstate_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
+strb_t *strbstate_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
 {
     assert(sb);
     assert(buf);
@@ -137,8 +137,10 @@ _Optional strb_t *strbstate_reuse(strbstate_t *sb, size_t size, char buf[STRB_SI
 
     {
         size_t len = strnlen(buf, size);
-        if (len == size)
-            return NULL; // no null found
+        if (len == size) {
+            buf[0] = '\0'; // no null found
+            len = 0;
+        }
 
         return init_use(sb, size, buf, len);
     }

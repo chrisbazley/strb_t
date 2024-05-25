@@ -46,7 +46,7 @@ typedef struct  {
 } strbstate_t;
 
 strb_t *strbstate_use(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
-_Optional strb_t *strbstate_reuse(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
+strb_t *strbstate_reuse(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
 
 _Optional strb_t *strb_alloc(size_t size);
 _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)]);
