@@ -258,7 +258,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
     }
 }
 
-_Optional strb_t *strb_vasprintf(const char *format, va_list args)
+_Optional strb_t *strb_vaprintf(const char *format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -287,13 +287,13 @@ _Optional strb_t *strb_dup(const char *str)
         return strb_ndup(str, SIZE_MAX);
 }
 
-_Optional strb_t *strb_asprintf(const char *format,
+_Optional strb_t *strb_aprintf(const char *format,
                                 ...)
 {
     va_list args;
     va_start(args, format);
     {
-        strb_t *sb = strb_vasprintf(format, args);
+        strb_t *sb = strb_vaprintf(format, args);
         va_end(args);
         return sb;
     }

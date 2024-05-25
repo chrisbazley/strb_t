@@ -59,8 +59,8 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)]);
 _Optional strb_t *strb_dup(const char *str);
 _Optional strb_t *strb_ndup(const char *str, size_t n);
 
-_Optional strb_t *strb_asprintf(const char *format, ...);
-_Optional strb_t *strb_vasprintf(const char *format, va_list args );
+_Optional strb_t *strb_aprintf(const char *format, ...);
+_Optional strb_t *strb_vaprintf(const char *format, va_list args );
 
 void strb_free(_Optional strb_t *sb );
 

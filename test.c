@@ -128,7 +128,7 @@ int main(void)
     test(s);
     strb_free(s);
 
-    s = strb_asprintf("Hello %d", 99);
+    s = strb_aprintf("Hello %d", 99);
     test(s);
     strb_free(s);
 
