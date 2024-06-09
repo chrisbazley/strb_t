@@ -537,9 +537,10 @@ _Optional char *strb_write(strb_t *sb, size_t n)
     DEBUGF("About to write %zu chars\n", n);
 
     {
-        bool outside = sb->p.pos > sb->p.len;
-        size_t top = (sb->p.flags & F_OVERWRITE) || outside ?
-                            sb->p.pos : sb->p.len;
+        const bool outside = sb->p.pos > sb->p.len,
+                   end_outside = sb->p.pos + n - 1 > sb->p.len;
+        const size_t top = (sb->p.flags & F_OVERWRITE) || outside ?
+                           sb->p.pos : sb->p.len;
         if (top > STRB_MAX_SIZE) {
             DEBUGF("Integer range exhausted (top=%zu)\n", top);
             return false; // can't represent new length
@@ -554,40 +555,43 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(sb->p.pos < sb->p.size);
 
         if (outside) {
-            // Zero the write region as well as the gap in case fewer bytes are
-            // written than expected and to ensure restore_char will be null
-            DEBUGF("Zeroing between len %" PRIstrbsize " and %zu\n", sb->p.len, sb->p.pos + n + 1);
-            // +1 because there is no null terminator at pos + n yet
-            memset(sb->p.buf + sb->p.len, '\0', sb->p.pos - sb->p.len + n + 1);
+            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %zu\n", sb->p.len, sb->p.pos + 1);
+            // +1 because there is no null terminator at pos yet
+            memset(sb->p.buf + sb->p.len, '\0', sb->p.pos - sb->p.len + 1);
             sb->p.len = sb->p.pos;
-       }
-    }
-
-    assert(sb->p.pos <= sb->p.len);
-
-    {
-        _Optional char *buf = sb->p.buf + sb->p.pos;
-        if (!(sb->p.flags & F_OVERWRITE)) {
-            DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, buf, buf + n);
-            memmove(buf + n, buf, sb->p.len + 1 - sb->p.pos);
-            sb->p.len += n;
-        } else
-            sb->p.restore_char = buf[n - 1];
-
-        sb->p.pos += n;
-        DEBUGF("Pos advanced by %zu to %zu\n", n, sb->p.pos);
-        assert(sb->p.pos < sb->p.size);
-
-        if (sb->p.pos > sb->p.len) {
-            DEBUGF("Bumping length from %" PRIstrbsize " to %zu\n", sb->p.len, sb->p.pos);
-            sb->p.len = sb->p.pos;
-            buf[n] = '\0';
         }
 
-        sb->p.write_char = buf[n];
-        sb->p.flags |= F_CAN_RESTORE | F_WRITE_PENDING;
-        DEBUGF("Stored %d ('%c') at %zu\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
-        return buf;
+        assert(sb->p.pos <= sb->p.len);
+
+        {
+            _Optional char *buf = sb->p.buf + sb->p.pos;
+
+            if (!(sb->p.flags & F_OVERWRITE)) {
+                DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, buf, buf + n);
+                memmove(buf + n, buf, sb->p.len + 1 - sb->p.pos);
+                sb->p.len += n;
+            } else {
+                // Behave as if the write were implemented by multiple
+                // putc operations, which would imply null termination at
+                // each successive position.
+                sb->p.restore_char = end_outside ? '\0' : buf[n - 1];
+            }
+
+            sb->p.pos += n;
+            DEBUGF("Pos advanced by %zu to %zu\n", n, sb->p.pos);
+            assert(sb->p.pos < sb->p.size);
+
+            if (sb->p.pos > sb->p.len) {
+                DEBUGF("Bumping length from %" PRIstrbsize " to %zu\n", sb->p.len, sb->p.pos);
+                sb->p.len = sb->p.pos;
+                buf[n] = '\0';
+            }
+
+            sb->p.write_char = buf[n];
+            sb->p.flags |= F_CAN_RESTORE | F_WRITE_PENDING;
+            DEBUGF("Stored %d ('%c') at %zu\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
+            return buf;
+        }
     }
 }
 
