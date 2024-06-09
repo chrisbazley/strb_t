@@ -528,7 +528,6 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
 #endif
 }
 
-
 _Optional char *strb_write(strb_t *sb, size_t n)
 {
     assert(sb);
@@ -537,10 +536,9 @@ _Optional char *strb_write(strb_t *sb, size_t n)
     DEBUGF("About to write %zu chars\n", n);
 
     {
-        const bool outside = sb->p.pos > sb->p.len,
-                   end_outside = sb->p.pos + n - 1 > sb->p.len;
-        const size_t top = (sb->p.flags & F_OVERWRITE) || outside ?
-                           sb->p.pos : sb->p.len;
+        const strbsize_t old_len = sb->p.len, old_pos = sb->p.pos;
+        const size_t top = (sb->p.flags & F_OVERWRITE) || old_pos > old_len ?
+                           old_pos : old_len;
         if (top > STRB_MAX_SIZE) {
             DEBUGF("Integer range exhausted (top=%zu)\n", top);
             return false; // can't represent new length
@@ -552,32 +550,32 @@ _Optional char *strb_write(strb_t *sb, size_t n)
             return NULL;
         }
 
-        assert(sb->p.pos < sb->p.size);
+        assert(old_pos < sb->p.size);
 
-        if (outside) {
-            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %zu\n", sb->p.len, sb->p.pos + 1);
+        if (old_pos > old_len) {
+            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %zu\n", old_len, old_pos + 1);
             // +1 because there is no null terminator at pos yet
-            memset(sb->p.buf + sb->p.len, '\0', sb->p.pos - sb->p.len + 1);
-            sb->p.len = sb->p.pos;
+            memset(sb->p.buf + old_len, '\0', old_pos - old_len + 1);
+            sb->p.len = old_pos;
         }
 
-        assert(sb->p.pos <= sb->p.len);
+        assert(old_pos <= sb->p.len);
 
         {
-            _Optional char *buf = sb->p.buf + sb->p.pos;
+            _Optional char *buf = sb->p.buf + old_pos;
 
             if (!(sb->p.flags & F_OVERWRITE)) {
                 DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, buf, buf + n);
-                memmove(buf + n, buf, sb->p.len + 1 - sb->p.pos);
+                memmove(buf + n, buf, sb->p.len + 1 - old_pos);
                 sb->p.len += n;
             } else {
                 // Behave as if the write were implemented by multiple
                 // putc operations, which would imply null termination at
                 // each successive position.
-                sb->p.restore_char = end_outside ? '\0' : buf[n - 1];
+                sb->p.restore_char = old_pos + n - 1 > old_len ? '\0' : buf[n - 1];
             }
 
-            sb->p.pos += n;
+            sb->p.pos = old_pos + n;
             DEBUGF("Pos advanced by %zu to %zu\n", n, sb->p.pos);
             assert(sb->p.pos < sb->p.size);
 
