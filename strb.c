@@ -253,7 +253,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         memcpy(sb->p.buf, str, len); // more efficient than strncpy
         sb->p.buf[len] = '\0';
         sb->p.len = sb->p.pos = len;
-        sb->p.restore_char = '\0';
+        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
         sb->p.flags |= F_CAN_RESTORE;
         return sb;
     }
@@ -278,7 +278,7 @@ _Optional strb_t *strb_vaprintf(const char *format, va_list args)
         va_end(args_copy);
 
         sb->p.len = sb->p.pos = (strbsize_t)len;
-        sb->p.restore_char = '\0';
+        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
         sb->p.flags |= F_CAN_RESTORE;
         return sb;
     }
