@@ -16,7 +16,11 @@ static void test(strb_t *s)
     for ( i = 5; i >= 0; --i) {
         strb_seek(s, 0);
         strb_putc(s, 'a' + i);
-        strb_putf(s, "fmt%d", i);
+        strb_putf(s, "fmt%dx", i);
+        int c = strb_unputc(s);
+        assert(c == 'x');
+        c = strb_unputc(s);
+        assert(c == EOF);
         strb_puts(s, "str");
     }
 
@@ -92,43 +96,80 @@ int main(void)
     strbstate_t state;
     char array[100];
     strb_t *s;
+    int c;
 
     s = strbstate_use(&state, sizeof array, array);
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
 
     s = strbstate_reuse(&state, sizeof array, array);
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
 
 #if !TINIER
     s = strb_use(sizeof array, array);
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 
     s = strb_reuse(sizeof array, array);
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 
     s = strb_alloc(2700);
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 
     s = strb_alloc(5);
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 
     s = strb_alloc(5000);
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 
     s = strb_dup("DUPLICATE");
+    c = strb_unputc(s);
+    assert(c == 'E');
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 
     s = strb_ndup("DUPLICATE", 3);
+    c = strb_unputc(s);
+    assert(c == 'P');
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 
     s = strb_aprintf("Hello %d", 99);
+    c = strb_unputc(s);
+    assert(c == '9');
+    c = strb_unputc(s);
+    assert(c == EOF);
+
     test(s);
     strb_free(s);
 

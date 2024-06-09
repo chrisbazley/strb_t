@@ -554,11 +554,13 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(sb->p.pos < sb->p.size);
 
         if (outside) {
-            DEBUGF("Zeroing gap between len %" PRIstrbsize " and pos %zu\n", sb->p.len, sb->p.pos);
-            // +1 because there is no null terminator at pos yet
-            memset(sb->p.buf + sb->p.len, '\0', sb->p.pos - sb->p.len + 1);
+            // Zero the write region as well as the gap in case fewer bytes are
+            // written than expected and to ensure restore_char will be null
+            DEBUGF("Zeroing between len %" PRIstrbsize " and %zu\n", sb->p.len, sb->p.pos + n + 1);
+            // +1 because there is no null terminator at pos + n yet
+            memset(sb->p.buf + sb->p.len, '\0', sb->p.pos - sb->p.len + n + 1);
             sb->p.len = sb->p.pos;
-        }
+       }
     }
 
     assert(sb->p.pos <= sb->p.len);
