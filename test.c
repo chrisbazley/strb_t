@@ -150,11 +150,15 @@ int main(void)
     strb_t *s;
     int c;
 
+    assert(strbstate_use(&state, 0, array) == NULL);
+
     s = strbstate_use(&state, sizeof array, array);
     c = strb_unputc(s);
     assert(c == EOF);
 
     test(s);
+
+    assert(strbstate_use(&state, 0, array) == NULL);
 
     s = strbstate_reuse(&state, sizeof array, array);
     c = strb_unputc(s);
@@ -163,12 +167,16 @@ int main(void)
     test(s);
 
 #if !TINIER
+    assert(strb_use(0, array) == NULL);
+
     s = strb_use(sizeof array, array);
     c = strb_unputc(s);
     assert(c == EOF);
 
     test(s);
     strb_free(s);
+
+    assert(strb_reuse(0, array) == NULL);
 
     s = strb_reuse(sizeof array, array);
     c = strb_unputc(s);
