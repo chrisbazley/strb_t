@@ -149,15 +149,13 @@ int main(void)
     strb_t *s;
     int c;
 
-    assert(strbstate_use(&state, 0, array) == NULL);
-
     s = strbstate_use(&state, sizeof array, array);
     c = strb_unputc(s);
     assert(c == EOF);
 
     test(s);
 
-    assert(strbstate_use(&state, 0, array) == NULL);
+    assert(strbstate_reuse(&state, 0, array) == NULL);
 
     s = strbstate_reuse(&state, sizeof array, array);
     c = strb_unputc(s);
