@@ -40,8 +40,7 @@ typedef struct strb_t strb_t;
 
 typedef struct {
     char restore_char, write_char, flags;
-    strbsize_t len, size;
-    size_t pos; // if we allow this to be queried, it must be stored full width
+    strbsize_t len, size, pos;
     char *buf;
 } strbprivate_t;
 
@@ -75,7 +74,7 @@ enum {
 int strb_setmode(strb_t *sb, int mode);
 int strb_getmode(const strb_t *sb );
 
-size_t strb_seek(strb_t *sb, size_t pos);
+int strb_seek(strb_t *sb, size_t pos);
 size_t strb_tell(strb_t const *sb );
 
 int strb_putc(strb_t *sb, int c); 

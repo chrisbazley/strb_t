@@ -336,13 +336,16 @@ size_t strb_len(strb_t const *sb )
 int strb_setmode(strb_t *sb, int mode)
 {
     assert(sb);
-    assert(mode == strb_insert || mode == strb_overwrite);
+    if (mode == strb_insert || mode == strb_overwrite)
     {
-        int old_mode = (sb->p.flags & F_OVERWRITE) ? strb_overwrite : strb_insert;
         sb->p.flags &= ~(F_CAN_RESTORE|F_OVERWRITE);
         if (mode == strb_overwrite)
             sb->p.flags |= F_OVERWRITE;
-        return old_mode;
+        return 0;
+    } else {
+        DEBUGF("Bad mode %d\n", mode);
+        sb->p.flags |= F_ERR;
+        return EOF;
     }
 }
 
@@ -356,15 +359,19 @@ int strb_getmode(const strb_t *sb )
     }
 }
 
-size_t strb_seek(strb_t *sb, size_t pos)
+int strb_seek(strb_t *sb, size_t pos)
 {
     assert(sb);
     DEBUGF("Seek to %zu\n", pos);
+    if (pos < STRB_MAX_SIZE)
     {
-        size_t old_pos = sb->p.pos;
         sb->p.pos = pos;
         sb->p.flags &= ~(F_CAN_RESTORE | F_WRITE_PENDING);
-        return old_pos;
+        return 0;
+    } else {
+        DEBUGF("Bad seek %zu\n", pos);
+        sb->p.flags |= F_ERR;
+        return EOF;
     }
 }
 
@@ -372,8 +379,9 @@ size_t strb_tell(strb_t const *sb )
 {
     assert(sb);
     {
-        size_t pos = sb->p.pos;
-        DEBUGF("Pos %zu, len %" PRIstrbsize ", size %" PRIstrbsize "\n", pos, sb->p.len, sb->p.size);
+        strbsize_t pos = sb->p.pos;
+        DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize "\n",
+               pos, sb->p.len, sb->p.size);
         return pos;
     }
 }

@@ -14,7 +14,7 @@ static void test(strb_t *s)
     if (!s) return;
 
     for ( i = 5; i >= 0; --i) {
-        strb_seek(s, 0);
+        assert(!strb_seek(s, 0));
         strb_putc(s, 'a' + i);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         strb_putf(s, "fmt%dx", i);
@@ -24,37 +24,39 @@ static void test(strb_t *s)
         c = strb_unputc(s);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         assert(c == EOF);
-        strb_puts(s, "str");
+        assert(!strb_puts(s, "str"));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
     }
 
     puts(strb_ptr(s));
 
-    strb_setmode(s, strb_overwrite);
+    assert(!strb_setmode(s, strb_overwrite));
+    assert(strb_getmode(s) == strb_overwrite);
 
-    strb_puts(s, "OVERWRITE");
+    assert(!strb_puts(s, "OVERWRITE"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    strb_seek(s, strb_len(s) - 2);
-    strb_puts(s, "OVERWRITE");
+    assert(!strb_seek(s, strb_len(s) - 2));
+    assert(!strb_puts(s, "OVERWRITE"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    strb_setmode(s, strb_insert);
+    assert(!strb_setmode(s, strb_insert));
+    assert(strb_getmode(s) == strb_insert);
 
     found = strstr(strb_ptr(s), "fmt4");
     if (found) {
-        strb_seek(s, (size_t)(found - strb_ptr(s)));
+        assert(!strb_seek(s, (size_t)(found - strb_ptr(s))));
         printf("%zu\n", strb_tell(s));
-        strb_puts(s, "INSERT");
+        assert(!strb_puts(s, "INSERT"));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         puts(strb_ptr(s));
     }
 
-    strb_seek(s, strb_len(s) + 2);
+    assert(!strb_seek(s, strb_len(s) + 2));
     pos = strb_tell(s);
-    strb_puts(s, "BEYOND");
+    assert(!strb_puts(s, "BEYOND"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
     puts(strb_ptr(s) + pos);
@@ -64,7 +66,7 @@ static void test(strb_t *s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    strb_puts(s, "DELETEME");
+    assert(!strb_puts(s, "DELETEME"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
 
     strb_delto(s, strb_tell(s)); // no-op
@@ -75,7 +77,7 @@ static void test(strb_t *s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    strb_seek(s, strb_tell(s) - 2);
+    assert(!strb_seek(s, strb_tell(s) - 2));
     strb_delto(s, SIZE_MAX); // delete "ME"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
@@ -84,7 +86,7 @@ static void test(strb_t *s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    strb_seek(s, 1);
+    assert(!strb_seek(s, 1));
     strb_delto(s, 2); // delete "E"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
@@ -93,7 +95,7 @@ static void test(strb_t *s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    strb_puts(s, "FEE"); // make "FEEL"
+    assert(!strb_puts(s, "FEE")); // make "FEEL"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
