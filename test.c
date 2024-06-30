@@ -15,15 +15,14 @@ static void test(strb_t *s)
 
     for ( i = 5; i >= 0; --i) {
         assert(!strb_seek(s, 0));
-        strb_putc(s, 'a' + i);
+        assert(strb_putc(s, 'a' + i) == 'a' + i);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         assert(!strb_putf(s, "fmt%dx", i));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
-        int c = strb_unputc(s);
-        assert(c == 'x');
-        c = strb_unputc(s);
+        assert(strb_unputc(s) == 'x');
         assert(strb_ptr(s)[strb_len(s)] == '\0');
-        assert(c == EOF);
+        assert(strb_unputc(s) == EOF);
+        assert(strb_ptr(s)[strb_len(s)] == '\0');
         assert(!strb_puts(s, "str"));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
     }
