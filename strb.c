@@ -494,7 +494,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
     }
 
     {
-        strbsize_t room = sb->p.size > top ? sb->p.size - top : 0;
+        const strbsize_t room = sb->p.size > top ? sb->p.size - top : 0;
         DEBUGF("Need %zu bytes, have %" PRIstrbsize " bytes\n", n, room);
         if (n < room)
             return true; // enough room for n chars and terminator
@@ -547,12 +547,8 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 
     {
         const strbsize_t old_len = sb->p.len, old_pos = sb->p.pos;
-        const size_t top = (sb->p.flags & F_OVERWRITE) || old_pos > old_len ?
-                           old_pos : old_len;
-        if (top > STRB_MAX_SIZE) {
-            DEBUGF("Integer range exhausted (top=%zu)\n", top);
-            return false; // can't represent new length
-        }
+        const strbsize_t top = (sb->p.flags & F_OVERWRITE) || old_pos > old_len ?
+                               old_pos : old_len;
 
         if (!strb_ensure(sb, n, top)) {
             DEBUGF("No room\n");
