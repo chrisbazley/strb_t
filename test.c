@@ -60,6 +60,7 @@ static void test(strb_t *s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
     puts(strb_ptr(s) + pos);
+    assert(!strcmp(strb_ptr(s) + pos, "BEYOND"));
 
     strb_delto(s, 0);
     assert(strb_len(s) == 0);
@@ -68,47 +69,75 @@ static void test(strb_t *s)
 
     assert(!strb_puts(s, "DELETEME"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
+    assert(!strcmp(strb_ptr(s), "DELETEME"));
+    assert(strb_len(s) == 8);
 
     strb_delto(s, strb_tell(s)); // no-op
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
+    assert(!strcmp(strb_ptr(s), "DELETEME"));
+    assert(strb_len(s) == 8);
 
     strb_delto(s, SIZE_MAX); // no-op
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
+    assert(!strcmp(strb_ptr(s), "DELETEME"));
+    assert(strb_len(s) == 8);
 
     assert(!strb_seek(s, strb_tell(s) - 2));
     strb_delto(s, SIZE_MAX); // delete "ME"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
+    assert(!strcmp(strb_ptr(s), "DELETE"));
+    assert(strb_len(s) == 6);
 
     strb_delto(s, strb_tell(s) - 3); // delete "ETE"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
+    assert(!strcmp(strb_ptr(s), "DEL"));
+    assert(strb_len(s) == 3);
 
     assert(!strb_seek(s, 1));
     strb_delto(s, 2); // delete "E"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
+    assert(!strcmp(strb_ptr(s), "DL"));
+    assert(strb_len(s) == 2);
 
     strb_delto(s, 0); // delete "D"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
+    assert(!strcmp(strb_ptr(s), "L"));
+    assert(strb_len(s) == 1);
 
     assert(!strb_puts(s, "FEE")); // make "FEEL"
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
+    assert(!strcmp(strb_ptr(s), "FEEL"));
+    assert(strb_len(s) == 4);
 
-    strb_cpy(s, "No");
+    assert(!strb_cpy(s, "No"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
+    assert(!strcmp(strb_ptr(s), "No"));
+    assert(strb_len(s) == 2);
     puts(strb_ptr(s));
 
-    strb_ncpy(s, "Nope", 5);
+    assert(!strb_ncpy(s, "Nope", 5));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
+    assert(!strcmp(strb_ptr(s), "Nope"));
+    assert(strb_len(s) == 4);
     puts(strb_ptr(s));
 
-    strb_ncpy(s, "Nope", 3);
+    assert(!strb_ncpy(s, "Nope", 3));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
+    assert(!strcmp(strb_ptr(s), "Nop"));
+    assert(strb_len(s) == 3);
+    puts(strb_ptr(s));
+
+    assert(!strb_printf(s, "R%dD%d", 2, 2));
+    assert(strb_ptr(s)[strb_len(s)] == '\0');
+    assert(!strcmp(strb_ptr(s), "R2D2"));
+    assert(strb_len(s) == 4);
     puts(strb_ptr(s));
 
     puts("========");
