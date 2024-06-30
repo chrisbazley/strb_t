@@ -131,9 +131,6 @@ _Optional strb_t *strbstate_reuse(strbstate_t *sb, size_t size, char buf[STRB_SI
     assert(buf);
     DEBUGF("Reuse buffer %p of size %zu\n", buf, size);
 
-    if (size == 0)
-        return NULL;
-
     if (size > STRB_MAX_SIZE)
         size = STRB_MAX_SIZE; // unsupported buffer size
 
@@ -180,9 +177,6 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
 
     assert(buf);
     DEBUGF("Reuse buffer %p of size %zu\n", buf, size);
-
-    if (size == 0)
-        return NULL;
 
     if (size > STRB_MAX_SIZE)
         size = STRB_MAX_SIZE; // unsupported buffer size
