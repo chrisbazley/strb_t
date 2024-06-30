@@ -407,7 +407,7 @@ int strb_nputc(strb_t *sb, int c, size_t n)
 
     memset(buf, c, n);
     // assume F_WRITE_PENDING isn't user-visible. Don't bother calling strb_wrote.
-    return 0;
+    return c;
 }
 
 int strb_unputc(strb_t *sb)
