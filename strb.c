@@ -452,7 +452,8 @@ int strb_vputf(strb_t *sb, const char *format, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
     {
-        int len = vsnprintf(NULL, 0, format, args);
+        int e = 0;
+        const int len = vsnprintf(NULL, 0, format, args);
         if (len >= 0) {
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
@@ -460,14 +461,15 @@ int strb_vputf(strb_t *sb, const char *format, va_list args)
                     strb_wrote(sb); // restore buf[len] overwritten by null
                     DEBUGF("String is now %s\n", strb_ptr(sb));
             } else {
-                    len = EOF;
+                    e = EOF;
             }
         } else {
             sb->p.flags |= F_ERR;
+            e = EOF;
         }
 
         va_end(args_copy);
-        return len;
+        return e;
     }
 }
 
@@ -476,9 +478,9 @@ int strb_putf(strb_t *sb, const char *format, ...)
     va_list args;
     va_start(args, format);
     {
-        int len = strb_vputf(sb, format, args);
+        int e = strb_vputf(sb, format, args);
         va_end(args);
-        return len;
+        return e;
     }
 }
 
@@ -666,9 +668,9 @@ int strb_printf(strb_t *sb, const char *format, ...)
     va_list args;
     va_start(args, format);
     {
-        int len = strb_vprintf(sb, format, args);
+        int e = strb_vprintf(sb, format, args);
         va_end(args);
-        return len;
+        return e;
     }
 }
 

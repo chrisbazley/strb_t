@@ -17,7 +17,7 @@ static void test(strb_t *s)
         assert(!strb_seek(s, 0));
         strb_putc(s, 'a' + i);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
-        strb_putf(s, "fmt%dx", i);
+        assert(!strb_putf(s, "fmt%dx", i));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         int c = strb_unputc(s);
         assert(c == 'x');
