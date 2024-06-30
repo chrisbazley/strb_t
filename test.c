@@ -163,6 +163,9 @@ int main(void)
 
     test(s);
 
+    memset(array, 'a', sizeof array);
+    assert(strbstate_reuse(&state, 0, array) == NULL);
+
 #if !TINIER
     assert(strb_use(0, array) == NULL);
 
@@ -181,6 +184,9 @@ int main(void)
 
     test(s);
     strb_free(s);
+
+    memset(array, 'a', sizeof array);
+    assert(strb_reuse(0, array) == NULL);
 
     s = strb_alloc(2700);
     c = strb_unputc(s);
