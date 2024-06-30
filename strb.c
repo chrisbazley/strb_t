@@ -559,7 +559,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(old_pos < sb->p.size);
 
         if (old_pos > old_len) {
-            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %zu\n", old_len, old_pos + 1);
+            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %" PRIstrbsize "\n", old_len, old_pos + 1);
             // +1 because there is no null terminator at pos yet
             memset(sb->p.buf + old_len, '\0', old_pos - old_len + 1);
             sb->p.len = old_pos;
@@ -582,18 +582,18 @@ _Optional char *strb_write(strb_t *sb, size_t n)
             }
 
             sb->p.pos = old_pos + n;
-            DEBUGF("Pos advanced by %zu to %zu\n", n, sb->p.pos);
+            DEBUGF("Pos advanced by %zu to %" PRIstrbsize "\n", n, sb->p.pos);
             assert(sb->p.pos < sb->p.size);
 
             if (sb->p.pos > sb->p.len) {
-                DEBUGF("Bumping length from %" PRIstrbsize " to %zu\n", sb->p.len, sb->p.pos);
+                DEBUGF("Bumping length from %" PRIstrbsize " to %" PRIstrbsize "\n", sb->p.len, sb->p.pos);
                 sb->p.len = sb->p.pos;
                 buf[n] = '\0';
             }
 
             sb->p.write_char = buf[n];
             sb->p.flags |= F_CAN_RESTORE | F_WRITE_PENDING;
-            DEBUGF("Stored %d ('%c') at %zu\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
+            DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
             return buf;
         }
     }
@@ -603,7 +603,7 @@ void strb_wrote(strb_t *sb)
 {
     assert(sb);
     if (sb->p.flags & F_WRITE_PENDING) {
-        DEBUGF("Restored %d ('%c') at %zu\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
+        DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
         sb->p.buf[sb->p.pos] = sb->p.write_char;
         sb->p.flags &= ~F_WRITE_PENDING;
     }
