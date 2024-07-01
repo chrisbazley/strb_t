@@ -24,7 +24,7 @@
 #define F_ERR (1<<1)
 #define F_WRITE_PENDING (1<<2)
 #define F_OVERWRITE (1<<3)
-#if !TINY && !TINIER
+#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
 #define F_ALLOCATED (1<<4)
 #endif
 #define F_EXTERNAL (1<<5)
@@ -32,21 +32,21 @@
 
 struct strb_t {
     strbprivate_t p;
-#if TINIER
+#if STRB_FREESTANDING
     // No internal storage
-#elif TINY
+#elif STRB_STATIC_ALLOC
     char internal[STRB_MAX_SIZE];
 #else
     char internal[];
 #endif
 };
 
-#if TINY
+#if STRB_STATIC_ALLOC
 static strb_t bufs[STRB_MAX];
 static uint8_t nbufs, buf_map;
 #endif
 
-#if TINY || TINIER
+#if STRB_STATIC_ALLOC || STRB_FREESTANDING
 // not provided by cc65
 size_t strnlen(const char *s, size_t n)
 {
@@ -57,7 +57,7 @@ size_t strnlen(const char *s, size_t n)
 }
 #endif
 
-#if TINY
+#if STRB_STATIC_ALLOC
 static _Optional strb_t *alloc_metadata(void)
 {
     int free_idx = 0;
@@ -89,7 +89,7 @@ static void free_metadata(_Optional strb_t *sb)
         nbufs--;
     }
 }
-#elif !TINIER
+#elif !STRB_FREESTANDING
 static _Optional strb_t *alloc_metadata(strbsize_t size)
 {
     assert(size <= STRB_MAX_INTERNAL_SIZE);
@@ -149,7 +149,7 @@ _Optional strb_t *strb_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HI
 }
 #endif // STRB_EXT_STATE
 
-#if !TINIER
+#if !STRB_FREESTANDING
 #if !STRB_EXT_STATE
 _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
 {
@@ -208,7 +208,7 @@ _Optional strb_t *strb_alloc(size_t size)
 {
     DEBUGF("Alloc buffer of size %zu\n", size);
 
-#if TINY
+#if STRB_STATIC_ALLOC
     size = STRB_MAX_INTERNAL_SIZE;
 #else
     if (size > STRB_MAX_SIZE || size < STRB_DFL_SIZE)
@@ -219,7 +219,7 @@ _Optional strb_t *strb_alloc(size_t size)
         _Optional strb_t *sb = alloc_metadata(
             size > STRB_MAX_INTERNAL_SIZE ? 0 : size);
         if (!sb) return NULL;
-#if !TINY
+#if !STRB_STATIC_ALLOC
         if (size > STRB_MAX_INTERNAL_SIZE) {
             DEBUGF("Oversize buffer of %zu bytes\n", size);
             sb->p.buf = malloc(size);
@@ -305,9 +305,6 @@ _Optional strb_t *strb_aprintf(const char *format,
     }
 }
 
-#endif
-
-#if !TINIER
 void strb_free(_Optional strb_t *sb)
 {
     if (!sb)
@@ -316,14 +313,14 @@ void strb_free(_Optional strb_t *sb)
     if (sb->p.flags & F_AUTOFREE)
         return;
 
-#if !TINY
+#if !STRB_STATIC_ALLOC
     if (sb->p.flags & F_ALLOCATED)
         free(sb->p.buf);
 #endif
 
     free_metadata(sb);
 }
-#endif
+#endif // !STRB_FREESTANDING
 
 const char *strb_ptr(strb_t const *sb )
 {
@@ -451,6 +448,8 @@ int strb_puts(strb_t *sb, const char *str )
     return strb_nputs(sb, str, SIZE_MAX);
 }
 
+#if !STRB_FREESTANDING
+
 int strb_vputf(strb_t *sb, const char *format, va_list args)
 {
     va_list args_copy;
@@ -488,6 +487,8 @@ int strb_putf(strb_t *sb, const char *format, ...)
     }
 }
 
+#endif // !STRB_FREESTANDING
+
 static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
 {
     assert(sb);
@@ -504,7 +505,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
             return true; // enough room for n chars and terminator
     }
 
-#if TINY || TINIER
+#if STRB_STATIC_ALLOC || STRB_FREESTANDING
     DEBUGF("Fixed buffer exhausted\n");
     return false;
 #else
@@ -657,6 +658,8 @@ int strb_cpy(strb_t *sb,
     return strb_ncpy(sb, str, SIZE_MAX);
 }
 
+#if !STRB_FREESTANDING
+
 int strb_vprintf(strb_t *sb, const char *format, va_list args)
 {
     strb_empty(sb);
@@ -673,6 +676,8 @@ int strb_printf(strb_t *sb, const char *format, ...)
         return e;
     }
 }
+
+#endif // !STRB_FREESTANDING
 
 bool strb_error(strb_t const *sb )
 {

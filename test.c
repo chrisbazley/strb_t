@@ -17,9 +17,13 @@ static void test(strb_t *s)
         assert(!strb_seek(s, 0));
         assert(strb_putc(s, 'a' + i) == 'a' + i);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
+#if !STRB_FREESTANDING
         assert(!strb_putf(s, "fmt%dx", i));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         assert(strb_unputc(s) == 'x');
+#else
+        assert(strb_unputc(s) == 'a' + i);
+#endif // !STRB_FREESTANDING
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         assert(strb_unputc(s) == EOF);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
@@ -133,11 +137,13 @@ static void test(strb_t *s)
     assert(strb_len(s) == 3);
     puts(strb_ptr(s));
 
+#if !STRB_FREESTANDING
     assert(!strb_printf(s, "R%dD%d", 2, 2));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     assert(!strcmp(strb_ptr(s), "R2D2"));
     assert(strb_len(s) == 4);
     puts(strb_ptr(s));
+#endif // !STRB_FREESTANDING
 
     puts("========");
 }
@@ -161,7 +167,7 @@ int main(void)
 
     memset(array, 'a', sizeof array);
     assert(strb_reuse(&state, sizeof array, array) == NULL);
-#elif !TINIER
+#elif !STRB_FREESTANDING
     s = strb_use(sizeof array, array);
     assert(strb_unputc(s) == EOF);
 
@@ -176,9 +182,9 @@ int main(void)
 
     memset(array, 'a', sizeof array);
     assert(strb_reuse(sizeof array, array) == NULL);
-#endif // !TINIER
+#endif // !STRB_FREESTANDING
 
-#if !TINIER
+#if !STRB_FREESTANDING
     s = strb_alloc(2700);
     assert(strb_unputc(s) == EOF);
 
@@ -223,13 +229,13 @@ int main(void)
     strb_free(s);
 
     s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
-#if !TINY
+#if !STRB_STATIC_ALLOC
     puts(strb_ptr(s));
 #else
-    assert(!s);
+    assert(!s); // too long
 #endif
     strb_free(s);
 
-#endif // !TINIER
+#endif // !STRB_FREESTANDING
     return 0;
 }

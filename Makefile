@@ -9,16 +9,16 @@ CCFlags = -c -Wall -Wextra -Wsign-compare -pedantic -std=c99 -MMD -MP -g -MF $*.
 LinkFlags = -o $@
 
 # Final targets:
-all: test tinytest tiniertest
+all: test statictest freestandingtest
 
 test: strb.o test.o
 	$(Link) strb.o test.o $(LinkFlags)
 
-tinytest: tinystrb.o tinytest.o
-	$(Link) tinystrb.o tinytest.o $(LinkFlags)
+statictest: staticstrb.o statictest.o
+	$(Link) staticstrb.o statictest.o $(LinkFlags)
 
-tiniertest: tinierstrb.o tiniertest.o
-	$(Link) tinierstrb.o tiniertest.o $(LinkFlags)
+freestandingtest: freestandingstrb.o freestandingtest.o
+	$(Link) freestandingstrb.o freestandingtest.o $(LinkFlags)
 
 # Static dependencies:
 strb.o:
@@ -26,17 +26,17 @@ strb.o:
 test.o:
 	$(CC) $(CCFlags) -o test.o test.c
 
-tinystrb.o:
-	$(CC) $(CCFlags) -DTINY -o tinystrb.o strb.c
-tinytest.o:
-	$(CC) $(CCFlags) -DTINY -o tinytest.o test.c
+staticstrb.o:
+	$(CC) $(CCFlags) -DSTRB_STATIC_ALLOC -o staticstrb.o strb.c
+statictest.o:
+	$(CC) $(CCFlags) -DSTRB_STATIC_ALLOC -o statictest.o test.c
 
-tinierstrb.o:
-	$(CC) $(CCFlags) -DTINIER -o tinierstrb.o strb.c
-tiniertest.o:
-	$(CC) $(CCFlags) -DTINIER -o tiniertest.o test.c
+freestandingstrb.o:
+	$(CC) $(CCFlags) -DSTRB_FREESTANDING -o freestandingstrb.o strb.c
+freestandingtest.o:
+	$(CC) $(CCFlags) -DSTRB_FREESTANDING -o freestandingtest.o test.c
 
 # Dynamic dependencies:
 # These files are generated during compilation to track C header #includes.
 # It's not an error if they don't exist.
--include strb.d test.d tinystrb.d tinytest.d tinierstrb.d tiniertest.d
+-include strb.d test.d staticstrb.d statictest.d freestandingstrb.d freestandingtest.d
