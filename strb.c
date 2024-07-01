@@ -613,26 +613,30 @@ void strb_wrote(strb_t *sb)
 
 void strb_delto(strb_t *sb, size_t pos)
 {
-    size_t hi, lo;
+    strbsize_t hi, lo, pos1, pos2, len;
 
-    if (pos > sb->p.pos) {
-            hi = pos;
-            lo = sb->p.pos;
+    assert(sb);
+    assert(sb->p.pos <= sb->p.len);
+
+    len = sb->p.len;
+    pos1 = pos > len ? len : pos;
+    pos2 = sb->p.pos > len ? len : sb->p.pos;
+
+    if (pos1 > pos2) {
+            hi = pos1;
+            lo = pos2;
     } else {
-            lo = pos;
-            hi = sb->p.pos;
+            lo = pos1;
+            hi = pos2;
     }
-    if (hi > sb->p.len) hi = sb->p.len;
-    if (lo > sb->p.len) lo = sb->p.len;
 
     if (!(sb->p.flags & F_OVERWRITE)) {
-            memmove(sb->p.buf + lo, sb->p.buf + hi, sb->p.len + 1 - hi);
-            sb->p.len -= hi - lo;
+            memmove(sb->p.buf + lo, sb->p.buf + hi, len + 1 - hi);
+            sb->p.len = len - (hi - lo);
     }
 
     sb->p.pos = lo;
     sb->p.flags &= ~(F_CAN_RESTORE | F_WRITE_PENDING);
-
 }
 
 static void strb_empty(strb_t *sb)
