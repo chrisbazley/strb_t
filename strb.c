@@ -418,16 +418,16 @@ int strb_unputc(strb_t *sb)
     assert(sb->p.pos <= sb->p.len);
 
     {
-        strbsize_t pos = sb->p.pos;
-        char removed = sb->p.buf[pos - 1];
+        const strbsize_t new_pos = sb->p.pos - 1;
+        char removed = sb->p.buf[new_pos];
         if (!(sb->p.flags & F_OVERWRITE)) {
-                memmove(sb->p.buf + pos - 1, sb->p.buf + pos, sb->p.len + 1 - pos);
+                memmove(sb->p.buf + new_pos, sb->p.buf + sb->p.pos, sb->p.len - new_pos);
                 --sb->p.len;
         } else {
-                sb->p.buf[pos - 1] = sb->p.restore_char;
+                sb->p.buf[new_pos] = sb->p.restore_char;
         }
 
-        sb->p.pos = pos - 1;
+        sb->p.pos = new_pos;
         sb->p.flags &= ~(F_CAN_RESTORE | F_WRITE_PENDING);
         return removed;
     }
