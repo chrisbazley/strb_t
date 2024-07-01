@@ -144,88 +144,76 @@ static void test(strb_t *s)
 
 int main(void)
 {
-    strbstate_t state;
     char array[100];
     strb_t *s;
-    int c;
+#if STRB_EXT_STATE
+    strbstate_t state;
 
-    s = strbstate_use(&state, sizeof array, array);
-    c = strb_unputc(s);
-    assert(c == EOF);
+    s = strb_use(&state, sizeof array, array);
+    assert(strb_unputc(s) == EOF);
 
     test(s);
 
-    s = strbstate_reuse(&state, sizeof array, array);
-    c = strb_unputc(s);
-    assert(c == EOF);
+    s = strb_reuse(&state, sizeof array, array);
+    assert(strb_unputc(s) == EOF);
 
     test(s);
 
     memset(array, 'a', sizeof array);
-    assert(strbstate_reuse(&state, sizeof array, array) == NULL);
-
-#if !TINIER
+    assert(strb_reuse(&state, sizeof array, array) == NULL);
+#elif !TINIER
     s = strb_use(sizeof array, array);
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
 
     s = strb_reuse(sizeof array, array);
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
 
     memset(array, 'a', sizeof array);
     assert(strb_reuse(sizeof array, array) == NULL);
+#endif // !TINIER
 
+#if !TINIER
     s = strb_alloc(2700);
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
 
     s = strb_alloc(5);
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
 
     s = strb_alloc(5000);
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
 
     s = strb_dup("DUPLICATE");
-    c = strb_unputc(s);
-    assert(c == 'E');
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == 'E');
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
 
     s = strb_ndup("DUPLICATE", 3);
-    c = strb_unputc(s);
-    assert(c == 'P');
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == 'P');
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
 
     s = strb_aprintf("Hello %d", 99);
-    c = strb_unputc(s);
-    assert(c == '9');
-    c = strb_unputc(s);
-    assert(c == EOF);
+    assert(strb_unputc(s) == '9');
+    assert(strb_unputc(s) == EOF);
 
     test(s);
     strb_free(s);
@@ -242,6 +230,6 @@ int main(void)
 #endif
     strb_free(s);
 
-#endif
+#endif // !TINIER
     return 0;
 }

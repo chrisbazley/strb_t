@@ -102,6 +102,7 @@ static void free_metadata(_Optional strb_t *sb)
 }
 #endif
 
+#if STRB_EXT_STATE
 static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HINT(size)], strbsize_t len)
 {
     sb->p.len = sb->p.pos = len;
@@ -111,7 +112,7 @@ static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HIN
     return (void *)sb;
 }
 
-strb_t *strbstate_use(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
+strb_t *strb_use(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
 {
     assert(sb);
     assert(buf);
@@ -125,7 +126,7 @@ strb_t *strbstate_use(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size
     return init_use(sb, size, buf, 0);
 }
 
-_Optional strb_t *strbstate_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
+_Optional strb_t *strb_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
 {
     assert(sb);
     assert(buf);
@@ -146,8 +147,10 @@ _Optional strb_t *strbstate_reuse(strbstate_t *sb, size_t size, char buf[STRB_SI
         return init_use(sb, size, buf, len);
     }
 }
+#endif // STRB_EXT_STATE
 
 #if !TINIER
+#if !STRB_EXT_STATE
 _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
 {
     assert(buf);
@@ -199,6 +202,7 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
     sb->p.flags = F_EXTERNAL;
     return sb;
 }
+#endif // !STRB_EXT_STATE
 
 _Optional strb_t *strb_alloc(size_t size)
 {
