@@ -334,6 +334,12 @@ size_t strb_len(strb_t const *sb )
         return sb->p.len;
 }
 
+static int set_err(strb_t *sb)
+{
+        sb->p.flags |= F_ERR;
+        return EOF;
+}
+
 int strb_setmode(strb_t *sb, int mode)
 {
     assert(sb);
@@ -345,8 +351,7 @@ int strb_setmode(strb_t *sb, int mode)
         return 0;
     } else {
         DEBUGF("Bad mode %d\n", mode);
-        sb->p.flags |= F_ERR;
-        return EOF;
+        return set_err(sb);
     }
 }
 
@@ -371,8 +376,7 @@ int strb_seek(strb_t *sb, size_t pos)
         return 0;
     } else {
         DEBUGF("Bad seek %zu\n", pos);
-        sb->p.flags |= F_ERR;
-        return EOF;
+        return set_err(sb);
     }
 }
 
@@ -406,10 +410,8 @@ int strb_nputc(strb_t *sb, int c, size_t n)
 int strb_unputc(strb_t *sb)
 {
     assert(sb);
-    if (!(sb->p.flags & F_CAN_RESTORE)) {
-        sb->p.flags |= F_ERR;
-        return EOF;
-    }
+    if (!(sb->p.flags & F_CAN_RESTORE))
+        return set_err(sb);
     
     assert(sb->p.pos > 0);
     assert(sb->p.pos < STRB_MAX_SIZE);
@@ -455,25 +457,20 @@ int strb_vputf(strb_t *sb, const char *format, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
     {
-        int e = 0;
         const int len = vsnprintf(NULL, 0, format, args);
         if (len >= 0) {
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
-                    vsprintf(buf, format, args_copy);
-                    strb_wrote(sb); // restore buf[len] overwritten by null
-                    DEBUGF("String is now %s\n", strb_ptr(sb));
-            } else {
-                    e = EOF;
+                vsprintf(buf, format, args_copy);
+                strb_wrote(sb); // restore buf[len] overwritten by null
+                DEBUGF("String is now %s\n", strb_ptr(sb));
+                va_end(args_copy);
+                return 0;
             }
-        } else {
-            sb->p.flags |= F_ERR;
-            e = EOF;
         }
-
-        va_end(args_copy);
-        return e;
     }
+    va_end(args_copy);
+    return set_err(sb);
 }
 
 int strb_putf(strb_t *sb, const char *format, ...)
@@ -557,7 +554,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 
         if (!strb_ensure(sb, n, top)) {
             DEBUGF("No room\n");
-            sb->p.flags |= F_ERR;
+            set_err(sb);
             return NULL;
         }
 
@@ -690,3 +687,4 @@ void strb_clearerr(strb_t *sb)
     assert(sb);
     sb->p.flags &= ~F_ERR;
 }
+
