@@ -1,4 +1,6 @@
 # Project:   strb_t
+# Copyright 2024 Christopher Bazley
+# SPDX-License-Identifier: MIT
 
 # Tools
 CC = gcc
