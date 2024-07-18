@@ -1,3 +1,5 @@
+// Copyright 2024 Christopher Bazley
+// SPDX-License-Identifier: MIT
 
 #if DEBUGOUT
 #define DEBUGF(...) fprintf(stderr, __VA_ARGS__)
