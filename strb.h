@@ -1,3 +1,6 @@
+// Copyright 2024 Christopher Bazley
+// SPDX-License-Identifier: MIT
+
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stddef.h>
