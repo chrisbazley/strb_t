@@ -264,7 +264,8 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         sb->p.buf[len] = '\0';
         sb->p.len = sb->p.pos = len;
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
-        sb->p.flags |= F_CAN_RESTORE;
+        if (len)
+            sb->p.flags |= F_CAN_RESTORE;
         return sb;
     }
 }
@@ -289,7 +290,8 @@ _Optional strb_t *strb_vaprintf(const char *format, va_list args)
 
         sb->p.len = sb->p.pos = (strbsize_t)len;
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
-        sb->p.flags |= F_CAN_RESTORE;
+        if (len)
+            sb->p.flags |= F_CAN_RESTORE;
         return sb;
     }
 }
@@ -600,7 +602,9 @@ _Optional char *strb_write(strb_t *sb, size_t n)
             }
 
             sb->p.write_char = buf[n];
-            sb->p.flags |= F_CAN_RESTORE | F_WRITE_PENDING;
+            sb->p.flags |= F_WRITE_PENDING;
+            if (n)
+                sb->p.flags |= F_CAN_RESTORE;
             DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
             return buf;
         }

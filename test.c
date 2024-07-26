@@ -203,7 +203,33 @@ int main(void)
     s = strb_alloc(5000);
     assert(strb_unputc(s) == EOF);
 
+    strb_write(s, 0);
+    assert(strb_unputc(s) == EOF);
+
     test(s);
+    strb_free(s);
+
+    s = strb_ndup("", 0);
+    assert(strb_unputc(s) == EOF);
+    strb_free(s);
+
+    s = strb_dup("");
+    assert(strb_unputc(s) == EOF);
+
+    assert(!strb_cpy(s, ""));
+    assert(strb_unputc(s) == EOF);
+
+    assert(!strb_ncpy(s, "", 0));
+    assert(strb_unputc(s) == EOF);
+
+    strb_free(s);
+
+    s = strb_aprintf("");
+    assert(strb_unputc(s) == EOF);
+
+    assert(!strb_printf(s, ""));
+    assert(strb_unputc(s) == EOF);
+
     strb_free(s);
 
     s = strb_dup("DUPLICATE");
