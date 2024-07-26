@@ -32,13 +32,17 @@
 #define F_EXTERNAL (1<<5)
 #define F_AUTOFREE (1<<6)
 
+/** String buffer object */
 struct strb_t {
+    /** String buffer state */
     strbprivate_t p;
 #if STRB_FREESTANDING
     // No internal storage
 #elif STRB_STATIC_ALLOC
+    /** Internal string buffer */
     char internal[STRB_MAX_SIZE];
 #else
+    /** Internal string buffer */
     char internal[];
 #endif
 };
@@ -211,7 +215,7 @@ _Optional strb_t *strb_alloc(size_t size)
     DEBUGF("Alloc buffer of size %zu\n", size);
 
 #if STRB_STATIC_ALLOC
-    size = STRB_MAX_INTERNAL_SIZE;
+    size = STRB_MAX_SIZE;
 #else
     if (size > STRB_MAX_SIZE || size < STRB_DFL_SIZE)
         size = STRB_DFL_SIZE;
