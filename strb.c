@@ -500,15 +500,9 @@ int strb_vputf(strb_t *sb, const char *format, va_list args)
         if (len >= 0) {
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
-#if !STRB_RESTORE
                 int const tmp = buf[len];
-#endif
                 vsprintf(buf, format, args_copy);
-#if STRB_RESTORE
-                strb_restore(sb); // restore buf[len] overwritten by null
-#else
                 buf[len] = tmp;
-#endif
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
                 return 0;
