@@ -148,6 +148,20 @@ static void test(strb_t *s)
     puts(strb_ptr(s));
 #endif // !STRB_FREESTANDING
 
+    assert(!strb_seek(s, 2));
+    _Optional char *w = strb_write(s, 0);
+    assert(w);
+
+    *w = '\0';
+    assert(!strcmp(strb_ptr(s), "R2"));
+    assert(strb_len(s) == 4);
+    puts(strb_ptr(s));
+
+    strb_restore(s);
+    assert(!strcmp(strb_ptr(s), "R2D2"));
+    assert(strb_len(s) == 4);
+    puts(strb_ptr(s));
+
     puts("========");
 }
 
