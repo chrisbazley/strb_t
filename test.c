@@ -23,12 +23,18 @@ static void test(strb_t *s)
 #if !STRB_FREESTANDING
         assert(!strb_putf(s, "fmt%dx", i));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
+#if STRB_UNPUTC
         assert(strb_unputc(s) == 'x');
+#endif
 #else
+#if STRB_UNPUTC
         assert(strb_unputc(s) == 'a' + i);
+#endif
 #endif // !STRB_FREESTANDING
         assert(strb_ptr(s)[strb_len(s)] == '\0');
+#if STRB_UNPUTC
         assert(strb_unputc(s) == EOF);
+#endif
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         assert(!strb_puts(s, "str"));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
@@ -146,7 +152,6 @@ static void test(strb_t *s)
     assert(!strcmp(strb_ptr(s), "R2D2"));
     assert(strb_len(s) == 4);
     puts(strb_ptr(s));
-#endif // !STRB_FREESTANDING
 
     assert(!strb_seek(s, 2));
     _Optional char *w = strb_write(s, 0);
@@ -161,6 +166,7 @@ static void test(strb_t *s)
     assert(!strcmp(strb_ptr(s), "R2D2"));
     assert(strb_len(s) == 4);
     puts(strb_ptr(s));
+#endif // !STRB_FREESTANDING
 
     puts("========");
 }
@@ -174,13 +180,19 @@ int main(void)
     strbstate_t state;
 
     s = strb_use(&state, sizeof array, array);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     test(s);
     c = strb_ptr(s)[strb_len(s) - 1];
 
     s = strb_reuse(&state, sizeof array, array);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == c);
+#else
+    (void)c;
+#endif
 
     test(s);
 
@@ -188,14 +200,20 @@ int main(void)
     assert(strb_reuse(&state, sizeof array, array) == NULL);
 #elif !STRB_FREESTANDING
     s = strb_use(sizeof array, array);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     test(s);
     c = strb_ptr(s)[strb_len(s) - 1];
     strb_free(s);
 
     s = strb_reuse(sizeof array, array);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == c);
+#else
+    (void)c;
+#endif
 
     test(s);
     strb_free(s);
@@ -211,66 +229,90 @@ int main(void)
 
 #if !STRB_FREESTANDING
     s = strb_alloc(2700);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     test(s);
     strb_free(s);
 
     s = strb_alloc(5);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     test(s);
     strb_free(s);
 
     s = strb_alloc(5000);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     strb_write(s, 0);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     test(s);
     strb_free(s);
 
     s = strb_ndup("", 0);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
     strb_free(s);
 
     s = strb_dup("");
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     assert(!strb_cpy(s, ""));
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     assert(!strb_ncpy(s, "", 0));
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     strb_free(s);
 
     s = strb_aprintf("");
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
-
+#endif
     assert(!strb_printf(s, ""));
+#if STRB_UNPUTC
     assert(strb_unputc(s) == EOF);
+#endif
 
     strb_free(s);
 
     s = strb_dup("DUPLICATE");
+#if STRB_UNPUTC
     assert(strb_unputc(s) == 'E');
     assert(strb_unputc(s) == EOF);
-
+#endif
     test(s);
     strb_free(s);
 
     s = strb_ndup("DUPLICATE", 3);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == 'P');
     assert(strb_unputc(s) == EOF);
+#endif
 
     test(s);
     strb_free(s);
 
     s = strb_aprintf("Hello %d", 99);
+#if STRB_UNPUTC
     assert(strb_unputc(s) == '9');
     assert(strb_unputc(s) == EOF);
+#endif
 
     test(s);
     strb_free(s);

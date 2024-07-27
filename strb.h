@@ -144,7 +144,11 @@ typedef struct strb_t strb_t;
  * @private
  */
 typedef struct {
-    char restore_char, write_char, flags;
+#if STRB_UNPUTC
+    char restore_char;
+#endif
+    char write_char;
+    char flags;
     strbsize_t len, size, pos;
     char *buf;
 } strbprivate_t;

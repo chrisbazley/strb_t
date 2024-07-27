@@ -277,8 +277,8 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         memcpy(sb->p.buf, str, len); // more efficient than strncpy
         sb->p.buf[len] = '\0';
         sb->p.len = sb->p.pos = len;
-        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
 #if STRB_UNPUTC
+        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set unputc_char
         if (len)
             sb->p.flags |= F_CAN_UNPUTC;
 #endif
@@ -305,8 +305,8 @@ _Optional strb_t *strb_vaprintf(const char *format, va_list args)
         va_end(args_copy);
 
         sb->p.len = sb->p.pos = (strbsize_t)len;
-        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
 #if STRB_UNPUTC
+        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set unputc_char
         if (len)
             sb->p.flags |= F_CAN_UNPUTC;
 #endif
@@ -451,7 +451,7 @@ int strb_unputc(strb_t *sb)
                 memmove(sb->p.buf + new_pos, sb->p.buf + sb->p.pos, sb->p.len - new_pos);
                 --sb->p.len;
         } else {
-                sb->p.buf[new_pos] = sb->p.restore_char;
+                sb->p.buf[new_pos] = sb->p.unputc_char;
         }
 
         sb->p.pos = new_pos;
@@ -605,10 +605,12 @@ _Optional char *strb_write(strb_t *sb, size_t n)
                 memmove(buf + n, buf, sb->p.len + 1 - old_pos);
                 sb->p.len += n;
             } else {
+#if STRB_UNPUTC
                 // Behave as if the write were implemented by multiple
                 // putc operations, which would imply null termination at
                 // each successive position.
-                sb->p.restore_char = old_pos + n - 1 > old_len ? '\0' : buf[n - 1];
+                sb->p.unputc_char = old_pos + n - 1 > old_len ? '\0' : buf[n - 1];
+#endif
             }
 
             sb->p.pos = old_pos + n;
