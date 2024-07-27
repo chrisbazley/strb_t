@@ -418,7 +418,7 @@ int strb_nputc(strb_t *sb, int c, size_t n)
         return EOF;
 
     memset(buf, c, n);
-    // assume F_WRITE_PENDING isn't user-visible. Don't bother calling strb_wrote.
+    // assume F_WRITE_PENDING isn't user-visible. Don't bother calling strb_restore.
     return c;
 }
 
@@ -456,7 +456,7 @@ int strb_nputs(strb_t *sb, const char *str, size_t n)
             return EOF;
 
     memcpy(buf, str, len); // more efficient than strncpy
-    // assume F_WRITE_PENDING isn't user-visible. Don't bother calling strb_wrote.
+    // assume F_WRITE_PENDING isn't user-visible. Don't bother calling strb_restore.
     return 0;
 }
 
@@ -477,7 +477,7 @@ int strb_vputf(strb_t *sb, const char *format, va_list args)
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
                 vsprintf(buf, format, args_copy);
-                strb_wrote(sb); // restore buf[len] overwritten by null
+                strb_restore(sb); // restore buf[len] overwritten by null
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
                 return 0;
@@ -618,7 +618,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
     }
 }
 
-void strb_wrote(strb_t *sb)
+void strb_restore(strb_t *sb)
 {
     assert(sb);
     if (sb->p.flags & F_WRITE_PENDING) {
