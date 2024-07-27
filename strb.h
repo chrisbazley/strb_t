@@ -28,7 +28,7 @@
 /**
  * Whether the interface provides the @ref strb_restore function.
  */
-#define STRB_RESTORE 0
+#define STRB_RESTORE 1
 
 #if STRB_FREESTANDING
 // No static or dynamic allocation
