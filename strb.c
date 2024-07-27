@@ -27,8 +27,15 @@
 #else
 #define F_CAN_UNPUTC 0
 #endif
+
 #define F_ERR (1<<1)
+
+#if STRB_RESTORE
 #define F_CAN_RESTORE (1<<2)
+#else
+#define F_CAN_RESTORE 0
+#endif
+
 #define F_OVERWRITE (1<<3)
 #if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
 #define F_ALLOCATED (1<<4)
@@ -398,7 +405,9 @@ int strb_seek(strb_t *sb, size_t pos)
     if (pos < STRB_MAX_SIZE)
     {
         sb->p.pos = pos;
+#if STRB_UNPUTC || STRB_RESTORE
         sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+#endif
         return 0;
     } else {
         DEBUGF("Bad seek %zu\n", pos);
@@ -455,7 +464,9 @@ int strb_unputc(strb_t *sb)
         }
 
         sb->p.pos = new_pos;
+#if STRB_UNPUTC || STRB_RESTORE
         sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+#endif
         return removed;
     }
 }
@@ -489,8 +500,15 @@ int strb_vputf(strb_t *sb, const char *format, va_list args)
         if (len >= 0) {
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
+#if !STRB_RESTORE
+                int const tmp = buf[len];
+#endif
                 vsprintf(buf, format, args_copy);
+#if STRB_RESTORE
                 strb_restore(sb); // restore buf[len] overwritten by null
+#else
+                buf[len] = tmp;
+#endif
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
                 return 0;
@@ -623,27 +641,32 @@ _Optional char *strb_write(strb_t *sb, size_t n)
                 buf[n] = '\0';
             }
 
-            sb->p.write_char = buf[n];
+#if STRB_RESTORE
+            sb->p.restore_char = buf[n];
             sb->p.flags |= F_CAN_RESTORE;
+            DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char, sb->p.restore_char, sb->p.pos);
+#endif
+
 #if STRB_UNPUTC
             if (n)
                 sb->p.flags |= F_CAN_UNPUTC;
 #endif
-            DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
             return buf;
         }
     }
 }
 
+#if STRB_RESTORE
 void strb_restore(strb_t *sb)
 {
     assert(sb);
     if (sb->p.flags & F_CAN_RESTORE) {
-        DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
-        sb->p.buf[sb->p.pos] = sb->p.write_char;
+        DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char, sb->p.restore_char, sb->p.pos);
+        sb->p.buf[sb->p.pos] = sb->p.restore_char;
         sb->p.flags &= ~F_CAN_RESTORE;
     }
 }
+#endif
 
 void strb_delto(strb_t *sb, size_t pos)
 {
@@ -670,7 +693,9 @@ void strb_delto(strb_t *sb, size_t pos)
     }
 
     sb->p.pos = lo;
+#if STRB_UNPUTC || STRB_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+#endif
 }
 
 static void strb_empty(strb_t *sb)
@@ -678,7 +703,9 @@ static void strb_empty(strb_t *sb)
     assert(sb);
     sb->p.len = sb->p.pos = 0;
     sb->p.buf[0] = '\0';
+#if STRB_UNPUTC || STRB_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+#endif
 }
 
 int strb_ncpy(strb_t *sb, const char *str, size_t n)

@@ -25,6 +25,11 @@
  */
 #define STRB_UNPUTC 0
 
+/**
+ * Whether the interface provides the @ref strb_restore function.
+ */
+#define STRB_RESTORE 0
+
 #if STRB_FREESTANDING
 // No static or dynamic allocation
 /**
@@ -145,9 +150,11 @@ typedef struct strb_t strb_t;
  */
 typedef struct {
 #if STRB_UNPUTC
+    char unputc_char;
+#endif
+#if STRB_RESTORE
     char restore_char;
 #endif
-    char write_char;
     char flags;
     strbsize_t len, size, pos;
     char *buf;

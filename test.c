@@ -162,10 +162,13 @@ static void test(strb_t *s)
     assert(strb_len(s) == 4);
     puts(strb_ptr(s));
 
+#if STRB_RESTORE
     strb_restore(s);
     assert(!strcmp(strb_ptr(s), "R2D2"));
     assert(strb_len(s) == 4);
     puts(strb_ptr(s));
+#endif
+
 #endif // !STRB_FREESTANDING
 
     puts("========");
