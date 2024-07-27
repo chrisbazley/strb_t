@@ -22,9 +22,9 @@
 
 #define _Optional
 
-#define F_CAN_RESTORE (1<<0)
+#define F_CAN_UNPUTC (1<<0)
 #define F_ERR (1<<1)
-#define F_WRITE_PENDING (1<<2)
+#define F_CAN_RESTORE (1<<2)
 #define F_OVERWRITE (1<<3)
 #if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
 #define F_ALLOCATED (1<<4)
@@ -117,7 +117,7 @@ static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HIN
     sb->p.flags = F_EXTERNAL | F_AUTOFREE;
 
     if (len)
-        sb->p.flags |= F_CAN_RESTORE;
+        sb->p.flags |= F_CAN_UNPUTC;
 
     return (void *)sb;
 }
@@ -211,7 +211,7 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
         sb->p.flags = F_EXTERNAL;
 
         if (len)
-            sb->p.flags |= F_CAN_RESTORE;
+            sb->p.flags |= F_CAN_UNPUTC;
     }
     return sb;
 }
@@ -272,7 +272,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         sb->p.len = sb->p.pos = len;
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
         if (len)
-            sb->p.flags |= F_CAN_RESTORE;
+            sb->p.flags |= F_CAN_UNPUTC;
         return sb;
     }
 }
@@ -298,7 +298,7 @@ _Optional strb_t *strb_vaprintf(const char *format, va_list args)
         sb->p.len = sb->p.pos = (strbsize_t)len;
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
         if (len)
-            sb->p.flags |= F_CAN_RESTORE;
+            sb->p.flags |= F_CAN_UNPUTC;
         return sb;
     }
 }
@@ -360,7 +360,7 @@ int strb_setmode(strb_t *sb, int mode)
     assert(sb);
     if (mode == strb_insert || mode == strb_overwrite)
     {
-        sb->p.flags &= ~(F_CAN_RESTORE|F_OVERWRITE);
+        sb->p.flags &= ~(F_CAN_UNPUTC|F_OVERWRITE);
         if (mode == strb_overwrite)
             sb->p.flags |= F_OVERWRITE;
         return 0;
@@ -387,7 +387,7 @@ int strb_seek(strb_t *sb, size_t pos)
     if (pos < STRB_MAX_SIZE)
     {
         sb->p.pos = pos;
-        sb->p.flags &= ~(F_CAN_RESTORE | F_WRITE_PENDING);
+        sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
         return 0;
     } else {
         DEBUGF("Bad seek %zu\n", pos);
@@ -418,14 +418,14 @@ int strb_nputc(strb_t *sb, int c, size_t n)
         return EOF;
 
     memset(buf, c, n);
-    // assume F_WRITE_PENDING isn't user-visible. Don't bother calling strb_restore.
+    // assume F_CAN_RESTORE isn't user-visible. Don't bother calling strb_restore.
     return c;
 }
 
 int strb_unputc(strb_t *sb)
 {
     assert(sb);
-    if (!(sb->p.flags & F_CAN_RESTORE))
+    if (!(sb->p.flags & F_CAN_UNPUTC))
         return set_err(sb);
     
     assert(sb->p.pos > 0);
@@ -443,7 +443,7 @@ int strb_unputc(strb_t *sb)
         }
 
         sb->p.pos = new_pos;
-        sb->p.flags &= ~(F_CAN_RESTORE | F_WRITE_PENDING);
+        sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
         return removed;
     }
 }
@@ -456,7 +456,7 @@ int strb_nputs(strb_t *sb, const char *str, size_t n)
             return EOF;
 
     memcpy(buf, str, len); // more efficient than strncpy
-    // assume F_WRITE_PENDING isn't user-visible. Don't bother calling strb_restore.
+    // assume F_CAN_RESTORE isn't user-visible. Don't bother calling strb_restore.
     return 0;
 }
 
@@ -609,9 +609,9 @@ _Optional char *strb_write(strb_t *sb, size_t n)
             }
 
             sb->p.write_char = buf[n];
-            sb->p.flags |= F_WRITE_PENDING;
+            sb->p.flags |= F_CAN_RESTORE;
             if (n)
-                sb->p.flags |= F_CAN_RESTORE;
+                sb->p.flags |= F_CAN_UNPUTC;
             DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
             return buf;
         }
@@ -621,10 +621,10 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 void strb_restore(strb_t *sb)
 {
     assert(sb);
-    if (sb->p.flags & F_WRITE_PENDING) {
+    if (sb->p.flags & F_CAN_RESTORE) {
         DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
         sb->p.buf[sb->p.pos] = sb->p.write_char;
-        sb->p.flags &= ~F_WRITE_PENDING;
+        sb->p.flags &= ~F_CAN_RESTORE;
     }
 }
 
@@ -653,7 +653,7 @@ void strb_delto(strb_t *sb, size_t pos)
     }
 
     sb->p.pos = lo;
-    sb->p.flags &= ~(F_CAN_RESTORE | F_WRITE_PENDING);
+    sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 }
 
 static void strb_empty(strb_t *sb)
@@ -661,7 +661,7 @@ static void strb_empty(strb_t *sb)
     assert(sb);
     sb->p.len = sb->p.pos = 0;
     sb->p.buf[0] = '\0';
-    sb->p.flags &= ~(F_CAN_RESTORE | F_WRITE_PENDING);
+    sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 }
 
 int strb_ncpy(strb_t *sb, const char *str, size_t n)
