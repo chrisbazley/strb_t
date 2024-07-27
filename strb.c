@@ -22,7 +22,11 @@
 
 #define _Optional
 
+#if STRB_UNPUTC
 #define F_CAN_UNPUTC (1<<0)
+#else
+#define F_CAN_UNPUTC 0
+#endif
 #define F_ERR (1<<1)
 #define F_CAN_RESTORE (1<<2)
 #define F_OVERWRITE (1<<3)
@@ -116,9 +120,10 @@ static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HIN
     sb->p.buf = buf;
     sb->p.flags = F_EXTERNAL | F_AUTOFREE;
 
+#if STRB_UNPUTC
     if (len)
         sb->p.flags |= F_CAN_UNPUTC;
-
+#endif
     return (void *)sb;
 }
 
@@ -210,8 +215,10 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
         sb->p.buf = buf;
         sb->p.flags = F_EXTERNAL;
 
+#if STRB_UNPUTC
         if (len)
             sb->p.flags |= F_CAN_UNPUTC;
+#endif
     }
     return sb;
 }
@@ -271,8 +278,10 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         sb->p.buf[len] = '\0';
         sb->p.len = sb->p.pos = len;
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
+#if STRB_UNPUTC
         if (len)
             sb->p.flags |= F_CAN_UNPUTC;
+#endif
         return sb;
     }
 }
@@ -297,8 +306,10 @@ _Optional strb_t *strb_vaprintf(const char *format, va_list args)
 
         sb->p.len = sb->p.pos = (strbsize_t)len;
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set restore_char
+#if STRB_UNPUTC
         if (len)
             sb->p.flags |= F_CAN_UNPUTC;
+#endif
         return sb;
     }
 }
@@ -422,6 +433,7 @@ int strb_nputc(strb_t *sb, int c, size_t n)
     return c;
 }
 
+#if STRB_UNPUTC
 int strb_unputc(strb_t *sb)
 {
     assert(sb);
@@ -447,6 +459,7 @@ int strb_unputc(strb_t *sb)
         return removed;
     }
 }
+#endif
 
 int strb_nputs(strb_t *sb, const char *str, size_t n)
 {
@@ -610,8 +623,10 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 
             sb->p.write_char = buf[n];
             sb->p.flags |= F_CAN_RESTORE;
+#if STRB_UNPUTC
             if (n)
                 sb->p.flags |= F_CAN_UNPUTC;
+#endif
             DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.write_char, sb->p.write_char, sb->p.pos);
             return buf;
         }
@@ -708,4 +723,3 @@ void strb_clearerr(strb_t *sb)
     assert(sb);
     sb->p.flags &= ~F_ERR;
 }
-

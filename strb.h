@@ -20,6 +20,11 @@
  */
 #define STRB_EXT_STATE 1
 
+/**
+ * Whether the interface provides the @ref strb_unputc function.
+ */
+#define STRB_UNPUTC 0
+
 #if STRB_FREESTANDING
 // No static or dynamic allocation
 /**
@@ -591,6 +596,7 @@ int strb_putc(strb_t *sb, int c);
  */
 int strb_nputc(strb_t *sb, int c, size_t n);
 
+#if STRB_UNPUTC
 /**
  * @brief Undo the last put character operation.
  *
@@ -616,6 +622,7 @@ int strb_nputc(strb_t *sb, int c, size_t n);
  *       @ref strb_clearerr has been called.
  */
 int strb_unputc(strb_t *sb);
+#endif
 
 /**
  * @brief Put a string into a string buffer.
