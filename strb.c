@@ -115,6 +115,10 @@ static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HIN
     sb->p.size = size;
     sb->p.buf = buf;
     sb->p.flags = F_EXTERNAL | F_AUTOFREE;
+
+    if (len)
+        sb->p.flags |= F_CAN_RESTORE;
+
     return (void *)sb;
 }
 
@@ -204,8 +208,11 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
         sb->p.len = sb->p.pos = len;
         sb->p.size = size;
         sb->p.buf = buf;
+        sb->p.flags = F_EXTERNAL;
+
+        if (len)
+            sb->p.flags |= F_CAN_RESTORE;
     }
-    sb->p.flags = F_EXTERNAL;
     return sb;
 }
 #endif // !STRB_EXT_STATE

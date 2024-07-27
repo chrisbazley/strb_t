@@ -155,6 +155,7 @@ int main(void)
 {
     char array[100];
     strb_t *s;
+    int c;
 #if STRB_EXT_STATE
     strbstate_t state;
 
@@ -162,9 +163,10 @@ int main(void)
     assert(strb_unputc(s) == EOF);
 
     test(s);
+    c = strb_ptr(s)[strb_len(s) - 1];
 
     s = strb_reuse(&state, sizeof array, array);
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(s) == c);
 
     test(s);
 
@@ -175,16 +177,22 @@ int main(void)
     assert(strb_unputc(s) == EOF);
 
     test(s);
+    c = strb_ptr(s)[strb_len(s) - 1];
     strb_free(s);
 
     s = strb_reuse(sizeof array, array);
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(s) == c);
 
     test(s);
     strb_free(s);
 
     memset(array, 'a', sizeof array);
     assert(strb_reuse(sizeof array, array) == NULL);
+#else
+    (void)s;
+    (void)array;
+    (void)test;
+    (void)c;
 #endif // !STRB_FREESTANDING
 
 #if !STRB_FREESTANDING

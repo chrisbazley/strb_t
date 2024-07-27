@@ -229,8 +229,8 @@ strb_t *strb_use(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
  * @post If successful, @ref strb_tell and @ref strb_len return the reused string length.
  * @post If successful, a call to @ref strb_wrote will have no effect until
  *       @ref strb_write has been called.
- * @post If successful, a call to @ref strb_unputc will fail until a character has been put
- *       into the buffer.
+ * @post If successful, the last character of the reused string (if any) can be
+ *       removed by @ref strb_unputc.
  * @post If successful, a call to @ref strb_error will return false until an error occurs.
  */
 _Optional strb_t *strb_reuse(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
@@ -288,8 +288,8 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * @post If successful, @ref strb_tell and @ref strb_len return the reused string length.
  * @post If successful, a call to @ref strb_wrote will have no effect until
  *       @ref strb_write has been called.
- * @post If successful, a call to @ref strb_unputc will fail until a character has been put
- *       into the buffer.
+ * @post If successful, the last character of the reused string (if any) can be
+ *       removed by @ref strb_unputc.
  * @post If successful, a call to @ref strb_error will return false until an error occurs.
  */
 _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)]);
