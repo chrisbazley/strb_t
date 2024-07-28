@@ -107,10 +107,10 @@ static void free_metadata(_Optional strb_t *sb)
     }
 }
 #elif !STRB_FREESTANDING
-static _Optional strb_t *alloc_metadata(strbsize_t n)
+static _Optional strb_t *alloc_metadata(strbsize_t size)
 {
-    assert(n <= STRB_MAX_INTERNAL_SIZE);
-    return malloc(sizeof(strb_t) + (n * sizeof(((strb_t *)0)->internal[0])));
+    assert(size <= STRB_MAX_INTERNAL_SIZE);
+    return malloc(sizeof(strb_t) + (size * sizeof(((strb_t *)0)->internal[0])));
 }
 
 static void free_metadata(_Optional strb_t *sb)
@@ -120,10 +120,10 @@ static void free_metadata(_Optional strb_t *sb)
 #endif
 
 #if STRB_EXT_STATE
-static strb_t *init_use(strbstate_t *sb, strbsize_t n, char buf[STRB_SIZE_HINT(n)], strbsize_t len)
+static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HINT(size)], strbsize_t len)
 {
     sb->p.len = sb->p.pos = len;
-    sb->p.size = n;
+    sb->p.size = size;
     sb->p.buf = buf;
     sb->p.flags = F_EXTERNAL | F_AUTOFREE;
 
@@ -141,12 +141,11 @@ strb_t *strb_use(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
     assert(size > 0);
     DEBUGF("Use buffer %p of size %zu\n", buf, size);
 
-    strbsize_t n = STRB_MAX_SIZE;
-    if (size / sizeof(buf[0]) < STRB_MAX_SIZE)
-        n = size / sizeof(buf[0]);
+    if (size > STRB_MAX_SIZE)
+        size = STRB_MAX_SIZE;
 
     buf[0] = '\0';
-    return init_use(sb, n, buf, 0);
+    return init_use(sb, size, buf, 0);
 }
 
 _Optional strb_t *strb_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
@@ -156,19 +155,18 @@ _Optional strb_t *strb_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HI
     assert(size > 0);
     DEBUGF("Reuse buffer %p of size %zu\n", buf, size);
 
-    strbsize_t n = STRB_MAX_SIZE;
-    if (size / sizeof(buf[0]) < STRB_MAX_SIZE)
-        n = size / sizeof(buf[0]);
+    if (size > STRB_MAX_SIZE)
+        size = STRB_MAX_SIZE;
 
     {
-        size_t len = strnlen(buf, n);
-        if (len == n) {
+        size_t len = strnlen(buf, size);
+        if (len == size) {
             // Could be outside of the caller's control because of STRB_MAX_SIZE.
             // Don't want to force use of strb_error after any call.
             return NULL;
         }
 
-        return init_use(sb, n, buf, len);
+        return init_use(sb, size, buf, len);
     }
 }
 #endif // STRB_EXT_STATE
@@ -181,16 +179,15 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
     assert(size > 0);
     DEBUGF("Use buffer %p of size %zu\n", buf, size);
 
-    strbsize_t n = STRB_MAX_SIZE;
-    if (size / sizeof(buf[0]) < STRB_MAX_SIZE)
-        n = size / sizeof(buf[0]);
+    if (size > STRB_MAX_SIZE)
+        size = STRB_MAX_SIZE;
 
     {
         _Optional strb_t *sb = alloc_metadata(0);
         if (!sb) return NULL;
 
         sb->p.len = sb->p.pos = 0;
-        sb->p.size = n;
+        sb->p.size = size;
         sb->p.buf = buf;
         sb->p.flags = F_EXTERNAL;
         buf[0] = '\0';
@@ -206,13 +203,12 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
     assert(size > 0);
     DEBUGF("Reuse buffer %p of size %zu\n", buf, size);
 
-    strbsize_t n = STRB_MAX_SIZE;
-    if (size / sizeof(buf[0]) < STRB_MAX_SIZE)
-        n = size / sizeof(buf[0]);
+    if (size > STRB_MAX_SIZE)
+        size = STRB_MAX_SIZE;
 
     {
-        size_t len = strnlen(buf, n);
-        if (len == n) {
+        size_t len = strnlen(buf, size);
+        if (len == size) {
             // Could be outside of the caller's control because of STRB_MAX_SIZE.
             // Don't want to force use of strb_error after any call.
             return NULL;
@@ -222,7 +218,7 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
         if (!sb) return NULL;
 
         sb->p.len = sb->p.pos = len;
-        sb->p.size = n;
+        sb->p.size = size;
         sb->p.buf = buf;
         sb->p.flags = F_EXTERNAL;
 
