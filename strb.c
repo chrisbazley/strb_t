@@ -120,7 +120,7 @@ static void free_metadata(_Optional strb_t *sb)
 #endif
 
 #if STRB_EXT_STATE
-static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HINT(size)], strbsize_t len)
+static strb_t *init_use(strbstate_t *restrict sb, strbsize_t size, char buf[STRB_SIZE_HINT(size)], strbsize_t len)
 {
     sb->p.len = sb->p.pos = len;
     sb->p.size = size;
@@ -134,7 +134,7 @@ static strb_t *init_use(strbstate_t *sb, strbsize_t size, char buf[STRB_SIZE_HIN
     return (void *)sb;
 }
 
-strb_t *strb_use(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
+strb_t *strb_use(strbstate_t *restrict sb, size_t size, char buf[STRB_SIZE_HINT(size)])
 {
     assert(sb);
     assert(buf);
@@ -148,7 +148,7 @@ strb_t *strb_use(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
     return init_use(sb, size, buf, 0);
 }
 
-_Optional strb_t *strb_reuse(strbstate_t *sb, size_t size, char buf[STRB_SIZE_HINT(size)])
+_Optional strb_t *strb_reuse(strbstate_t *restrict sb, size_t size, char buf[STRB_SIZE_HINT(size)])
 {
     assert(sb);
     assert(buf);
@@ -297,7 +297,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
     }
 }
 
-_Optional strb_t *strb_vaprintf(const char *format, va_list args)
+_Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -330,7 +330,7 @@ _Optional strb_t *strb_dup(const char *str)
         return strb_ndup(str, SIZE_MAX);
 }
 
-_Optional strb_t *strb_aprintf(const char *format,
+_Optional strb_t *strb_aprintf(const char *restrict format,
                                 ...)
 {
     va_list args;
@@ -476,7 +476,7 @@ int strb_unputc(strb_t *sb)
 }
 #endif
 
-int strb_nputs(strb_t *sb, const char *str, size_t n)
+int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
 {
     size_t len = strnlen(str, n);
     _Optional char *buf = strb_write(sb, len);
@@ -495,7 +495,7 @@ int strb_puts(strb_t *sb, const char *str )
 
 #if !STRB_FREESTANDING
 
-int strb_vputf(strb_t *sb, const char *format, va_list args)
+int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -517,7 +517,7 @@ int strb_vputf(strb_t *sb, const char *format, va_list args)
     return set_err(sb);
 }
 
-int strb_putf(strb_t *sb, const char *format, ...)
+int strb_putf(strb_t *restrict sb, const char *restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -713,27 +713,27 @@ static void strb_empty(strb_t *sb)
 #endif
 }
 
-int strb_ncpy(strb_t *sb, const char *str, size_t n)
+int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n)
 {
     strb_empty(sb);
     return strb_nputs(sb, str, n);
 }
 
-int strb_cpy(strb_t *sb,
-             const char *str )
+int strb_cpy(strb_t *restrict sb,
+             const char *restrict str )
 {
     return strb_ncpy(sb, str, SIZE_MAX);
 }
 
 #if !STRB_FREESTANDING
 
-int strb_vprintf(strb_t *sb, const char *format, va_list args)
+int strb_vprintf(strb_t *restrict sb, const char *restrict format, va_list args)
 {
     strb_empty(sb);
     return strb_vputf(sb, format, args);
 }
 
-int strb_printf(strb_t *sb, const char *format, ...)
+int strb_printf(strb_t *restrict sb, const char *restrict format, ...)
 {
     va_list args;
     va_start(args, format);

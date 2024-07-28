@@ -215,7 +215,7 @@ typedef struct  {
  *       into the buffer.
  * @post A call to @ref strb_error will return false until an error occurs.
  */
-strb_t *strb_use(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
+strb_t *strb_use(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
 
 /**
  * @brief Create a string buffer object by reusing an external character array
@@ -253,7 +253,7 @@ strb_t *strb_use(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
  *       removed by @ref strb_unputc.
  * @post If successful, a call to @ref strb_error will return false until an error occurs.
  */
-_Optional strb_t *strb_reuse(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
+_Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
 
 #elif !STRB_FREESTANDING
 
@@ -412,7 +412,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n);
  *       @ref strb_write has been called.
  * @post If successful, a call to @ref strb_error will return false until an error occurs.
  */
-_Optional strb_t *strb_aprintf(const char *format, ...);
+_Optional strb_t *strb_aprintf(const char *restrict format, ...);
 
 /**
  * @brief Create a string buffer object with internal storage by parsing a format string.
@@ -435,7 +435,7 @@ _Optional strb_t *strb_aprintf(const char *format, ...);
  *       @ref strb_write has been called.
  * @post If successful, a call to @ref strb_error will return false until an error occurs.
  */
-_Optional strb_t *strb_vaprintf(const char *format, va_list args);
+_Optional strb_t *strb_vaprintf(const char *restrict format, va_list args);
 
 /**
  * @brief Destroy a string buffer object.
@@ -531,7 +531,7 @@ int strb_setmode(strb_t *sb, int mode);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
  * @post The returned value may be passed to @ref strb_setmode.
  */
-int strb_getmode(const strb_t *sb );
+int strb_getmode(const strb_t *sb);
 
 /**
  * @brief Set the editing position of a string buffer.
@@ -665,7 +665,7 @@ int strb_unputc(strb_t *sb);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_puts(strb_t *sb, const char *str);
+int strb_puts(strb_t *restrict sb, const char *restrict str);
 
 /**
  * @brief Put a sequence of characters into a string buffer.
@@ -689,7 +689,7 @@ int strb_puts(strb_t *sb, const char *str);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_nputs(strb_t *sb, const char *str, size_t n);
+int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n);
 
 #if !STRB_FREESTANDING
 /**
@@ -713,7 +713,7 @@ int strb_nputs(strb_t *sb, const char *str, size_t n);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_vputf(strb_t *sb, const char *format, va_list args);
+int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args);
 
 /**
  * @brief Put a generated string into a string buffer.
@@ -736,7 +736,7 @@ int strb_vputf(strb_t *sb, const char *format, va_list args);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_putf(strb_t *sb, const char *format, ...);
+int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
 #endif
 
 /**
@@ -865,7 +865,7 @@ void strb_delto(strb_t *sb, size_t pos);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_cpy(strb_t *sb, const char *str);
+int strb_cpy(strb_t *restrict sb, const char *restrict str);
 
 /**
  * @brief Copy a sequence of characters into a string buffer.
@@ -887,7 +887,7 @@ int strb_cpy(strb_t *sb, const char *str);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_ncpy(strb_t *sb, const char *str, size_t n);
+int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n);
 
 #if !STRB_FREESTANDING
 
@@ -911,7 +911,7 @@ int strb_ncpy(strb_t *sb, const char *str, size_t n);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_vprintf(strb_t *sb, const char *format, va_list args);
+int strb_vprintf(strb_t *restrict sb, const char *restrict format, va_list args);
 
 /**
  * @brief Print a generated string into a string buffer.
@@ -933,7 +933,7 @@ int strb_vprintf(strb_t *sb, const char *format, va_list args);
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
-int strb_printf(strb_t *sb, const char *format, ...);
+int strb_printf(strb_t *restrict sb, const char *restrict format, ...);
 #endif
 
 /**
