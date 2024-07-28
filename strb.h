@@ -759,27 +759,48 @@ int strb_putf(strb_t *sb, const char *format, ...);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
  * @post The existing contents of the buffer are unmodified.
- *       The initial value of any characters allocated beyond the previous end of the buffer is 0.
+ *       Any space allocated beyond the previous end of the buffer is filled with null characters.
  * @post If successful, the position indicator has advanced by @p n characters
  *       and the string length has increased by not more than @p n characters.
  * @post After copying up to @p n + 1 characters (including any null terminator) into the buffer at 
  *       the returned address, the user may call @ref strb_restore to restore the character that was
- *       at offset @p n from the current position before the call to @ref strb_write. 
+ *       at offset @p n from the current position before the call to @ref strb_write.
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
 _Optional char *strb_write(strb_t *sb, size_t n);
 
 /**
+ * @brief Split a string at the current position.
+ *
+ * Writes a null character into the buffer at the current position but does not
+ * increment the position indicator.
+ *
+ * This function exists to make it efficient and simple to split or truncate the
+ * string in a buffer (as @ref strtok does) without moving characters. It is
+ * equivalent to calling @ref strb_write with 0 and storing a null character at
+ * the returned address.
+ *
+ * @param[in,out] sb  String buffer.
+ * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
+ *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
+ * @post The character at the current position is null.
+ * @post The position indicator and string length are unmodified.
+ * @post The user may call @ref strb_restore to restore the character that was
+ *       at the current position before the call to @ref strb_split.
+ */
+void strb_split(strb_t *sb);
+
+/**
  * @brief Restore a character that may have been overwritten by a preceding write.
  *
  * Restores the character previously at the current position before the most recent
- * call to @ref strb_write.
+ * call to @ref strb_write or @ref strb_split.
  *
- * This function exists to make it efficient and simple to write strings (as opposed to
- * unterminated character sequences) directly into a string buffer. Since strings are
- * terminated by a null character, any character overwritten by this terminator must be
- * restored to prevent unintentional truncation.
+ * This function exists primarily to make it efficient and simple to write strings
+ * (as opposed to unterminated character sequences) directly into a string buffer.
+ * Since strings are terminated by a null character, any character overwritten by
+ * this terminator must be restored to prevent unintentional truncation.
  *
  * For example, prepending "fish" to "cat" should not result in the string "fish\0at".
  * A call to @ref strb_restore would restore the overwritten character 'c' in-place,
@@ -792,9 +813,10 @@ _Optional char *strb_write(strb_t *sb, size_t n);
  * @param[in,out] sb  String buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
- * @post If there was no intervening call that put, delete, or restore characters, or
+ * @post If there was no intervening call that put, deleted, or restored characters, or
  *       that set the position, then the character at the current position is restored
- *       the value that it had prior to the most recent call to @ref strb_write.
+ *       the value that it had prior to the most recent call to @ref strb_write or
+ *       @ref strb_split.
  */
 void strb_restore(strb_t *sb);
 

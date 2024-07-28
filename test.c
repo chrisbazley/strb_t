@@ -151,22 +151,71 @@ static void test(strb_t *s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     assert(!strcmp(strb_ptr(s), "R2D2"));
     assert(strb_len(s) == 4);
+    assert(strb_tell(s) == 4);
     puts(strb_ptr(s));
 
     assert(!strb_seek(s, 2));
-    _Optional char *w = strb_write(s, 0);
-    assert(w);
+    {
+        _Optional char *w = strb_write(s, 0);
+        assert(w);
+        *w = '\0';
+    }
 
-    *w = '\0';
     assert(!strcmp(strb_ptr(s), "R2"));
     assert(strb_len(s) == 4);
+    assert(strb_tell(s) == 2);
     puts(strb_ptr(s));
 
 #if STRB_RESTORE
     strb_restore(s);
     assert(!strcmp(strb_ptr(s), "R2D2"));
     assert(strb_len(s) == 4);
+    assert(strb_tell(s) == 2);
     puts(strb_ptr(s));
+#endif
+
+    assert(!strb_seek(s, strb_len(s)));
+    {
+        _Optional char *w = strb_write(s, 0);
+        assert(w);
+        *w = 'q'; // probably illegal!
+    }
+    assert(strb_ptr(s)[strb_len(s)] == 'q');
+
+#if STRB_RESTORE
+    strb_restore(s);
+    assert(strb_ptr(s)[strb_len(s)] == '\0');
+#endif
+
+    assert(!strb_printf(s, "C%dP%d", 3, 0));
+    assert(strb_ptr(s)[strb_len(s)] == '\0');
+    assert(!strcmp(strb_ptr(s), "C3P0"));
+    assert(strb_len(s) == 4);
+    assert(strb_tell(s) == 4);
+    puts(strb_ptr(s));
+
+    assert(!strb_seek(s, 2));
+    strb_split(s);
+    assert(!strcmp(strb_ptr(s), "C3"));
+    assert(strb_len(s) == 4);
+    assert(strb_tell(s) == 2);
+    puts(strb_ptr(s));
+
+#if STRB_RESTORE
+    strb_restore(s);
+    assert(!strcmp(strb_ptr(s), "C3P0"));
+    assert(strb_len(s) == 4);
+    assert(strb_tell(s) == 2);
+    puts(strb_ptr(s));
+#endif
+
+    assert(!strb_seek(s, strb_len(s)));
+    strb_split(s);
+    assert(strb_ptr(s)[strb_len(s)] == '\0');
+
+#if STRB_RESTORE
+    strb_restore(s);
+    assert(strb_ptr(s)[strb_len(s)] == '\0');
 #endif
 
 #endif // !STRB_FREESTANDING

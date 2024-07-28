@@ -654,6 +654,13 @@ _Optional char *strb_write(strb_t *sb, size_t n)
     }
 }
 
+void strb_split(strb_t *sb)
+{
+    _Optional char *p = strb_write(sb, 0);
+    assert(p);
+    *(char *)p = '\0';
+}
+
 #if STRB_RESTORE
 void strb_restore(strb_t *sb)
 {
