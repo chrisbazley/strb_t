@@ -238,8 +238,12 @@ _Optional strb_t *strb_alloc(size_t size)
 #if STRB_STATIC_ALLOC
     size = STRB_MAX_SIZE;
 #else
-    if (size > STRB_MAX_SIZE || size < STRB_DFL_SIZE)
+    if (size < STRB_DFL_SIZE)
         size = STRB_DFL_SIZE;
+    else if (size >= STRB_MAX_SIZE)
+        size = STRB_MAX_SIZE;
+    else
+        ++size; // allow space for a null terminator
 #endif
     {
         // Don't allocate huge internal strings because the storage can't be recovered
