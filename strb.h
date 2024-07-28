@@ -117,7 +117,7 @@ typedef uint16_t strbsize_t;
 /**
  * Macro used to suppress variably modified types in parameter lists.
  */
-#define STRB_SIZE_HINT(X) (X)
+#define STRB_SIZE_HINT(X) static restrict X
 
 /**
  * Factor by which to grow the string buffer size when space is exhausted.
@@ -195,7 +195,8 @@ typedef struct  {
  * can use the whole of the external array but never allocate any extra storage.
  *
  * @param[out] sbs   String buffer state.
- * @param      size  Size of the array to be used instead of an internal buffer (must not be 0).
+ * @param      size  Size of the array to be used instead of an internal buffer, in bytes
+ *                   (must not be 0).
  * @param[out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object.
@@ -222,8 +223,8 @@ strb_t *strb_use(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
  * string buffer state object to be used to store information about the buffer.
  *
  * The @p buf array should contain at least one null character within the first @p size
- * characters, whose position is the initial string length. Any following characters are ignored.
- * If no null character is found within the first @p size characters (or the maximum supported
+ * bytes, whose position is the initial string length. Any following characters are ignored.
+ * If no null character is found within the first @p size bytes (or the maximum supported
  * length, if less), a null pointer is returned.
  *
  * The effects of strb_... functions on an external array are always immediately visible
@@ -231,7 +232,8 @@ strb_t *strb_use(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
  * can use the whole of the external array but never allocate any extra storage.
  *
  * @param[out]    sbs   String buffer state.
- * @param         size  Size of the array to be used instead of an internal buffer (must not be 0).
+ * @param         size  Size of the array to be used instead of an internal buffer,
+ *                      in bytes (must not be 0).
  * @param[in,out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object, or a null pointer on failure.
@@ -267,7 +269,8 @@ _Optional strb_t *strb_reuse(strbstate_t *sbs, size_t size, char buf[STRB_SIZE_H
  * and the string therein is always null terminated. Operations on the string buffer
  * can use the whole of the external array but never allocate any extra storage.
  *
- * @param      size  Size of the array to be used instead of an internal buffer (must not be 0).
+ * @param      size  Size of the array to be used instead of an internal buffer,
+ *                   in bytes (must not be 0).
  * @param[out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object, or a null pointer on failure.
@@ -288,15 +291,16 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * If storage allocation fails, a null pointer is returned.
  *
  * The @p buf array should contain at least one null character within the first @p size
- * characters, whose position is the initial string length. Any following characters are ignored.
- * If no null character is found within the first @p size characters (or the maximum supported
+ * bytes, whose position is the initial string length. Any following characters are ignored.
+ * If no null character is found within the first @p size bytes (or the maximum supported
  * length, if less), a null pointer is returned.
  *
  * The effects of strb_... functions on an external array are always immediately visible
  * and the string therein is always null terminated. Operations on the string buffer
  * can use the whole of the external array but never allocate any extra storage.
  *
- * @param         size  Size of the array to be used instead of an internal buffer (must not be 0).
+ * @param         size  Size of the array to be used instead of an internal buffer,
+ *                      in bytes (must not be 0).
  * @param[in,out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object, or a null pointer on failure.
@@ -324,9 +328,9 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * if it had been allocated. Subsequent operations on the string buffer may allocate or
  * free extra storage, if supported by the implementation.
  *
- * @param size  A hint about how much storage to allocate for an internal buffer
- *              (where 0 means default size). Measured in characters (not bytes),
- *              excluding the terminating null character.
+ * @param n  A hint about how much storage to allocate for an internal buffer
+ *           (where 0 means default size). Measured in characters (not bytes),
+ *           excluding the terminating null character.
  *
  * @return Address of the created string buffer object, or a null pointer on failure.
  * @post The user is responsible for calling @ref strb_free to free the string buffer object. 
@@ -335,7 +339,7 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)]);
  *       @ref strb_write has been called.
  * @post If successful, a call to @ref strb_error will return false until an error occurs.
  */
-_Optional strb_t *strb_alloc(size_t size);
+_Optional strb_t *strb_alloc(size_t n);
 
 /**
  * @brief Create a string buffer object with internal storage by duplicating a string
