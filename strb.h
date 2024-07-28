@@ -105,7 +105,7 @@ typedef uint16_t strbsize_t;
 #define STRB_MAX_SIZE UINT16_MAX
 
 /**
- * Buffer size, in characters, substituted by @ref strb_alloc when the requested size is too big or small.
+ * Buffer size, in characters, substituted by @ref strb_alloc when the requested size is too small.
  */
 #define STRB_DFL_SIZE (256)
 
@@ -325,7 +325,8 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * free extra storage, if supported by the implementation.
  *
  * @param size  A hint about how much storage to allocate for an internal buffer
- *              (where 0 means default size).
+ *              (where 0 means default size). Measured in characters (not bytes),
+ *              excluding the terminating null character.
  *
  * @return Address of the created string buffer object, or a null pointer on failure.
  * @post The user is responsible for calling @ref strb_free to free the string buffer object. 
