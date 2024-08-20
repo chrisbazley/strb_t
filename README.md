@@ -1,7 +1,7 @@
 # strb_t
 A new type and functions to manage strings, as proposed in WG14 papers N3250, N3296 and N3306. Its goal is to eliminate a source of many common programmer errors. The new interface is designed to be as familiar and ergonomic as possible.
 
-See https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3296.pdf
+See https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf
 
 The prototype can be configured with -DSTRB_STATIC_ALLOC (no dynamic allocation), -DSTRB_FREESTANDING (no static allocation either), and/or -DDEBUGOUT (extra messages to stderr) and -DNDEBUG (no assertions).
 
