@@ -3,8 +3,8 @@
 /**
  * @file strb.h
  * @author Christopher Bazley (chris.bazley@arm.com)
- * @version 0.1
- * @date 2024-07-26
+ * @version 0.2
+ * @date 2024-08-20
  *
  * @copyright Copyright (c) 2024
  *
@@ -466,7 +466,19 @@ void strb_free(_Optional strb_t *sb);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
  * @post The returned pointer is valid until the next call to a strb_... function.
  */
-const char *strb_ptr(strb_t const *sb);
+char *strb_ptr(strb_t *sb);
+
+/**
+ * @see strb_ptr
+ */
+const char *strb_cptr(strb_t const *sb);
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#define strb_ptr(sb) \
+  _Generic(sb, \
+    strb_t *: strb_ptr, \
+    const strb_t *: strb_cptr)(sb)
+#endif
 
 /**
  * @brief Get the number of characters stored in a string buffer.

@@ -359,7 +359,14 @@ void strb_free(_Optional strb_t *sb)
 }
 #endif // !STRB_FREESTANDING
 
-const char *strb_ptr(strb_t const *sb )
+#undef strb_ptr
+char *strb_ptr(strb_t *sb)
+{
+    assert(sb);
+    return sb->p.buf;
+}
+
+const char *strb_cptr(strb_t const *sb)
 {
     assert(sb);
     return sb->p.buf;

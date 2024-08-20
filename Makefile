@@ -7,7 +7,7 @@ CC = gcc
 Link = gcc
 
 # Toolflags:
-CCFlags = -c -Wall -Wextra -Wsign-compare -pedantic -std=c99 -MMD -MP -g -MF $*.d
+CCFlags = -c -Wall -Wextra -Wsign-compare -pedantic -std=c11 -MMD -MP -g -MF $*.d
 LinkFlags = -o $@
 
 # Final targets:

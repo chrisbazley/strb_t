@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "strb.h"
 
@@ -219,6 +220,38 @@ static void test(strb_t *s)
 #endif
 
 #endif // !STRB_FREESTANDING
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+    {
+        strb_t const *sc = s;
+        assert(strb_ptr(sc)[strb_len(sc)] == '\0');
+        const char *q = strb_ptr(sc);
+        puts(q);
+    }
+#endif
+
+    {
+        strb_t const *sc = s;
+        assert(strb_cptr(sc)[strb_len(sc)] == '\0');
+        const char *q = strb_cptr(sc);
+        puts(q);
+    }
+
+    for (char *c = strb_ptr(s);
+        *c != '\0';
+        ++c)
+    {
+        *c = tolower(*c);
+    }
+    puts(strb_cptr(s));
+
+    for (char *c = strb_ptr(s);
+        *c != '\0';
+        ++c)
+    {
+        *c = toupper(*c);
+    }
+    puts(strb_cptr(s));
 
     puts("========");
 }
