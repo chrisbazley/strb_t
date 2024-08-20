@@ -789,7 +789,7 @@ _Optional char *strb_write(strb_t *sb, size_t n);
  * increment the position indicator.
  *
  * This function exists to make it efficient and simple to split or truncate the
- * string in a buffer (as @ref strtok does) without moving characters. It is
+ * string in a buffer (as @c strtok does) without moving characters. It is
  * equivalent to calling @ref strb_write with 0 and storing a null character at
  * the returned address.
  *
