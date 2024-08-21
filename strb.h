@@ -23,7 +23,7 @@
 /**
  * Whether the interface provides the @ref strb_unputc function.
  */
-#define STRB_UNPUTC 0
+#define STRB_UNPUTC 1
 
 /**
  * Whether the interface provides the @ref strb_restore function.
