@@ -413,6 +413,7 @@ int strb_seek(strb_t *sb, size_t pos)
 {
     assert(sb);
     DEBUGF("Seek to %zu\n", pos);
+    assert(sb->p.pos < sb->p.size);
     if (pos < STRB_MAX_SIZE)
     {
         sb->p.pos = pos;
@@ -433,6 +434,7 @@ size_t strb_tell(strb_t const *sb )
         strbsize_t pos = sb->p.pos;
         DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize "\n",
                pos, sb->p.len, sb->p.size);
+        assert(pos < sb->p.size);
         return pos;
     }
 }
@@ -462,6 +464,7 @@ int strb_unputc(strb_t *sb)
     
     assert(sb->p.pos > 0);
     assert(sb->p.pos < STRB_MAX_SIZE);
+    assert(sb->p.pos < sb->p.size);
     assert(sb->p.pos <= sb->p.len);
 
     {
@@ -595,6 +598,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 {
     assert(sb);
     assert(sb->p.len < sb->p.size);
+    assert(sb->p.pos < sb->p.size);
     assert(sb->p.buf[sb->p.len] == '\0');
     DEBUGF("About to write %zu chars\n", n);
 
@@ -682,26 +686,30 @@ void strb_restore(strb_t *sb)
 
 void strb_delto(strb_t *sb, size_t pos)
 {
-    strbsize_t hi, lo, pos1, pos2, len;
+    strbsize_t hi, lo;
 
     assert(sb);
-    assert(sb->p.pos <= sb->p.len);
+    assert(sb->p.pos < sb->p.size);
 
-    len = sb->p.len;
-    pos1 = pos > len ? len : pos;
-    pos2 = sb->p.pos > len ? len : sb->p.pos;
-
-    if (pos1 > pos2) {
-            hi = pos1;
-            lo = pos2;
+    if (sb->p.pos > pos) {
+        lo = pos;
+        hi = sb->p.pos;
     } else {
-            lo = pos1;
-            hi = pos2;
+        hi = pos;
+        lo = sb->p.pos;
     }
+    assert(lo <= hi);
 
     if (!(sb->p.flags & F_OVERWRITE)) {
-            memmove(sb->p.buf + lo, sb->p.buf + hi, len + 1 - hi);
-            sb->p.len = len - (hi - lo);
+        strbsize_t clo, chi, len;
+
+        len = sb->p.len;
+        chi = hi > len ? len : hi;
+        clo = lo > len ? len : lo;
+        assert(clo <= chi);
+
+        memmove(sb->p.buf + clo, sb->p.buf + chi, len + 1 - chi);
+        sb->p.len = len - (chi - clo);
     }
 
     sb->p.pos = lo;
