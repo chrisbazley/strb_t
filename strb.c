@@ -478,7 +478,7 @@ int strb_unputc(strb_t *sb)
         }
 
         sb->p.pos = new_pos;
-#if STRB_UNPUTC || STRB_RESTORE
+#if STRB_RESTORE
         sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif
         return removed;
