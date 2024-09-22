@@ -496,7 +496,7 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
     return 0;
 }
 
-int strb_puts(strb_t *sb, const char *str )
+int strb_puts(strb_t *restrict sb, const char *restrict str )
 {
     return strb_nputs(sb, str, SIZE_MAX);
 }
