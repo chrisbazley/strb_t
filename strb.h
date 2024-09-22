@@ -31,9 +31,9 @@
 #define STRB_RESTORE 1
 
 /**
- * Whether the interface provides the @ref strb_use_const function.
+ * Whether the interface provides the @ref strb_reuse_const function.
  */
-#define STRB_USE_CONST 1
+#define STRB_REUSE_CONST 1
 
 #if STRB_FREESTANDING
 // No static or dynamic allocation
@@ -260,7 +260,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT
  */
 _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
 
-#if STRB_USE_CONST
+#if STRB_REUSE_CONST
 /**
  * @brief Create a string buffer object that wraps a constant string
  *
@@ -287,7 +287,7 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[ST
  * @post If successful, @ref strb_ptr returns the constant string's address.
  * @post If successful, a call to @ref strb_error will return false.
  */
-_Optional const strb_t *strb_use_const(strbstate_t *restrict sbs, const char buf[STRB_SIZE_HINT(1)]);
+_Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs, const char buf[STRB_SIZE_HINT(1)]);
 #endif
 
 #elif !STRB_FREESTANDING

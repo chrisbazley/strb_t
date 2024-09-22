@@ -319,9 +319,9 @@ int main(void)
     puts(strb_ptr(s));
 #endif
 
-#if STRB_USE_CONST
+#if STRB_REUSE_CONST
     {
-        _Optional const strb_t *cs = strb_use_const(&state, "Cyclist");
+        _Optional const strb_t *cs = strb_reuse_const(&state, "Cyclist");
         assert(strb_getmode(cs) == strb_insert);
         assert(strb_tell(cs) == strlen("Cyclist"));
         assert(strb_len(cs) == strlen("Cyclist"));
@@ -331,14 +331,14 @@ int main(void)
         puts(strb_ptr(cs));
 #endif
 
-        cs = strb_use_const(&state, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
+        cs = strb_reuse_const(&state, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
 #if STRB_MAX_SIZE <= UINT8_MAX
         assert(!cs); // too long
 #else
         puts(strb_cptr(cs));
 #endif
     }
-#endif // STRB_USE_CONST
+#endif // STRB_REUSE_CONST
 
 #elif !STRB_FREESTANDING
     s = strb_use(sizeof array, array);

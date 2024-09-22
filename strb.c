@@ -42,7 +42,7 @@
 #endif
 #define F_EXTERNAL (1<<5)
 #define F_AUTOFREE (1<<6)
-#if STRB_USE_CONST
+#if STRB_REUSE_CONST
 #define F_IS_CONST (1<<7)
 #else
 #define F_IS_CONST 0
@@ -175,8 +175,8 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[ST
     }
 }
 
-#if STRB_USE_CONST
-_Optional const strb_t *strb_use_const(strbstate_t *restrict sbs, const char buf[STRB_SIZE_HINT(1)])
+#if STRB_REUSE_CONST
+_Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs, const char buf[STRB_SIZE_HINT(1)])
 {
     assert(sbs);
     assert(buf);
@@ -198,7 +198,7 @@ _Optional const strb_t *strb_use_const(strbstate_t *restrict sbs, const char buf
         return sb;
     }
 }
-#endif // STRB_USE_CONST
+#endif // STRB_REUSE_CONST
 #endif // STRB_EXT_STATE
 
 #if !STRB_FREESTANDING
