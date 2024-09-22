@@ -3,8 +3,8 @@
 /**
  * @file strb.h
  * @author Christopher Bazley (chris.bazley@arm.com)
- * @version 0.2
- * @date 2024-08-20
+ * @version 0.3
+ * @date 2024-09-22
  *
  * @copyright Copyright (c) 2024
  *
@@ -29,6 +29,11 @@
  * Whether the interface provides the @ref strb_restore function.
  */
 #define STRB_RESTORE 1
+
+/**
+ * Whether the interface provides the @ref strb_use_const function.
+ */
+#define STRB_USE_CONST 1
 
 #if STRB_FREESTANDING
 // No static or dynamic allocation
@@ -254,6 +259,36 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT
  * @post If successful, a call to @ref strb_error will return false until an error occurs.
  */
 _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT(size)]);
+
+#if STRB_USE_CONST
+/**
+ * @brief Create a string buffer object that wraps a constant string
+ *
+ * Initialises a string buffer object and returns its address. The caller must pass a
+ * string buffer state object to be used to store information about the buffer.
+ *
+ * The @p buf array must contain at least one null character, whose position is the initial
+ * string length. Any following characters are ignored. If no null character is found within
+ * the maximum supported length, a null pointer is returned.
+ *
+ * The effects of strb_... functions on an external array are always immediately visible
+ * and the string therein is always null terminated. Operations on the string buffer
+ * can use the whole of the external array but never allocate any extra storage.
+ *
+ * @param[out] sbs   String buffer state.
+ * @param[in]  buf   The array to be used instead of an internal buffer.
+ *
+ * @return Address of the created string buffer object, or a null pointer on failure.
+ * @post The created string buffer object becomes invalid if the storage for @p sbs or @p buf
+ *       is deallocated.
+ * @post The created string buffer object becomes invalid if the @p sbs object is
+ *       modified.
+ * @post If successful, @ref strb_tell and @ref strb_len return the reused string length.
+ * @post If successful, @ref strb_ptr returns the constant string's address.
+ * @post If successful, a call to @ref strb_error will return false.
+ */
+_Optional const strb_t *strb_use_const(strbstate_t *restrict sbs, const char buf[STRB_SIZE_HINT(1)]);
+#endif
 
 #elif !STRB_FREESTANDING
 

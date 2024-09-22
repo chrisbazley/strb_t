@@ -284,9 +284,10 @@ static void test(strb_t *s)
 
 int main(void)
 {
-    char array[100];
-    strb_t *s;
+    char array[1000];
+    _Optional strb_t *s;
     int c;
+
 #if STRB_EXT_STATE
     strbstate_t state;
 
@@ -308,7 +309,37 @@ int main(void)
     test(s);
 
     memset(array, 'a', sizeof array);
-    assert(strb_reuse(&state, sizeof array, array) == NULL);
+    assert(strb_reuse(&state, sizeof array, array) == NULL); // no null terminator
+
+    snprintf(array, sizeof array, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
+    s = strb_reuse(&state, sizeof array, array);
+#if STRB_MAX_SIZE <= UINT8_MAX
+    assert(!s); // too long
+#else
+    puts(strb_ptr(s));
+#endif
+
+#if STRB_USE_CONST
+    {
+        _Optional const strb_t *cs = strb_use_const(&state, "Cyclist");
+        assert(strb_getmode(cs) == strb_insert);
+        assert(strb_tell(cs) == strlen("Cyclist"));
+        assert(strb_len(cs) == strlen("Cyclist"));
+        assert(!strcmp(strb_cptr(cs), "Cyclist"));
+        puts(strb_cptr(cs));
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+        puts(strb_ptr(cs));
+#endif
+
+        cs = strb_use_const(&state, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
+#if STRB_MAX_SIZE <= UINT8_MAX
+        assert(!cs); // too long
+#else
+        puts(strb_cptr(cs));
+#endif
+    }
+#endif // STRB_USE_CONST
+
 #elif !STRB_FREESTANDING
     s = strb_use(sizeof array, array);
 #if STRB_UNPUTC
@@ -433,10 +464,10 @@ int main(void)
     strb_free(s);
 
     s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
-#if !STRB_STATIC_ALLOC
-    puts(strb_ptr(s));
-#else
+#if STRB_MAX_SIZE <= UINT8_MAX
     assert(!s); // too long
+#else
+   puts(strb_ptr(s));
 #endif
     strb_free(s);
 

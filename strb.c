@@ -42,6 +42,11 @@
 #endif
 #define F_EXTERNAL (1<<5)
 #define F_AUTOFREE (1<<6)
+#if STRB_USE_CONST
+#define F_IS_CONST (1<<7)
+#else
+#define F_IS_CONST 0
+#endif
 
 /** String buffer object */
 struct strb_t {
@@ -120,23 +125,23 @@ static void free_metadata(_Optional strb_t *sb)
 #endif
 
 #if STRB_EXT_STATE
-static strb_t *init_use(strbstate_t *restrict sb, strbsize_t size, char buf[STRB_SIZE_HINT(size)], strbsize_t len)
+static strb_t *init_use(strbstate_t *restrict sbs, strbsize_t size, char buf[STRB_SIZE_HINT(size)], strbsize_t len)
 {
-    sb->p.len = sb->p.pos = len;
-    sb->p.size = size;
-    sb->p.buf = buf;
-    sb->p.flags = F_EXTERNAL | F_AUTOFREE;
+    sbs->p.len = sbs->p.pos = len;
+    sbs->p.size = size;
+    sbs->p.buf = buf;
+    sbs->p.flags = F_EXTERNAL | F_AUTOFREE;
 
 #if STRB_UNPUTC
     if (len)
-        sb->p.flags |= F_CAN_UNPUTC;
+        sbs->p.flags |= F_CAN_UNPUTC;
 #endif
-    return (void *)sb;
+    return (void *)sbs;
 }
 
-strb_t *strb_use(strbstate_t *restrict sb, size_t size, char buf[STRB_SIZE_HINT(size)])
+strb_t *strb_use(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT(size)])
 {
-    assert(sb);
+    assert(sbs);
     assert(buf);
     assert(size > 0);
     DEBUGF("Use buffer %p of size %zu\n", buf, size);
@@ -145,12 +150,12 @@ strb_t *strb_use(strbstate_t *restrict sb, size_t size, char buf[STRB_SIZE_HINT(
         size = STRB_MAX_SIZE;
 
     buf[0] = '\0';
-    return init_use(sb, size, buf, 0);
+    return init_use(sbs, size, buf, 0);
 }
 
-_Optional strb_t *strb_reuse(strbstate_t *restrict sb, size_t size, char buf[STRB_SIZE_HINT(size)])
+_Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT(size)])
 {
-    assert(sb);
+    assert(sbs);
     assert(buf);
     assert(size > 0);
     DEBUGF("Reuse buffer %p of size %zu\n", buf, size);
@@ -166,9 +171,34 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sb, size_t size, char buf[STR
             return NULL;
         }
 
-        return init_use(sb, size, buf, len);
+        return init_use(sbs, size, buf, len);
     }
 }
+
+#if STRB_USE_CONST
+_Optional const strb_t *strb_use_const(strbstate_t *restrict sbs, const char buf[STRB_SIZE_HINT(1)])
+{
+    assert(sbs);
+    assert(buf);
+    DEBUGF("Reuse const buffer %p\n", buf);
+
+    {
+        size_t len = strnlen(buf, STRB_MAX_SIZE);
+        strb_t *sb;
+        if (len == STRB_MAX_SIZE) {
+            // Could be outside of the caller's control because of STRB_MAX_SIZE.
+            // Don't want to force use of strb_error after any call.
+            return NULL;
+        }
+
+        sb = init_use(sbs, len + 1, (char *)buf, len);
+#ifndef NDEBUG
+        sb->p.flags |= F_IS_CONST;
+#endif
+        return sb;
+    }
+}
+#endif // STRB_USE_CONST
 #endif // STRB_EXT_STATE
 
 #if !STRB_FREESTANDING
@@ -363,6 +393,7 @@ void strb_free(_Optional strb_t *sb)
 char *strb_ptr(strb_t *sb)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     return sb->p.buf;
 }
 
@@ -374,19 +405,21 @@ const char *strb_cptr(strb_t const *sb)
 
 size_t strb_len(strb_t const *sb )
 {
-        assert(sb);
-        return sb->p.len;
+    assert(sb);
+    return sb->p.len;
 }
 
 static int set_err(strb_t *sb)
 {
-        sb->p.flags |= F_ERR;
-        return EOF;
+    assert(!(sb->p.flags & F_IS_CONST));
+    sb->p.flags |= F_ERR;
+    return EOF;
 }
 
 int strb_setmode(strb_t *sb, int mode)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     if (mode == strb_insert || mode == strb_overwrite)
     {
         sb->p.flags &= ~(F_CAN_UNPUTC|F_OVERWRITE);
@@ -412,6 +445,7 @@ int strb_getmode(const strb_t *sb )
 int strb_seek(strb_t *sb, size_t pos)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     DEBUGF("Seek to %zu\n", pos);
     assert(sb->p.pos < sb->p.size);
     if (pos < STRB_MAX_SIZE)
@@ -459,6 +493,7 @@ int strb_nputc(strb_t *sb, int c, size_t n)
 int strb_unputc(strb_t *sb)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     if (!(sb->p.flags & F_CAN_UNPUTC))
         return set_err(sb);
     
@@ -595,6 +630,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
 _Optional char *strb_write(strb_t *sb, size_t n)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     assert(sb->p.len < sb->p.size);
     assert(sb->p.pos < sb->p.size);
     assert(sb->p.buf[sb->p.len] == '\0');
@@ -674,6 +710,7 @@ void strb_split(strb_t *sb)
 void strb_restore(strb_t *sb)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     if (sb->p.flags & F_CAN_RESTORE) {
         DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char, sb->p.restore_char, sb->p.pos);
         sb->p.buf[sb->p.pos] = sb->p.restore_char;
@@ -687,6 +724,7 @@ void strb_delto(strb_t *sb, size_t pos)
     strbsize_t hi, lo;
 
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     assert(sb->p.pos < sb->p.size);
 
     if (sb->p.pos > pos) {
@@ -719,6 +757,7 @@ void strb_delto(strb_t *sb, size_t pos)
 static void strb_empty(strb_t *sb)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     sb->p.len = sb->p.pos = 0;
     sb->p.buf[0] = '\0';
 #if STRB_UNPUTC || STRB_RESTORE
@@ -768,5 +807,6 @@ bool strb_error(strb_t const *sb )
 void strb_clearerr(strb_t *sb)
 {
     assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
     sb->p.flags &= ~F_ERR;
 }
