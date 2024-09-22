@@ -283,7 +283,7 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[ST
  *       is deallocated.
  * @post The created string buffer object becomes invalid if the @p sbs object is
  *       modified.
- * @post If successful, @ref strb_tell and @ref strb_len return the reused string length.
+ * @post If successful, @ref strb_tell and @ref strb_len return the constant string's length.
  * @post If successful, @ref strb_ptr returns the constant string's address.
  * @post If successful, a call to @ref strb_error will return false.
  */
