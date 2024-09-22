@@ -267,13 +267,13 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[ST
  * Initialises a string buffer object and returns its address. The caller must pass a
  * string buffer state object to be used to store information about the buffer.
  *
- * The @p buf array must contain at least one null character, whose position is the initial
+ * The @p buf array must contain at least one null character, whose position is the
  * string length. Any following characters are ignored. If no null character is found within
  * the maximum supported length, a null pointer is returned.
  *
- * The effects of strb_... functions on an external array are always immediately visible
- * and the string therein is always null terminated. Operations on the string buffer
- * can use the whole of the external array but never allocate any extra storage.
+ * If successful, the created string buffer object is immutable (as indicated by its
+ * qualified type). Functions that require a mutable string buffer object have undefined
+ * behaviour when invoked with an object created by this function.
  *
  * @param[out] sbs   String buffer state.
  * @param[in]  buf   The array to be used instead of an internal buffer.
