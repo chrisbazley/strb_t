@@ -131,15 +131,49 @@ typedef uint16_t strbsize_t;
 
 #endif
 
-/**
- * Qualifier indicating optional objects
- *
- * A type qualifier named _Optional has been used throughout this interface to clarify declarations.
+/* A type qualifier named _Optional has been used throughout this interface to clarify declarations.
  * This qualifier was proposed by N3089, which was reviewed by the committee at the Strasbourg meeting
  * in January 2024 with strong consensus to proceed. It can be ignored (here, by defining it as an
  * empty macro) without substantially changing the meaning of the code.
  */
+#ifdef USE_OPTIONAL
+#include <stdlib.h>
+#include <stdarg.h>
+
+#undef NULL
+#define NULL ((_Optional void *)0)
+
+static inline void optional_free(_Optional void *x)
+{
+    free((void *)x);
+}
+#undef free
+#define free(x) optional_free(x)
+
+static inline _Optional void *optional_malloc(size_t n)
+{
+    return malloc(n);
+}
+#undef malloc
+#define malloc(n) optional_malloc(n)
+
+static inline _Optional void *optional_realloc(_Optional void *p, size_t n)
+{
+    return realloc((void *)p, n);
+}
+#undef realloc
+#define realloc(p, n) optional_realloc(p, n)
+
+static inline int optional_vsnprintf(_Optional char *buffer, size_t sz, const char *format, va_list vlist)
+{
+    return vsnprintf((char *)buffer, sz, format, vlist);
+}
+#undef vsnprintf
+#define vsnprintf(buffer, sz, format, vlist) optional_vsnprintf(buffer, sz, format, vlist)
+
+#else
 #define _Optional
+#endif
 
 /**
  * @brief String buffer object

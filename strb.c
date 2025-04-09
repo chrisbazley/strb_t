@@ -20,8 +20,6 @@
 
 #include "strb.h"
 
-#define _Optional
-
 #if STRB_UNPUTC
 #define F_CAN_UNPUTC (1<<0)
 #else
@@ -283,17 +281,18 @@ _Optional strb_t *strb_alloc(size_t n)
 #if !STRB_STATIC_ALLOC
         if (n > STRB_MAX_INTERNAL_SIZE) {
             DEBUGF("Oversize buffer of %zu characters\n", n);
-            sb->p.buf = malloc(n * sizeof(*sb->p.buf));
-            if (!sb->p.buf) {
+            _Optional void *buf = malloc(n * sizeof(*sb->p.buf));
+            if (!buf) {
                 free_metadata(sb);
                 return NULL;
             }
+            sb->p.buf = &*buf;
             sb->p.flags = F_ALLOCATED;
         } else
 #endif
         {
             DEBUGF("Internal buffer of %zu characters\n", n);
-            sb->p.buf = sb->internal;
+            sb->p.buf = &*sb->internal;
             sb->p.flags = 0;
         }
 
@@ -311,7 +310,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         return NULL;
 
     {
-        strb_t *sb = strb_alloc(len + 1);
+        _Optional strb_t *sb = strb_alloc(len + 1);
         if (!sb)
                 return NULL;
 
@@ -332,7 +331,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
     {
-        strb_t *sb = NULL;
+        _Optional strb_t *sb = NULL;
         int len = vsnprintf(NULL, 0, format, args);
         if (len < 0 || (size_t)len >= STRB_MAX_SIZE)
             return NULL; // formatting failed or result too long
@@ -366,7 +365,7 @@ _Optional strb_t *strb_aprintf(const char *restrict format,
     va_list args;
     va_start(args, format);
     {
-        strb_t *sb = strb_vaprintf(format, args);
+        _Optional strb_t *sb = strb_vaprintf(format, args);
         va_end(args);
         return sb;
     }
@@ -484,7 +483,7 @@ int strb_nputc(strb_t *sb, int c, size_t n)
     if (!buf)
         return EOF;
 
-    memset(buf, c, n);
+    memset(&*buf, c, n);
     // assume F_CAN_RESTORE isn't user-visible. Don't bother calling strb_restore.
     return c;
 }
@@ -526,7 +525,7 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
     if (!buf)
             return EOF;
 
-    memcpy(buf, str, len); // more efficient than strncpy
+    memcpy(&*buf, str, len); // more efficient than strncpy
     // assume F_CAN_RESTORE isn't user-visible. Don't bother calling strb_restore.
     return 0;
 }
@@ -548,7 +547,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
                 int const tmp = buf[len];
-                vsprintf(buf, format, args_copy);
+                vsnprintf(buf, len + 1, format, args_copy);
                 buf[len] = tmp;
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
@@ -607,7 +606,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
     if (new_size <= top + n)
         new_size = top + n + 1; // +1 for terminator
 
-    char *new_buf = NULL;
+    _Optional char *new_buf = NULL;
     if (sb->p.flags & F_ALLOCATED) {
         new_buf = realloc(sb->p.buf, new_size);
         if (!new_buf)
@@ -616,11 +615,11 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
         new_buf = malloc(new_size);
         if (!new_buf)
             return false;
-        memcpy(new_buf, sb->internal, sb->p.len + 1);
+        memcpy(&*new_buf, sb->internal, sb->p.len + 1);
     }
 
     sb->p.flags |= F_ALLOCATED;
-    sb->p.buf = new_buf;
+    sb->p.buf = &*new_buf;
     sb->p.size = new_size;
     DEBUGF("Substituted buffer %p of %" PRIstrbsize " bytes\n", new_buf, new_size);
     return true;
@@ -659,7 +658,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(old_pos <= sb->p.len);
 
         {
-            _Optional char *buf = sb->p.buf + old_pos;
+            char *buf = sb->p.buf + old_pos;
 
             if (!(sb->p.flags & F_OVERWRITE)) {
                 DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, buf, buf + n);

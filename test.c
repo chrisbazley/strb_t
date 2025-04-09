@@ -9,13 +9,11 @@
 
 #include "strb.h"
 
-static void test(strb_t *s)
+static void test(strb_t *const s)
 {
     int i;
     char *found;
     size_t pos;
-    
-    if (!s) return;
 
     for ( i = 5; i >= 0; --i) {
         assert(!strb_seek(s, 0));
@@ -292,21 +290,23 @@ int main(void)
     strbstate_t state;
 
     s = strb_use(&state, sizeof array, array);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    test(s);
-    c = strb_ptr(s)[strb_len(s) - 1];
+    test(&*s);
+    c = strb_ptr(&*s)[strb_len(&*s) - 1];
 
     s = strb_reuse(&state, sizeof array, array);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == c);
+    assert(strb_unputc(&*s) == c);
 #else
     (void)c;
 #endif
 
-    test(s);
+    test(&*s);
 
     memset(array, 'a', sizeof array);
     assert(strb_reuse(&state, sizeof array, array) == NULL); // no null terminator
@@ -316,26 +316,29 @@ int main(void)
 #if STRB_MAX_SIZE <= UINT8_MAX
     assert(!s); // too long
 #else
-    puts(strb_ptr(s));
+    assert(s);
+    puts(strb_ptr(&*s));
 #endif
 
 #if STRB_REUSE_CONST
     {
         _Optional const strb_t *cs = strb_reuse_const(&state, "Cyclist");
-        assert(strb_getmode(cs) == strb_insert);
-        assert(strb_tell(cs) == strlen("Cyclist"));
-        assert(strb_len(cs) == strlen("Cyclist"));
-        assert(!strcmp(strb_cptr(cs), "Cyclist"));
-        puts(strb_cptr(cs));
+        assert(cs);
+        assert(strb_getmode(&*cs) == strb_insert);
+        assert(strb_tell(&*cs) == strlen("Cyclist"));
+        assert(strb_len(&*cs) == strlen("Cyclist"));
+        assert(!strcmp(strb_cptr(&*cs), "Cyclist"));
+        puts(strb_cptr(&*cs));
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-        puts(strb_ptr(cs));
+        puts(strb_ptr(&*cs));
 #endif
 
         cs = strb_reuse_const(&state, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
 #if STRB_MAX_SIZE <= UINT8_MAX
         assert(!cs); // too long
 #else
-        puts(strb_cptr(cs));
+        assert(cs);
+        puts(strb_cptr(&*cs));
 #endif
     }
 #endif // STRB_REUSE_CONST
@@ -343,21 +346,21 @@ int main(void)
 #elif !STRB_FREESTANDING
     s = strb_use(sizeof array, array);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    test(s);
-    c = strb_ptr(s)[strb_len(s) - 1];
+    test(&*s);
+    c = strb_ptr(&*s)[strb_len(s) - 1];
     strb_free(s);
 
     s = strb_reuse(sizeof array, array);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == c);
+    assert(strb_unputc(&*s) == c);
 #else
     (void)c;
 #endif
 
-    test(s);
+    test(&*s);
     strb_free(s);
 
     memset(array, 'a', sizeof array);
@@ -371,103 +374,114 @@ int main(void)
 
 #if !STRB_FREESTANDING
     s = strb_alloc(2700);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    test(s);
+    test(&*s);
     strb_free(s);
 
     s = strb_alloc(5);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    test(s);
+    test(&*s);
     strb_free(s);
 
     s = strb_alloc(5000);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    strb_write(s, 0);
+    strb_write(&*s, 0);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    test(s);
+    test(&*s);
     strb_free(s);
 
     s = strb_ndup("", 0);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
     strb_free(s);
 
     s = strb_dup("");
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    assert(!strb_cpy(s, ""));
+    assert(!strb_cpy(&*s, ""));
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    assert(!strb_ncpy(s, "", 0));
+    assert(!strb_ncpy(&*s, "", 0));
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
     strb_free(s);
 
     s = strb_aprintf("");
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
-    assert(!strb_printf(s, ""));
+    assert(!strb_printf(&*s, ""));
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
     strb_free(s);
 
     s = strb_dup("DUPLICATE");
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == 'E');
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == 'E');
+    assert(strb_unputc(&*s) == EOF);
 #endif
-    test(s);
+    test(&*s);
     strb_free(s);
 
     s = strb_ndup("DUPLICATE", 3);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == 'P');
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == 'P');
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    test(s);
+    test(&*s);
     strb_free(s);
 
     s = strb_aprintf("Hello %d", 99);
+    assert(s);
 #if STRB_UNPUTC
-    assert(strb_unputc(s) == '9');
-    assert(strb_unputc(s) == EOF);
+    assert(strb_unputc(&*s) == '9');
+    assert(strb_unputc(&*s) == EOF);
 #endif
 
-    test(s);
+    test(&*s);
     strb_free(s);
 
     s = strb_dup("Lorem ipsum dolor sit amet");
-    puts(strb_ptr(s));
+    assert(s);
+    puts(strb_ptr(&*s));
     strb_free(s);
 
     s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
 #if STRB_MAX_SIZE <= UINT8_MAX
     assert(!s); // too long
 #else
-   puts(strb_ptr(s));
+    assert(s);
+    puts(strb_ptr(&*s));
 #endif
     strb_free(s);
 
