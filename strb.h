@@ -3,12 +3,16 @@
 /**
  * @file strb.h
  * @author Christopher Bazley (chris.bazley@arm.com)
- * @version 0.3
- * @date 2024-09-22
+ * @version 0.4
+ * @date 2026-02-18
  *
  * @copyright Copyright (c) 2024
  *
  */
+
+#ifndef STRB_H
+#define STRB_H
+
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -1049,3 +1053,5 @@ bool strb_error(strb_t const *sb);
  * @post A call to @ref strb_error will return false until an error occurs.
  */
 void strb_clearerr(strb_t *sb);
+
+#endif // STRB_H
