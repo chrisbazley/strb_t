@@ -281,7 +281,7 @@ _Optional strb_t *strb_alloc(size_t n)
 #if !STRB_STATIC_ALLOC
         if (n > STRB_MAX_INTERNAL_SIZE) {
             DEBUGF("Oversize buffer of %zu characters\n", n);
-            _Optional void *buf = malloc(n * sizeof(*sb->p.buf));
+            _Optional char *buf = malloc(n * sizeof(*sb->p.buf));
             if (!buf) {
                 free_metadata(sb);
                 return NULL;
