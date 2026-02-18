@@ -141,11 +141,11 @@ typedef uint16_t strbsize_t;
  * empty macro) without substantially changing the meaning of the code.
  */
 #ifdef USE_OPTIONAL
-#include <stdlib.h>
-#include <stdarg.h>
 
-#undef NULL
-#define NULL ((_Optional void *)0)
+#if !STRB_FREESTANDING
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 static inline void optional_free(_Optional void *x)
 {
@@ -174,6 +174,10 @@ static inline int optional_vsnprintf(_Optional char *buffer, size_t sz, const ch
 }
 #undef vsnprintf
 #define vsnprintf(buffer, sz, format, vlist) optional_vsnprintf(buffer, sz, format, vlist)
+#endif // !STRB_FREESTANDING
+
+#undef NULL
+#define NULL ((_Optional void *)0)
 
 #else
 #define _Optional
