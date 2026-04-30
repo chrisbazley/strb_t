@@ -3,36 +3,57 @@ project(strb_t C)
 
 set(CMAKE_C_STANDARD 11)
 
+# Compiler warnings
 if(MSVC)
-    # MSVC equivalent of -Wall -Wextra is /W4
     add_compile_options(/W4)
 else()
-    # For GCC and Clang
     add_compile_options(-Wall -Wextra -Wsign-conversion -pedantic)
 endif()
 
 set(SOURCES strb.c)
 file(GLOB PUBLIC_HEADERS "*.h")
 
-add_library(strb STATIC ${SOURCES} ${PUBLIC_HEADERS})
+# Helper function to create library + corresponding test
+function(add_strb_variant suffix definitions)
+    set(lib_target "strb${suffix}")
+    set(test_target "test${suffix}")
+    
+    # Create the Library
+    add_library(${lib_target} STATIC ${SOURCES} ${PUBLIC_HEADERS})
+    target_compile_definitions(${lib_target} PRIVATE ${definitions})
+    target_include_directories(${lib_target} PUBLIC .)
+    
+    set_target_properties(${lib_target} PROPERTIES
+        PUBLIC_HEADER "${PUBLIC_HEADERS}"
+        DEBUG_POSTFIX "dbg"
+        OUTPUT_NAME "strb${suffix}"
+    )
 
-set_target_properties(strb PROPERTIES
-    PUBLIC_HEADER "${PUBLIC_HEADERS}"
-    DEBUG_POSTFIX "dbg"
-)
+    # Create the Test Executable
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test.c")
+        add_executable(${test_target} test.c)
+        target_link_libraries(${test_target} PRIVATE ${lib_target})
+        # Ensure the test executable also gets the variant definitions
+        target_compile_definitions(${test_target} PRIVATE ${definitions})
+    endif()
 
-target_include_directories(strb PUBLIC .)
+    install(TARGETS ${lib_target}
+        ARCHIVE DESTINATION lib
+        PUBLIC_HEADER DESTINATION include
+    )
+endfunction()
 
-target_compile_definitions(strb PRIVATE
+## Build all variants
+add_strb_variant("" "")
+add_strb_variant("static" "STRB_STATIC_ALLOC")
+add_strb_variant("freestanding" "STRB_FREESTANDING")
+
+# Optimization and Debug settings
+add_compile_definitions(
     $<$<CONFIG:Debug>:DEBUGOUT=1>
     $<$<CONFIG:Release>:NDEBUG>
 )
 
-target_compile_options(strb PRIVATE
-    $<$<CONFIG:Release>:-O3>
-)
-
-install(TARGETS strb
-    ARCHIVE DESTINATION lib
-    PUBLIC_HEADER DESTINATION include
-)
+if(NOT MSVC)
+    add_compile_options($<$<CONFIG:Release>:-O3>)
+endif()
