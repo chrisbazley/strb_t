@@ -189,7 +189,7 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs, const char b
             return NULL;
         }
 
-        sb = init_use(sbs, len + 1, (char *)buf, len);
+        sb = init_use(sbs, len + 1u, (char *)buf, len);
 #ifndef NDEBUG
         sb->p.flags |= F_IS_CONST;
 #endif
@@ -310,7 +310,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         return NULL;
 
     {
-        _Optional strb_t *sb = strb_alloc(len + 1);
+        _Optional strb_t *sb = strb_alloc(len + 1u);
         if (!sb)
                 return NULL;
 
@@ -336,7 +336,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
         if (len < 0 || (size_t)len >= STRB_MAX_SIZE)
             return NULL; // formatting failed or result too long
 
-        sb = strb_alloc((size_t)len + 1);
+        sb = strb_alloc((size_t)len + 1u);
         if (!sb)
                 return NULL;
 
@@ -547,7 +547,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
                 int const tmp = buf[len];
-                vsnprintf(buf, len + 1, format, args_copy);
+                vsnprintf(buf, len + 1u, format, args_copy);
                 buf[len] = tmp;
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
@@ -601,10 +601,10 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
                               sb->p.size * STRB_GROW_FACTOR :
                               STRB_MAX_SIZE;
 
-    assert(top + n + 1 <= STRB_MAX_SIZE);
+    assert(top + n + 1u <= STRB_MAX_SIZE);
 
     if (new_size <= top + n)
-        new_size = top + n + 1; // +1 for terminator
+        new_size = top + n + 1u; // +1 for terminator
 
     _Optional char *new_buf = NULL;
     if (sb->p.flags & F_ALLOCATED) {
@@ -615,7 +615,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
         new_buf = malloc(new_size);
         if (!new_buf)
             return false;
-        memcpy(&*new_buf, sb->internal, sb->p.len + 1);
+        memcpy(&*new_buf, sb->internal, sb->p.len + 1u);
     }
 
     sb->p.flags |= F_ALLOCATED;
@@ -649,9 +649,9 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(old_pos < sb->p.size);
 
         if (old_pos > old_len) {
-            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %" PRIstrbsize "\n", old_len, old_pos + 1);
+            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %" PRIstrbsize "\n", old_len, old_pos + 1u);
             // +1 because there is no null terminator at pos yet
-            memset(sb->p.buf + old_len, '\0', old_pos - old_len + 1);
+            memset(sb->p.buf + old_len, '\0', old_pos - old_len + 1u);
             sb->p.len = old_pos;
         }
 
@@ -662,14 +662,14 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 
             if (!(sb->p.flags & F_OVERWRITE)) {
                 DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, buf, buf + n);
-                memmove(buf + n, buf, sb->p.len + 1 - old_pos);
+                memmove(buf + n, buf, sb->p.len + 1u - old_pos);
                 sb->p.len += n;
             } else {
 #if STRB_UNPUTC
                 // Behave as if the write were implemented by multiple
                 // putc operations, which would imply null termination at
                 // each successive position.
-                sb->p.unputc_char = old_pos + n - 1 > old_len ? '\0' : buf[n - 1];
+                sb->p.unputc_char = old_pos + n - 1u > old_len ? '\0' : buf[n - 1];
 #endif
             }
 
@@ -743,7 +743,7 @@ void strb_delto(strb_t *sb, size_t pos)
         clo = lo > len ? len : lo;
         assert(clo <= chi);
 
-        memmove(sb->p.buf + clo, sb->p.buf + chi, len + 1 - chi);
+        memmove(sb->p.buf + clo, sb->p.buf + chi, len + 1u - chi);
         sb->p.len = len - (chi - clo);
     }
 
