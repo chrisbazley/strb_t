@@ -47,6 +47,15 @@
 #define STRB_REUSE_CONST 1
 #endif
 
+/**
+ * Macro used to suppress variably modified types in parameter lists.
+ */
+#if defined(_MSC_VER) || (defined(__STDC_VERSION__) && __STDC_VERSION__ < 199901L)
+#define STRB_SIZE_HINT(X)
+#else
+#define STRB_SIZE_HINT(X) static restrict X
+#endif
+
 #if STRB_FREESTANDING
 // No static or dynamic allocation
 /**
@@ -66,11 +75,6 @@ typedef uint8_t strbsize_t;
  * Maximum string size, in characters (including null terminator).
  */
 #define STRB_MAX_SIZE UINT8_MAX
-
-/**
- * Macro used to suppress variably modified types in parameter lists.
- */
-#define STRB_SIZE_HINT(X)
 
 #elif STRB_STATIC_ALLOC
 // About 2KB of static storage
@@ -93,11 +97,6 @@ typedef uint8_t strbsize_t;
  * Maximum string size, in characters (including null terminator).
  */
 #define STRB_MAX_SIZE (256-8)
-
-/**
- * Macro used to suppress variably modified types in parameter lists.
- */
-#define STRB_SIZE_HINT(X)
 
 #else
 // Unlimited dynamic allocation
@@ -130,11 +129,6 @@ typedef uint16_t strbsize_t;
  * Maximum buffer size, in characters, allocated as part of a @ref strb_t object rather than separately.
  */
 #define STRB_MAX_INTERNAL_SIZE (256)
-
-/**
- * Macro used to suppress variably modified types in parameter lists.
- */
-#define STRB_SIZE_HINT(X) static restrict X
 
 /**
  * Factor by which to grow the string buffer size when space is exhausted.
