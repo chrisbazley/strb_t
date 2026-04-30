@@ -547,7 +547,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
             _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
                 int const tmp = buf[len];
-                vsnprintf(buf, len + 1u, format, args_copy);
+                vsnprintf(buf, (size_t)len + 1u, format, args_copy);
                 buf[len] = tmp;
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
