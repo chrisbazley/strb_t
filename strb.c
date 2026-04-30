@@ -142,7 +142,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size, char buf[STRB_SIZE_HINT
     assert(sbs);
     assert(buf);
     assert(size > 0);
-    DEBUGF("Use buffer %p of size %zu\n", buf, size);
+    DEBUGF("Use buffer %p of size %zu\n", (void *)buf, size);
 
     if (size > STRB_MAX_SIZE)
         size = STRB_MAX_SIZE;
@@ -156,7 +156,7 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[ST
     assert(sbs);
     assert(buf);
     assert(size > 0);
-    DEBUGF("Reuse buffer %p of size %zu\n", buf, size);
+    DEBUGF("Reuse buffer %p of size %zu\n", (void *)buf, size);
 
     if (size > STRB_MAX_SIZE)
         size = STRB_MAX_SIZE;
@@ -178,7 +178,7 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs, const char b
 {
     assert(sbs);
     assert(buf);
-    DEBUGF("Reuse const buffer %p\n", buf);
+    DEBUGF("Reuse const buffer %p\n", (void *)buf);
 
     {
         size_t len = strnlen(buf, STRB_MAX_SIZE);
@@ -205,7 +205,7 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
 {
     assert(buf);
     assert(size > 0);
-    DEBUGF("Use buffer %p of size %zu\n", buf, size);
+    DEBUGF("Use buffer %p of size %zu\n", (void *)buf, size);
 
     if (size > STRB_MAX_SIZE)
         size = STRB_MAX_SIZE;
@@ -229,7 +229,7 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
 
     assert(buf);
     assert(size > 0);
-    DEBUGF("Reuse buffer %p of size %zu\n", buf, size);
+    DEBUGF("Reuse buffer %p of size %zu\n", (void *)buf, size);
 
     if (size > STRB_MAX_SIZE)
         size = STRB_MAX_SIZE;
@@ -621,7 +621,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
     sb->p.flags |= F_ALLOCATED;
     sb->p.buf = &*new_buf;
     sb->p.size = new_size;
-    DEBUGF("Substituted buffer %p of %" PRIstrbsize " bytes\n", new_buf, new_size);
+    DEBUGF("Substituted buffer %p of %" PRIstrbsize " bytes\n", (void *)new_buf, new_size);
     return true;
 #endif
 }
@@ -661,7 +661,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
             char *buf = sb->p.buf + old_pos;
 
             if (!(sb->p.flags & F_OVERWRITE)) {
-                DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, buf, buf + n);
+                DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, (void *)buf, (void *)(buf + n));
                 memmove(buf + n, buf, sb->p.len + 1u - old_pos);
                 sb->p.len += n;
             } else {
