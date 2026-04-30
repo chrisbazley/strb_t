@@ -22,22 +22,30 @@
 /**
  * Whether the interface has user-allocated string buffer state objects.
  */
+#ifndef STRB_EXT_STATE
 #define STRB_EXT_STATE 1
+#endif
 
 /**
  * Whether the interface provides the @ref strb_unputc function.
  */
+#ifndef STRB_UNPUTC
 #define STRB_UNPUTC 1
+#endif
 
 /**
  * Whether the interface provides the @ref strb_restore function.
  */
+#ifndef STRB_RESTORE
 #define STRB_RESTORE 1
+#endif
 
 /**
  * Whether the interface provides the @ref strb_reuse_const function.
  */
+#ifndef STRB_REUSE_CONST
 #define STRB_REUSE_CONST 1
+#endif
 
 #if STRB_FREESTANDING
 // No static or dynamic allocation
