@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(strb_t C)
+enable_testing()
 
 set(CMAKE_C_STANDARD 11)
 
@@ -35,6 +36,9 @@ function(add_strb_variant suffix definitions)
         target_link_libraries(${test_target} PRIVATE ${lib_target})
         # Ensure the test executable also gets the variant definitions
         target_compile_definitions(${test_target} PRIVATE ${definitions})
+
+        # Register the test so CTest can run it
+        add_test(NAME "check_${test_target}" COMMAND ${test_target})
     endif()
 
     install(TARGETS ${lib_target}
