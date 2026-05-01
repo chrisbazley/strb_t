@@ -17,8 +17,13 @@ file(GLOB PUBLIC_HEADERS "*.h")
 # Helper function to create library + corresponding test
 function(add_strb_variant suffix definitions)
     set(lib_target "strb${suffix}")
-    set(test_target "test${suffix}")
-    
+
+    if("${suffix}" STREQUAL "")
+        set(test_target "test_default")
+    else()
+        set(test_target "test_${suffix}")
+    endif()
+
     # Create the Library
     add_library(${lib_target} STATIC ${SOURCES} ${PUBLIC_HEADERS})
     target_compile_definitions(${lib_target} PRIVATE ${definitions})
