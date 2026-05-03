@@ -1,0 +1,22 @@
+Language: C
+BasedOnStyle: LLVM
+
+AlignConsecutiveDeclarations: false
+AlignConsecutiveAssignments: false
+
+PointerAlignment: Right
+
+AlignAfterOpenBracket: Align
+
+BreakBeforeBraces: Allman
+
+IndentWidth: 2
+ContinuationIndentWidth: 2
+IndentCaseLabels: true
+
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+
+AlwaysBreakAfterReturnType: None
+AllowShortIfStatementsOnASingleLine: false
+ColumnLimit: 100
