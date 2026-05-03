@@ -1,11 +1,11 @@
 // Copyright 2024 Christopher Bazley
 // SPDX-License-Identifier: MIT
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "strb.h"
 
@@ -15,7 +15,7 @@ static void test(strb_t *const s)
     char *found;
     size_t pos;
 
-    for ( i = 5; i >= 0; --i) {
+    for (i = 5; i >= 0; --i) {
         assert(!strb_seek(s, 0));
         assert(strb_putc(s, 'a' + i) == 'a' + i);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
@@ -261,18 +261,12 @@ static void test(strb_t *const s)
         puts(q);
     }
 
-    for (char *c = strb_ptr(s);
-        *c != '\0';
-        ++c)
-    {
+    for (char *c = strb_ptr(s); *c != '\0'; ++c) {
         *c = tolower(*c);
     }
     puts(strb_cptr(s));
 
-    for (char *c = strb_ptr(s);
-        *c != '\0';
-        ++c)
-    {
+    for (char *c = strb_ptr(s); *c != '\0'; ++c) {
         *c = toupper(*c);
     }
     puts(strb_cptr(s));
@@ -311,7 +305,11 @@ int main(void)
     memset(array, 'a', sizeof array);
     assert(strb_reuse(&state, sizeof array, array) == NULL); // no null terminator
 
-    snprintf(array, sizeof array, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
+    snprintf(array, sizeof array,
+             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi "
+             "mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce "
+             "bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet "
+             "commodo massa nunc. ");
     s = strb_reuse(&state, sizeof array, array);
 #if STRB_MAX_SIZE <= UINT8_MAX
     assert(!s); // too long
@@ -333,7 +331,11 @@ int main(void)
         puts(strb_ptr(&*cs));
 #endif
 
-        cs = strb_reuse_const(&state, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
+        cs = strb_reuse_const(&state,
+                              "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur "
+                              "lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit "
+                              "amet mattis augue. Fusce bibendum condimentum tortor accumsan "
+                              "sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
 #if STRB_MAX_SIZE <= UINT8_MAX
         assert(!cs); // too long
 #else
@@ -476,7 +478,10 @@ int main(void)
     puts(strb_ptr(&*s));
     strb_free(s);
 
-    s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
+    s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi "
+                 "mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce "
+                 "bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet "
+                 "commodo massa nunc. ");
 #if STRB_MAX_SIZE <= UINT8_MAX
     assert(!s); // too long
 #else

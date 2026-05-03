@@ -8,40 +8,39 @@
 #endif
 
 #define _GNU_SOURCE
+#include <assert.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
-#include <assert.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
 
 #include "strb.h"
 
 #if STRB_UNPUTC
-#define F_CAN_UNPUTC (1<<0)
+#define F_CAN_UNPUTC (1 << 0)
 #else
 #define F_CAN_UNPUTC 0
 #endif
 
-#define F_ERR (1<<1)
+#define F_ERR (1 << 1)
 
 #if STRB_RESTORE
-#define F_CAN_RESTORE (1<<2)
+#define F_CAN_RESTORE (1 << 2)
 #else
 #define F_CAN_RESTORE 0
 #endif
 
-#define F_OVERWRITE (1<<3)
+#define F_OVERWRITE (1 << 3)
 #if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
-#define F_ALLOCATED (1<<4)
+#define F_ALLOCATED (1 << 4)
 #endif
-#define F_EXTERNAL (1<<5)
-#define F_AUTOFREE (1<<6)
+#define F_EXTERNAL (1 << 5)
+#define F_AUTOFREE (1 << 6)
 #if STRB_REUSE_CONST
-#define F_IS_CONST (1<<7)
+#define F_IS_CONST (1 << 7)
 #else
 #define F_IS_CONST 0
 #endif
@@ -100,8 +99,7 @@ static _Optional strb_t *alloc_metadata(void)
 
 static void free_metadata(_Optional strb_t *sb)
 {
-    if (sb)
-    {
+    if (sb) {
         ptrdiff_t alloc_idx = sb - bufs;
         assert(alloc_idx >= 0);
         assert(alloc_idx < STRB_MAX);
@@ -123,7 +121,8 @@ static void free_metadata(_Optional strb_t *sb)
 #endif
 
 #if STRB_EXT_STATE
-static strb_t *init_use(strbstate_t *restrict sbs, strbsize_t size, char buf[STRB_SIZE_HINT(size)], strbsize_t len)
+static strb_t *init_use(strbstate_t *restrict sbs, strbsize_t size, char buf[STRB_SIZE_HINT(size)],
+                        strbsize_t len)
 {
     sbs->p.len = sbs->p.pos = len;
     sbs->p.size = size;
@@ -174,7 +173,8 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size, char buf[ST
 }
 
 #if STRB_REUSE_CONST
-_Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs, const char buf[STRB_SIZE_HINT(1)])
+_Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
+                                         const char buf[STRB_SIZE_HINT(1)])
 {
     assert(sbs);
     assert(buf);
@@ -212,7 +212,8 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
 
     {
         _Optional strb_t *sb = alloc_metadata(0);
-        if (!sb) return NULL;
+        if (!sb)
+            return NULL;
 
         sb->p.len = sb->p.pos = 0;
         sb->p.size = size;
@@ -243,7 +244,8 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
         }
 
         sb = alloc_metadata(0);
-        if (!sb) return NULL;
+        if (!sb)
+            return NULL;
 
         sb->p.len = sb->p.pos = len;
         sb->p.size = size;
@@ -275,9 +277,9 @@ _Optional strb_t *strb_alloc(size_t n)
 #endif
     {
         // Don't allocate huge internal strings because the storage can't be recovered
-        _Optional strb_t *sb = alloc_metadata(
-            n > STRB_MAX_INTERNAL_SIZE ? 0 : n);
-        if (!sb) return NULL;
+        _Optional strb_t *sb = alloc_metadata(n > STRB_MAX_INTERNAL_SIZE ? 0 : n);
+        if (!sb)
+            return NULL;
 #if !STRB_STATIC_ALLOC
         if (n > STRB_MAX_INTERNAL_SIZE) {
             DEBUGF("Oversize buffer of %zu characters\n", n);
@@ -312,7 +314,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
     {
         _Optional strb_t *sb = strb_alloc(len + 1u);
         if (!sb)
-                return NULL;
+            return NULL;
 
         memcpy(sb->p.buf, str, len); // more efficient than strncpy
         sb->p.buf[len] = '\0';
@@ -338,7 +340,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
 
         sb = strb_alloc((size_t)len + 1u);
         if (!sb)
-                return NULL;
+            return NULL;
 
         assert(sb->p.size > len);
         vsprintf(sb->p.buf, format, args_copy);
@@ -356,11 +358,10 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
 
 _Optional strb_t *strb_dup(const char *str)
 {
-        return strb_ndup(str, SIZE_MAX);
+    return strb_ndup(str, SIZE_MAX);
 }
 
-_Optional strb_t *strb_aprintf(const char *restrict format,
-                                ...)
+_Optional strb_t *strb_aprintf(const char *restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -402,7 +403,7 @@ const char *strb_cptr(strb_t const *sb)
     return sb->p.buf;
 }
 
-size_t strb_len(strb_t const *sb )
+size_t strb_len(strb_t const *sb)
 {
     assert(sb);
     return sb->p.len;
@@ -419,9 +420,8 @@ int strb_setmode(strb_t *sb, int mode)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
-    if (mode == strb_insert || mode == strb_overwrite)
-    {
-        sb->p.flags &= ~(F_CAN_UNPUTC|F_OVERWRITE);
+    if (mode == strb_insert || mode == strb_overwrite) {
+        sb->p.flags &= ~(F_CAN_UNPUTC | F_OVERWRITE);
         if (mode == strb_overwrite)
             sb->p.flags |= F_OVERWRITE;
         return 0;
@@ -431,7 +431,7 @@ int strb_setmode(strb_t *sb, int mode)
     }
 }
 
-int strb_getmode(const strb_t *sb )
+int strb_getmode(const strb_t *sb)
 {
     assert(sb);
     {
@@ -447,8 +447,7 @@ int strb_seek(strb_t *sb, size_t pos)
     assert(!(sb->p.flags & F_IS_CONST));
     DEBUGF("Seek to %zu\n", pos);
     assert(sb->p.pos < sb->p.size);
-    if (pos < STRB_MAX_SIZE)
-    {
+    if (pos < STRB_MAX_SIZE) {
         sb->p.pos = pos;
 #if STRB_UNPUTC || STRB_RESTORE
         sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
@@ -460,13 +459,13 @@ int strb_seek(strb_t *sb, size_t pos)
     }
 }
 
-size_t strb_tell(strb_t const *sb )
+size_t strb_tell(strb_t const *sb)
 {
     assert(sb);
     {
         strbsize_t pos = sb->p.pos;
-        DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize "\n",
-               pos, sb->p.len, sb->p.size);
+        DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize "\n", pos,
+               sb->p.len, sb->p.size);
         assert(pos < sb->p.size);
         return pos;
     }
@@ -474,7 +473,7 @@ size_t strb_tell(strb_t const *sb )
 
 int strb_putc(strb_t *sb, int c)
 {
-        return strb_nputc(sb, c, 1);
+    return strb_nputc(sb, c, 1);
 }
 
 int strb_nputc(strb_t *sb, int c, size_t n)
@@ -495,7 +494,7 @@ int strb_unputc(strb_t *sb)
     assert(!(sb->p.flags & F_IS_CONST));
     if (!(sb->p.flags & F_CAN_UNPUTC))
         return set_err(sb);
-    
+
     assert(sb->p.pos > 0);
     assert(sb->p.pos < STRB_MAX_SIZE);
     assert(sb->p.pos < sb->p.size);
@@ -505,10 +504,10 @@ int strb_unputc(strb_t *sb)
         const strbsize_t new_pos = sb->p.pos - 1;
         char removed = sb->p.buf[new_pos];
         if (!(sb->p.flags & F_OVERWRITE)) {
-                memmove(sb->p.buf + new_pos, sb->p.buf + sb->p.pos, sb->p.len - new_pos);
-                --sb->p.len;
+            memmove(sb->p.buf + new_pos, sb->p.buf + sb->p.pos, sb->p.len - new_pos);
+            --sb->p.len;
         } else {
-                sb->p.buf[new_pos] = sb->p.unputc_char;
+            sb->p.buf[new_pos] = sb->p.unputc_char;
         }
 
         sb->p.pos = new_pos;
@@ -523,14 +522,14 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
     size_t len = strnlen(str, n);
     _Optional char *buf = strb_write(sb, len);
     if (!buf)
-            return EOF;
+        return EOF;
 
     memcpy(&*buf, str, len); // more efficient than strncpy
     // assume F_CAN_RESTORE isn't user-visible. Don't bother calling strb_restore.
     return 0;
 }
 
-int strb_puts(strb_t *restrict sb, const char *restrict str )
+int strb_puts(strb_t *restrict sb, const char *restrict str)
 {
     return strb_nputs(sb, str, SIZE_MAX);
 }
@@ -544,7 +543,8 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
     {
         const int len = vsnprintf(NULL, 0, format, args);
         if (len >= 0) {
-            _Optional char *buf = strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
+            _Optional char *buf =
+                strb_write(sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
                 int const tmp = buf[len];
                 vsnprintf(buf, (size_t)len + 1u, format, args_copy);
@@ -597,9 +597,9 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
         return false;
     }
 
-    strbsize_t new_size = sb->p.size <= (STRB_MAX_SIZE / STRB_GROW_FACTOR) ?
-                              sb->p.size * STRB_GROW_FACTOR :
-                              STRB_MAX_SIZE;
+    strbsize_t new_size = sb->p.size <= (STRB_MAX_SIZE / STRB_GROW_FACTOR)
+                              ? sb->p.size * STRB_GROW_FACTOR
+                              : STRB_MAX_SIZE;
 
     assert(top + n + 1u <= STRB_MAX_SIZE);
 
@@ -637,8 +637,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 
     {
         const strbsize_t old_len = sb->p.len, old_pos = sb->p.pos;
-        const strbsize_t top = (sb->p.flags & F_OVERWRITE) || old_pos > old_len ?
-                               old_pos : old_len;
+        const strbsize_t top = (sb->p.flags & F_OVERWRITE) || old_pos > old_len ? old_pos : old_len;
 
         if (!strb_ensure(sb, n, top)) {
             DEBUGF("No room\n");
@@ -649,7 +648,8 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(old_pos < sb->p.size);
 
         if (old_pos > old_len) {
-            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %" PRIstrbsize "\n", old_len, old_pos + 1u);
+            DEBUGF("Zeroing between len %" PRIstrbsize " and pos %" PRIstrbsize "\n", old_len,
+                   old_pos + 1u);
             // +1 because there is no null terminator at pos yet
             memset(sb->p.buf + old_len, '\0', old_pos - old_len + 1u);
             sb->p.len = old_pos;
@@ -661,7 +661,8 @@ _Optional char *strb_write(strb_t *sb, size_t n)
             char *buf = sb->p.buf + old_pos;
 
             if (!(sb->p.flags & F_OVERWRITE)) {
-                DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, (void *)buf, (void *)(buf + n));
+                DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf, (void *)buf,
+                       (void *)(buf + n));
                 memmove(buf + n, buf, sb->p.len + 1u - old_pos);
                 sb->p.len += n;
             } else {
@@ -678,7 +679,8 @@ _Optional char *strb_write(strb_t *sb, size_t n)
             assert(sb->p.pos < sb->p.size);
 
             if (sb->p.pos > sb->p.len) {
-                DEBUGF("Bumping length from %" PRIstrbsize " to %" PRIstrbsize "\n", sb->p.len, sb->p.pos);
+                DEBUGF("Bumping length from %" PRIstrbsize " to %" PRIstrbsize "\n", sb->p.len,
+                       sb->p.pos);
                 sb->p.len = sb->p.pos;
                 buf[n] = '\0';
             }
@@ -686,7 +688,8 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 #if STRB_RESTORE
             sb->p.restore_char = buf[n];
             sb->p.flags |= F_CAN_RESTORE;
-            DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char, sb->p.restore_char, sb->p.pos);
+            DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char, sb->p.restore_char,
+                   sb->p.pos);
 #endif
 
 #if STRB_UNPUTC
@@ -711,7 +714,8 @@ void strb_restore(strb_t *sb)
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     if (sb->p.flags & F_CAN_RESTORE) {
-        DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char, sb->p.restore_char, sb->p.pos);
+        DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char, sb->p.restore_char,
+               sb->p.pos);
         sb->p.buf[sb->p.pos] = sb->p.restore_char;
         sb->p.flags &= ~F_CAN_RESTORE;
     }
@@ -770,8 +774,7 @@ int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n)
     return strb_nputs(sb, str, n);
 }
 
-int strb_cpy(strb_t *restrict sb,
-             const char *restrict str )
+int strb_cpy(strb_t *restrict sb, const char *restrict str)
 {
     return strb_ncpy(sb, str, SIZE_MAX);
 }
@@ -797,7 +800,7 @@ int strb_printf(strb_t *restrict sb, const char *restrict format, ...)
 
 #endif // !STRB_FREESTANDING
 
-bool strb_error(strb_t const *sb )
+bool strb_error(strb_t const *sb)
 {
     assert(sb);
     return (sb->p.flags & F_ERR) != 0;
