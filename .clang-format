@@ -20,4 +20,4 @@ SpaceBeforeParens: ControlStatements
 
 AlwaysBreakAfterReturnType: None
 AllowShortIfStatementsOnASingleLine: false
-ColumnLimit: 100
+ColumnLimit: 80
