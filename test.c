@@ -303,12 +303,16 @@ int main(void)
     test(&*s);
 
     memset(array, 'a', sizeof array);
-    assert(strb_reuse(&state, sizeof array, array) == NULL); // no null terminator
+    assert(strb_reuse(&state, sizeof array, array) ==
+           NULL); // no null terminator
 
     snprintf(array, sizeof array,
-             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi "
-             "mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce "
-             "bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet "
+             "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
+             "Curabitur lacinia mi "
+             "mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet "
+             "mattis augue. Fusce "
+             "bibendum condimentum tortor accumsan sodales. Curabitur "
+             "accumsan, ante sit amet "
              "commodo massa nunc. ");
     s = strb_reuse(&state, sizeof array, array);
 #if STRB_MAX_SIZE <= UINT8_MAX
@@ -331,11 +335,14 @@ int main(void)
         puts(strb_ptr(&*cs));
 #endif
 
-        cs = strb_reuse_const(&state,
-                              "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur "
-                              "lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas sit "
-                              "amet mattis augue. Fusce bibendum condimentum tortor accumsan "
-                              "sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
+        cs = strb_reuse_const(
+            &state,
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
+            "Curabitur "
+            "lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas "
+            "sit "
+            "amet mattis augue. Fusce bibendum condimentum tortor accumsan "
+            "sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
 #if STRB_MAX_SIZE <= UINT8_MAX
         assert(!cs); // too long
 #else
@@ -478,9 +485,12 @@ int main(void)
     puts(strb_ptr(&*s));
     strb_free(s);
 
-    s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur lacinia mi "
-                 "mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet mattis augue. Fusce "
-                 "bibendum condimentum tortor accumsan sodales. Curabitur accumsan, ante sit amet "
+    s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
+                 "Curabitur lacinia mi "
+                 "mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet "
+                 "mattis augue. Fusce "
+                 "bibendum condimentum tortor accumsan sodales. Curabitur "
+                 "accumsan, ante sit amet "
                  "commodo massa nunc. ");
 #if STRB_MAX_SIZE <= UINT8_MAX
     assert(!s); // too long
