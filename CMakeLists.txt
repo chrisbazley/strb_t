@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD 11)
 
 # Compiler warnings
 if(MSVC)
-    add_compile_options(/W4)
+    add_compile_options(/W4 /wd4200 /wd4996)
 else()
     add_compile_options(-Wall -Wextra -Wsign-conversion -pedantic)
 endif()
