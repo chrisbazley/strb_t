@@ -60,9 +60,5 @@ add_strb_variant("freestanding" "STRB_FREESTANDING")
 # Optimization and Debug settings
 add_compile_definitions(
     $<$<CONFIG:Debug>:DEBUGOUT=1>
-    $<$<CONFIG:Release>:NDEBUG>
 )
 
-if(NOT MSVC)
-    add_compile_options($<$<CONFIG:Release>:-O3>)
-endif()
