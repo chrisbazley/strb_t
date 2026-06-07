@@ -3,6 +3,7 @@ project(strb_t C)
 enable_testing()
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_XCODE_ATTRIBUTE_RUN_CLANG_STATIC_ANALYZER "YES")
 
 # Compiler warnings
 if(MSVC)
