@@ -5,6 +5,30 @@ enable_testing()
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_XCODE_ATTRIBUTE_RUN_CLANG_STATIC_ANALYZER "YES")
 
+if(CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang")
+    find_program(CLANG_TIDY_EXE
+        NAMES clang-tidy
+        HINTS "/opt/homebrew/opt/llvm/bin"
+    )
+
+    if(CLANG_TIDY_EXE)
+        # 1. Base Clang-Tidy call configuration
+        set(CLANG_TIDY_ARGS "${CLANG_TIDY_EXE};-checks=-*,clang-analyzer-*")
+
+        # 2. On Apple machines, append the current platform SDK directory path
+        if(APPLE)
+            execute_process(COMMAND xcrun --show-sdk-path OUTPUT_VARIABLE MAC_SDK_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
+            list(APPEND CLANG_TIDY_ARGS "--extra-arg=-isysroot" "--extra-arg=${MAC_SDK_PATH}")
+        endif()
+
+        # 3. Apply the modified list to CMake
+        set(CMAKE_C_CLANG_TIDY "${CLANG_TIDY_ARGS}")
+        message(STATUS "Clang-Tidy Static Analyzer enabled automatically.")
+    else()
+        message(STATUS "clang-tidy binary not found. Skipping analysis pass.")
+    endif()
+endif()
+
 # Compiler warnings
 if(MSVC)
     add_compile_options(/W4 /wd4200 /wd4996 /wd4130)
