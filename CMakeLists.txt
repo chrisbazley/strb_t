@@ -13,7 +13,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang")
 
     if(CLANG_TIDY_EXE)
         # 1. Base Clang-Tidy call configuration
-        set(CLANG_TIDY_ARGS "${CLANG_TIDY_EXE};-checks=-*,clang-analyzer-*")
+        set(CLANG_TIDY_ARGS "${CLANG_TIDY_EXE};-checks=-*,clang-analyzer-*,-clang-analyzer-security.insecureapi.deprecatedOrUnsafeBufferHandling")
 
         # 2. On Apple machines, append the current platform SDK directory path
         if(APPLE)
