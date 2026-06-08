@@ -1,6 +1,7 @@
 // Copyright 2024 Christopher Bazley
 // SPDX-License-Identifier: MIT
 
+#undef NDEBUG
 #include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
