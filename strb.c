@@ -337,21 +337,21 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
 
 _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
 {
+    _Optional strb_t *sb = NULL;
     va_list args_copy;
     va_copy(args_copy, args);
-    {
-        _Optional strb_t *sb = NULL;
+
+    do {
         int len = vsnprintf(NULL, 0, format, args);
         if (len < 0 || (size_t)len >= STRB_MAX_SIZE)
-            return NULL; // formatting failed or result too long
+            break; // formatting failed or result too long
 
         sb = strb_alloc((size_t)len + 1u);
         if (!sb)
-            return NULL;
+            break;
 
         assert(sb->p.size > len);
         vsprintf(sb->p.buf, format, args_copy);
-        va_end(args_copy);
 
         sb->p.len = sb->p.pos = (strbsize_t)len;
 #if STRB_UNPUTC
@@ -359,8 +359,10 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
         if (len)
             sb->p.flags |= F_CAN_UNPUTC;
 #endif
-        return sb;
-    }
+    } while (0);
+
+    va_end(args_copy);
+    return sb;
 }
 
 _Optional strb_t *strb_dup(const char *str)
