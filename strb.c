@@ -621,6 +621,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
         new_size = top + n + 1u; // +1 for terminator
 
     _Optional char *new_buf = NULL;
+    assert(new_size >= 1u);
     if (sb->p.flags & F_ALLOCATED) {
         new_buf = realloc(sb->p.buf, new_size);
         if (!new_buf)
