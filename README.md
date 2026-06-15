@@ -7,6 +7,19 @@ The prototype can be configured with -DSTRB_STATIC_ALLOC (no dynamic allocation)
 
 I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 
+## Building
+
+  If you have CMake, a build system generator, then you can use it to
+build the library and its tests with minimal manual intervention.
+
+For example, use the following commands to build and test on Linux:
+```
+  cmake -G 'Unix Makefiles' -S . -B build
+  cd build
+  make
+  ctest
+```
+
 ## FAQ
 
 Q1: Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?
