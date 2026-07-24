@@ -367,7 +367,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
 
 _Optional strb_t *strb_dup(const char *str)
 {
-    return strb_ndup(str, SIZE_MAX);
+    return strb_ndup(str, STRB_MAX_SIZE);
 }
 
 _Optional strb_t *strb_aprintf(const char *restrict format, ...)
@@ -544,7 +544,7 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
 
 int strb_puts(strb_t *restrict sb, const char *restrict str)
 {
-    return strb_nputs(sb, str, SIZE_MAX);
+    return strb_nputs(sb, str, STRB_MAX_SIZE);
 }
 
 #if !STRB_FREESTANDING
@@ -797,7 +797,7 @@ int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n)
 
 int strb_cpy(strb_t *restrict sb, const char *restrict str)
 {
-    return strb_ncpy(sb, str, SIZE_MAX);
+    return strb_ncpy(sb, str, STRB_MAX_SIZE);
 }
 
 #if !STRB_FREESTANDING
