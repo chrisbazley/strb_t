@@ -263,12 +263,12 @@ static void test(strb_t *const s)
     }
 
     for (char *c = strb_ptr(s); *c != '\0'; ++c) {
-        *c = tolower(*c);
+        *c = tolower((unsigned char)(*c));
     }
     puts(strb_cptr(s));
 
     for (char *c = strb_ptr(s); *c != '\0'; ++c) {
-        *c = toupper(*c);
+        *c = toupper((unsigned char)(*c));
     }
     puts(strb_cptr(s));
 
