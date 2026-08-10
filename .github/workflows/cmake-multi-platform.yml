@@ -8,9 +8,101 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+
+  optional-clang:
+    name: Build and analyze with _Optional Clang
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    env:
+      OPTIONAL_CLANG_TAG: v1.0.4-optional
+      OPTIONAL_CLANG_PLATFORM: linux-x86_64
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Download _Optional Clang
+        shell: bash
+        run: |
+          archive="clang+llvm-${OPTIONAL_CLANG_TAG}-${OPTIONAL_CLANG_PLATFORM}.tar.xz"
+          toolchain="$RUNNER_TEMP/optional-clang"
+
+          mkdir -p "$toolchain"
+
+          gh release download "$OPTIONAL_CLANG_TAG" \
+            --repo chrisbazley/llvm-project \
+            --pattern "$archive" \
+            --pattern "$archive.sha256" \
+            --dir "$RUNNER_TEMP"
+
+          cd "$RUNNER_TEMP"
+          sha256sum --check "$archive.sha256"
+          tar -xJf "$archive" -C "$toolchain"
+
+          echo "OPTIONAL_CLANG_ROOT=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+
+      - name: Verify toolchain
+        shell: bash
+        run: |
+          test "$(command -v clang)" = "$OPTIONAL_CLANG_ROOT/bin/clang"
+          test "$(command -v clang-tidy)" = \
+            "$OPTIONAL_CLANG_ROOT/bin/clang-tidy"
+
+          clang --version
+          clang-tidy --version
+
+          clang-tidy \
+            --list-checks \
+            --checks='-*,clang-analyzer-optionality.OptionalityChecker' |
+            grep -F 'clang-analyzer-optionality.OptionalityChecker'
+
+          cat > "$RUNNER_TEMP/optional-smoke-test.c" <<'EOF'
+          int value_or_zero(_Optional int *value) {
+            return value ? *value : 0;
+          }
+          EOF
+
+          clang -std=c99 \
+            -fsyntax-only \
+            "$RUNNER_TEMP/optional-smoke-test.c"
+
+      - name: Configure with _Optional
+        shell: bash
+        run: |
+          cmake \
+            -S "$GITHUB_WORKSPACE" \
+            -B "$GITHUB_WORKSPACE/build-optional" \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_C_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang" \
+            -DCMAKE_CXX_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang++" \
+            -DCLANG_TIDY_EXE="$OPTIONAL_CLANG_ROOT/bin/clang-tidy" \
+            -DUSE_OPTIONAL=ON \
+            -DENABLE_CLANG_TIDY=ON
+
+      - name: Build and analyze
+        shell: bash
+        run: |
+          cmake \
+            --build "$GITHUB_WORKSPACE/build-optional" \
+            --parallel 2
+
+      - name: Test
+        shell: bash
+        run: |
+          ctest \
+            --test-dir "$GITHUB_WORKSPACE/build-optional" \
+            --build-config Debug \
+            --output-on-failure
 
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
