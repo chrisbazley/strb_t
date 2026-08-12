@@ -83,7 +83,7 @@ jobs:
     timeout-minutes: 60
 
     env:
-      OPTIONAL_CLANG_TAG: v1.0.5-optional
+      OPTIONAL_CLANG_TAG: v1.0.7-optional
       OPTIONAL_CLANG_PLATFORM: linux-x86_64
       GH_TOKEN: ${{ github.token }}
 
