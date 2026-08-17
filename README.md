@@ -7,6 +7,11 @@ The prototype can be configured with -DSTRB_STATIC_ALLOC (no dynamic allocation)
 
 I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 
+## Documentation
+
+[Documentation][https://chrisbazley.github.io/strb_t/strb_8h.html] for the interface is generated using Doxygen.
+
+
 ## Building
 
   If you have CMake, a build system generator, then you can use it to
