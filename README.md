@@ -9,7 +9,7 @@ I haven't written a full test suite or anything, but it seems pretty solid for t
 
 ## Documentation
 
-[Documentation][https://chrisbazley.github.io/strb_t/strb_8h.html] for the interface is generated using Doxygen.
+[Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface is generated using Doxygen.
 
 
 ## Building
