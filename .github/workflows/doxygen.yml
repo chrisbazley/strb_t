@@ -1,0 +1,61 @@
+name: Build and publish Doxygen documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "strb.h"
+      - "strb.c"
+      - "Doxyfile"
+      - ".github/workflows/doxygen.yml"
+  pull_request:
+    paths:
+      - "strb.h"
+      - "strb.c"
+      - "Doxyfile"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install Doxygen and Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes doxygen graphviz
+
+      - name: Generate documentation
+        run: doxygen Doxyfile
+
+      - name: Upload documentation for GitHub Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: html
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Publish documentation
+        id: deployment
+        uses: actions/deploy-pages@v4
