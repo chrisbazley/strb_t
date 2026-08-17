@@ -1,1 +1,19 @@
-INPUT =
+PROJECT_NAME           = "strb_t"
+PROJECT_BRIEF          = "String buffer interface for C"
+
+INPUT                  = strb.h strb.c
+FILE_PATTERNS          = *.h *.c
+
+OUTPUT_DIRECTORY       =
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+
+EXTRACT_ALL            = NO
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+
+HAVE_DOT               = YES
