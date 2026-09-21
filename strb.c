@@ -185,7 +185,6 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
 
     {
         size_t len = strnlen(buf, STRB_MAX_SIZE);
-        strb_t *sb;
         if (len == STRB_MAX_SIZE) {
             // Could be outside of the caller's control because of
             // STRB_MAX_SIZE. Don't want to force use of strb_error after any
@@ -193,7 +192,7 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
             return NULL;
         }
 
-        sb = init_use(sbs, len + 1u, (char *)buf, len);
+        strb_t *sb = init_use(sbs, len + 1u, (char *)buf, len);
 #ifndef NDEBUG
         sb->p.flags |= F_IS_CONST;
 #endif
@@ -761,11 +760,10 @@ void strb_delto(strb_t *sb, size_t pos)
     assert(lo <= hi);
 
     if (!(sb->p.flags & F_OVERWRITE)) {
-        strbsize_t clo, chi, len;
 
-        len = sb->p.len;
-        chi = hi > len ? len : hi;
-        clo = lo > len ? len : lo;
+        strbsize_t len = sb->p.len;
+        strbsize_t chi = hi > len ? len : hi;
+        strbsize_t clo = lo > len ? len : lo;
         assert(clo <= chi);
 
         memmove(sb->p.buf + clo, sb->p.buf + chi, len + 1u - chi);
