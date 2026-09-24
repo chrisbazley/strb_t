@@ -3,8 +3,6 @@
 /**
  * @file strb.h
  * @author Christopher Bazley (chris.bazley@arm.com)
- * @version 0.4
- * @date 2026-02-18
  *
  * @copyright Copyright (c) 2024
  *
