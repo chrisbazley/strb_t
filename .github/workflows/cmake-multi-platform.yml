@@ -148,6 +148,7 @@ jobs:
             -DCMAKE_C_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang" \
             -DCMAKE_CXX_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang++" \
             -DCLANG_TIDY_EXE="$OPTIONAL_CLANG_ROOT/bin/clang-tidy" \
+            -DWARNINGS_AS_ERRORS=ON \
             -DUSE_OPTIONAL=ON \
             -DENABLE_CLANG_TIDY=ON
 
