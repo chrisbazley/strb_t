@@ -4,6 +4,7 @@ enable_testing()
 
 option(USE_OPTIONAL "Enable the _Optional qualifier" OFF)
 option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
+option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 if(USE_OPTIONAL)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang")
@@ -23,15 +24,15 @@ endif()
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_XCODE_ATTRIBUTE_RUN_CLANG_STATIC_ANALYZER "YES")
 
-if(MSVC)
-    # MSVC equivalent of -Wall -Wextra is /W4
-    add_compile_options(/W4 /wd4200 /wd4996 /wd4130)
-else()
-    # For GCC and Clang
-    add_compile_options(-Wall -Wextra -Wsign-compare -pedantic)
+if(WARNINGS_AS_ERRORS AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    if(MSVC)
+        add_compile_options(/WX)
+    else()
+        add_compile_options(-Werror)
+    endif()
 endif()
 
-if(ENABLE_CLANG_TIDY)
+if(ENABLE_CLANG_TIDY AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang")
         message(FATAL_ERROR "ENABLE_CLANG_TIDY requires Clang")
     endif()
@@ -49,7 +50,7 @@ if(ENABLE_CLANG_TIDY)
     set(CMAKE_C_CLANG_TIDY
         "${CLANG_TIDY_EXE}"
         "--checks=-*,clang-analyzer-*,-clang-analyzer-security.insecureAPI.*"
-        "--warnings-as-errors=clang-analyzer-optionality.*"
+        "--warnings-as-errors=clang-analyzer-*"
     )
 
     message(STATUS "clang-tidy: ${CLANG_TIDY_EXE}")
@@ -113,4 +114,3 @@ add_strb_variant("freestanding" "STRB_FREESTANDING")
 add_compile_definitions(
     $<$<CONFIG:Debug>:DEBUGOUT=1>
 )
-
