@@ -999,6 +999,10 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * to the position. Any previous @ref strb_restore boundary is replaced by the
  * character at the new boundary, even when @p n is zero.
  *
+ * @ref strb_split is equivalent to calling this function with a count of zero
+ * and storing a null character at the returned address. @ref strb_restore can
+ * restore the character overwritten by that null.
+ *
  * If @ref STRB_UNPUTC is enabled, a zero count preserves the character previously
  * available to @ref strb_unputc; a nonzero count makes the last prepared character
  * available to it. This is independent of boundary repair by @ref strb_restore.
@@ -1044,7 +1048,9 @@ _Optional char *strb_write(strb_t *sb, size_t n);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post The character at the current position is null.
- * @post The position indicator and string length are unmodified.
+ * @post The position indicator is unmodified. The string length is the greater
+ *       of its previous value and the current position, as for @ref strb_write
+ *       with a count of zero.
  * @post The user may call @ref strb_restore to restore the character that was
  *       at the current position before the call to @ref strb_split.
  */
@@ -1062,6 +1068,12 @@ void strb_split(strb_t *sb);
  * string buffer. Since strings are terminated by a null character, any
  * character overwritten by this terminator must be restored to prevent
  * unintentional truncation.
+ *
+ * It can also restore the character overwritten by @ref strb_split, which
+ * prepares space as if by calling @ref strb_write with a count of zero before
+ * writing a null at the current position. Restoration changes only the saved
+ * character, not the position or recorded length, and does not undo the output
+ * written into space prepared by @ref strb_write.
  *
  * For example, prepending "fish" to "cat" should not result in the string
  * "fish\0at". A call to @ref strb_restore would restore the overwritten
