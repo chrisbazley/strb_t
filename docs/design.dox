@@ -29,7 +29,8 @@ Their individual contracts describe these whole-string operations.
 The output functions let a helper produce text without deciding where that
 text belongs. Its caller can arrange for the same helper to append, prepend,
 insert or overwrite. For example, this producer changes neither mode nor
-position explicitly and can be used in any of those contexts:
+position explicitly and can be used in any of those contexts. It requires a
+single-digit number, so all labels it produces have the same length:
 
 @snippet design.c producer
 
@@ -124,25 +125,31 @@ position just after the new prefix:
 
 @snippet design.c prepend
 
+The example records that position with @ref strb_tell for subsequent editing,
+so those operations do not need to know the prefix length.
+
 @subsection design_insert Insert generated text
 
-The same producer used for sequential output can insert into existing text:
+The same producer used for sequential output can insert into existing text.
+The example uses the saved position and records the position after the inserted
+label and separator for later deletion:
 
 @snippet design.c insert
 
 @subsection design_overwrite Overwrite existing text
 
-Changing the mode lets that producer overwrite instead. The example uses
-labels of equal length; a shorter label would leave part of the previous label
-in place:
+Changing the mode lets that producer overwrite instead. Its single-digit
+precondition guarantees labels of equal length. In general, a shorter
+replacement would leave part of the previous label in place, while a longer
+one would overwrite following text:
 
 @snippet design.c overwrite
 
 @subsection design_delete Delete a range
 
 Select insertion mode, seek to the start of the range, and delete to its end.
-The prefix length determines the start; the label and separator determine the
-end. Subtracting one from each @c sizeof excludes the literal's null terminator.
+The endpoints were recorded while generating the prefix, label and separator,
+so deletion does not depend on knowing their lengths in advance.
 The position remains at the start of the range, ready for further output there:
 
 @snippet design.c delete
@@ -161,9 +168,9 @@ leading comma:
 
 @subsection design_fruit_sentence Inserting into a caller-supplied array
 
-This consumer supplies both storage and buffer state. It first writes the
-surrounding sentence text, then positions the buffer before the full stop. The
-producer inserts its list there, preserving the following punctuation. The
+This consumer supplies both storage and buffer state. It writes the prefix and
+records the position with @ref strb_tell, then adds the full stop. Seeking back to the
+recorded position lets the producer insert its list before the punctuation. The
 consumer passes the completed array directly to @c puts:
 
 @snippet design.c fruit_sentence
