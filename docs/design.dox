@@ -3,11 +3,11 @@
 
 @section design_model Output controlled by position and mode
 
-A string buffer combines storage, a recorded length, an editing position and an
-editing mode. The @ref strb_putc, @ref strb_nputc, @ref strb_puts,
-@ref strb_nputs, @ref strb_putf and @ref strb_vputf functions write at that
-position and advance it. Position and mode determine how the output affects
-existing text:
+A string buffer of type @ref strb_t combines storage, a recorded length, an
+editing position and an editing mode. The @ref strb_putc, @ref strb_nputc,
+@ref strb_puts, @ref strb_nputs, @ref strb_putf and @ref strb_vputf functions
+write at that position and advance it. Position and mode determine how the
+output affects existing text:
 
 - @ref strb_insert makes room for the output by moving the following text.
 - @ref strb_overwrite replaces existing characters and extends the buffer when
