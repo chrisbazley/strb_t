@@ -92,7 +92,7 @@ explains the choice of an endpoint-based interface in more detail.
 
 @section design_state Why do some constructors need a state object?
 
-Even the most trivial string buffer implementation needs
+Even the most trivial string buffer implementation needs state
 to track its storage; a string buffer of type @ref strb_t also
 tracks its length, position and editing mode.  The choice
 is who supplies storage for that state.
