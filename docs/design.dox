@@ -92,7 +92,8 @@ explains the choice of an endpoint-based interface in more detail.
 @section design_examples Appending, prepending, inserting and overwriting and deleting
 
 The following snippets are successive parts of one example in
-@c examples/design.c. They use the default hosted configuration and a caller-owned buffer:
+@c examples/design.c. The caller supplies both the character array and the
+buffer state:
 
 @snippet design.c external
 
@@ -229,17 +230,15 @@ See those functions' contracts before using the direct-write interface.
 Borrowed pointers into the buffer should be obtained again after operations
 that may reallocate storage.
 
-@subsection design_boundary Preserving the following character
-
 The output wrappers preserve the character following their output themselves.
 After successful output, @ref strb_restore therefore writes back the character
 that is already there, leaving the contents unchanged. This also applies when
 no characters were produced.
 
-@subsection design_unputc Optional single-character undo
+@section design_unputc Single-character undo
 
-@ref strb_unputc is conditionally provided by @ref STRB_UNPUTC. It is separate
-from space preparation and boundary repair: it steps back one position, removing
+@ref strb_unputc is separate from space preparation and boundary repair:
+it steps back one position, removing
 an inserted character or restoring an overwritten character. Nonempty output
 makes its last character available to this operation; empty output preserves
 any previously available character. It does not undo a whole output call.
