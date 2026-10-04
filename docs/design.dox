@@ -98,7 +98,7 @@ mode. The choice is who supplies storage for that state.
 With @ref strb_use, the caller supplies both a character array and a
 @ref strbstate_t object. No allocation is needed, so initialisation cannot fail.
 Both objects must remain alive for as long as the buffer is used.  Because no
-storage is allocated by the library, this constructor can even be provided by
+storage is allocated by the library, this constructor can be provided even by
 freestanding implementations that do not provide @c malloc.
 
 With @ref strb_alloc, the library supplies storage for both the state and the
