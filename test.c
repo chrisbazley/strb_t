@@ -10,6 +10,415 @@
 
 #include "strb.h"
 
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+
+#if STRB_EXT_STATE || !STRB_FREESTANDING
+// Reference output operations prepare space with strb_write, then fill it
+// independently of the library's character, string and formatting wrappers.
+static int ref_nputc(strb_t *s, int c, size_t n)
+{
+    _Optional char *output = strb_write(s, n);
+    if (!output)
+        return EOF;
+    for (size_t i = 0; i < n; ++i)
+        output[i] = (char)(unsigned char)c;
+    return c;
+}
+
+static int ref_nputs(strb_t *s, const char *str, size_t n)
+{
+    size_t len = 0;
+    while (len < n && str[len])
+        ++len;
+    _Optional char *output = strb_write(s, len);
+    if (!output)
+        return EOF;
+    for (size_t i = 0; i < len; ++i)
+        output[i] = str[i];
+    return 0;
+}
+
+static int ref_puts(strb_t *s, const char *str)
+{
+    return ref_nputs(s, str, SIZE_MAX);
+}
+
+#if !STRB_FREESTANDING
+static int ref_vputf(strb_t *s, const char *format, va_list args)
+{
+    // Formatting is independent of strb; use the returned count so embedded
+    // null characters are written too. All test output fits in this array.
+    char output[128];
+    int len = vsnprintf(output, sizeof output, format, args);
+    assert(len >= 0);
+    assert((size_t)len < sizeof output);
+    _Optional char *destination = strb_write(s, (size_t)len);
+    if (!destination)
+        return EOF;
+    for (int i = 0; i < len; ++i)
+        destination[i] = output[i];
+#if STRB_RESTORE
+    // Exercise the direct writer's terminating null and boundary repair.
+    destination[len] = '\0';
+    strb_restore(s);
+#endif
+    return 0;
+}
+
+static int ref_putf(strb_t *s, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    int result = ref_vputf(s, format, args);
+    va_end(args);
+    return result;
+}
+
+static int call_strb_vputf(strb_t *s, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    int result = strb_vputf(s, format, args);
+    va_end(args);
+    return result;
+}
+#endif
+
+typedef struct {
+    const char *name;
+    const char *text;
+    size_t count;
+    int operation;
+    int character;
+} output_case;
+
+enum { output_repeat, output_string, output_bounded,
+       output_format, output_vformat };
+
+// This source deliberately has no null terminator.
+static const char bounded_output[] = {'X', 'Y', 'Z'};
+
+static const output_case output_cases[] = {
+    {"nputc zero", "", 0, output_repeat, 'X'},
+    {"nputc one", "", 1, output_repeat, 'X'},
+    {"nputc many", "", 12, output_repeat, 'X'},
+    {"nputc null", "", 3, output_repeat, '\0'},
+    {"nputc high byte", "", 3, output_repeat, 0x80},
+    {"puts empty", "", 0, output_string, 0},
+    {"puts one", "X", 0, output_string, 0},
+    {"puts many", "0123456789AB", 0, output_string, 0},
+    {"puts high byte", "x\200y", 0, output_string, 0},
+    {"nputs zero", "XYZ", 0, output_bounded, 0},
+    {"nputs empty", "", 4, output_bounded, 0},
+    {"nputs bounded array", bounded_output, sizeof bounded_output, output_bounded, 0},
+    {"nputs truncated", "XYZ", 2, output_bounded, 0},
+    {"nputs early null", "X\0YZ", 4, output_bounded, 0},
+    {"nputs many", "0123456789AB", 12, output_bounded, 0},
+#if !STRB_FREESTANDING
+    {"putf empty", "", 0, output_format, 0},
+    {"putf conversions", "%s:%04d:%c:%%", 0, output_format, 'Q'},
+    {"putf embedded null", "%s:%04d:%c:%%", 0, output_format, '\0'},
+    {"vputf empty", "", 0, output_vformat, 0},
+    {"vputf conversions", "%s:%04d:%c:%%", 0, output_vformat, 'Q'},
+    {"vputf embedded null", "%s:%04d:%c:%%", 0, output_vformat, '\0'},
+#endif
+};
+
+static int put_library_output(strb_t *s, const output_case *testcase)
+{
+    switch (testcase->operation) {
+    case output_repeat:
+        return strb_nputc(s, testcase->character, testcase->count);
+    case output_string:
+        return strb_puts(s, testcase->text);
+    case output_bounded:
+        return strb_nputs(s, testcase->text, testcase->count);
+#if !STRB_FREESTANDING
+    case output_format:
+        return strb_putf(s, testcase->text, "ab", 7, testcase->character);
+    case output_vformat:
+        return call_strb_vputf(s, testcase->text, "ab", 7, testcase->character);
+#endif
+    default:
+        assert(0);
+        return EOF;
+    }
+}
+
+static int put_reference_output(strb_t *s, const output_case *testcase)
+{
+    switch (testcase->operation) {
+    case output_repeat:
+        return ref_nputc(s, testcase->character, testcase->count);
+    case output_string:
+        return ref_puts(s, testcase->text);
+    case output_bounded:
+        return ref_nputs(s, testcase->text, testcase->count);
+#if !STRB_FREESTANDING
+    case output_format:
+    case output_vformat:
+        // ref_putf constructs the va_list passed to ref_vputf.
+        return ref_putf(s, testcase->text, "ab", 7, testcase->character);
+#endif
+    default:
+        assert(0);
+        return EOF;
+    }
+}
+
+static void compare_output(const strb_t *actual, const strb_t *reference,
+                           const output_case *testcase)
+{
+    bool equal = strb_len(actual) == strb_len(reference) &&
+                 strb_tell(actual) == strb_tell(reference) &&
+                 strb_getmode(actual) == strb_getmode(reference) &&
+                 strb_error(actual) == strb_error(reference) &&
+                 !memcmp(strb_cptr(actual), strb_cptr(reference),
+                         strb_len(reference) + 1);
+    if (!equal) {
+        fprintf(stderr, "%s: actual len=%zu pos=%zu mode=%d error=%d; "
+                        "reference len=%zu pos=%zu mode=%d error=%d\n",
+                testcase->name, strb_len(actual), strb_tell(actual),
+                strb_getmode(actual), strb_error(actual), strb_len(reference),
+                strb_tell(reference), strb_getmode(reference),
+                strb_error(reference));
+    }
+    assert(strb_len(actual) == strb_len(reference));
+    assert(strb_tell(actual) == strb_tell(reference));
+    assert(strb_getmode(actual) == strb_getmode(reference));
+    assert(strb_error(actual) == strb_error(reference));
+    assert(!memcmp(strb_cptr(actual), strb_cptr(reference),
+                   strb_len(reference) + 1));
+}
+
+static void prepare_output(strb_t *s, const char *initial, size_t pos,
+                           int mode, bool pending_undo, bool error)
+{
+    assert(!ref_puts(s, initial));
+    assert(!strb_setmode(s, mode));
+    assert(!strb_seek(s, pos));
+    if (pending_undo)
+        assert(strb_putc(s, 'q') == 'q');
+    if (error) {
+        assert(strb_setmode(s, -1) == EOF);
+        assert(strb_error(s));
+    }
+}
+
+static void check_output(strb_t *actual, strb_t *reference,
+                         const output_case *testcase)
+{
+    int expected = put_reference_output(reference, testcase);
+    assert(expected != EOF);
+    assert(put_library_output(actual, testcase) == expected);
+    compare_output(actual, reference, testcase);
+#if STRB_RESTORE
+    // Output functions promise that restore has no effect.
+    const size_t pos = strb_tell(actual);
+    const char boundary = strb_cptr(actual)[pos];
+    strb_restore(actual);
+    assert(strb_cptr(actual)[pos] == boundary);
+    strb_restore(reference);
+    compare_output(actual, reference, testcase);
+#endif
+#if STRB_UNPUTC
+    // Only one undo is guaranteed, even after a multi-character write.
+    assert(strb_unputc(actual) == strb_unputc(reference));
+    compare_output(actual, reference, testcase);
+#endif
+}
+
+static void test_output_equivalence(void)
+{
+    enum { HAS_PENDING_UNDO = 1u << 0, HAS_ERROR = 1u << 1,
+           HAS_PENDING_RESTORE = 1u << 2 };
+    const unsigned initial_states[] = {
+        0, HAS_PENDING_UNDO, HAS_ERROR, HAS_PENDING_UNDO | HAS_ERROR,
+#if STRB_RESTORE
+        HAS_PENDING_RESTORE, HAS_PENDING_RESTORE | HAS_PENDING_UNDO,
+        HAS_PENDING_RESTORE | HAS_ERROR,
+        HAS_PENDING_RESTORE | HAS_PENDING_UNDO | HAS_ERROR,
+#endif
+    };
+    const char *const initial_strings[] = {"", "abcdef"};
+    const int modes[] = {strb_insert, strb_overwrite};
+    for (size_t t = 0; t < ARRAY_SIZE(output_cases); ++t) {
+        for (size_t i = 0; i < ARRAY_SIZE(initial_strings); ++i) {
+            const char *initial = initial_strings[i];
+            for (size_t pos = 0; pos <= strlen(initial) + 2; ++pos) {
+                for (size_t m = 0; m < ARRAY_SIZE(modes); ++m) {
+                    for (size_t state_index = 0;
+                         state_index < ARRAY_SIZE(initial_states); ++state_index) {
+                        const unsigned flags = initial_states[state_index];
+                        char actual_array[128], reference_array[128];
+#if STRB_EXT_STATE
+                        strbstate_t actual_state, reference_state;
+                        strb_t *actual = strb_use(&actual_state, sizeof actual_array,
+                                                  actual_array);
+                        strb_t *reference = strb_use(&reference_state,
+                                                     sizeof reference_array,
+                                                     reference_array);
+#else
+                        _Optional strb_t *actual = strb_use(sizeof actual_array,
+                                                            actual_array);
+                        _Optional strb_t *reference = strb_use(sizeof reference_array,
+                                                               reference_array);
+#endif
+                        assert(actual);
+                        assert(reference);
+                        prepare_output(&*actual, initial, pos, modes[m],
+                                       flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
+                        prepare_output(&*reference, initial, pos, modes[m],
+                                       flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
+#if STRB_RESTORE
+                        if (flags & HAS_PENDING_RESTORE) {
+                            strb_split(&*actual);
+                            strb_split(&*reference);
+                        }
+#endif
+                        check_output(&*actual, &*reference, &output_cases[t]);
+#if !STRB_FREESTANDING
+                        strb_free(actual);
+                        strb_free(reference);
+#endif
+#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
+                        // Exercise owned storage as well as external arrays.
+                        _Optional strb_t *owned_actual = strb_alloc(10);
+                        _Optional strb_t *owned_reference = strb_alloc(10);
+                        assert(owned_actual);
+                        assert(owned_reference);
+                        prepare_output(&*owned_actual, initial, pos, modes[m],
+                                       flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
+                        prepare_output(&*owned_reference, initial, pos, modes[m],
+                                       flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
+#if STRB_RESTORE
+                        if (flags & HAS_PENDING_RESTORE) {
+                            strb_split(&*owned_actual);
+                            strb_split(&*owned_reference);
+                        }
+#endif
+                        check_output(&*owned_actual, &*owned_reference,
+                                     &output_cases[t]);
+                        strb_free(owned_actual);
+                        strb_free(owned_reference);
+#endif
+                    }
+                }
+            }
+        }
+    }
+}
+
+#if STRB_UNPUTC
+static void test_write_zero(void)
+{
+    char array[128];
+#if STRB_EXT_STATE
+    strbstate_t state;
+    strb_t *s = strb_use(&state, sizeof array, array);
+#else
+    _Optional strb_t *s = strb_use(sizeof array, array);
+#endif
+    assert(s);
+    prepare_output(&*s, "abc", 0, strb_overwrite, true, false);
+    assert(strb_write(&*s, 0));
+    assert(strb_tell(&*s) == 1);
+    assert(strb_len(&*s) == 3);
+    assert(strb_unputc(&*s) == 'q');
+    assert(strb_tell(&*s) == 0);
+    assert(!strcmp(strb_cptr(&*s), "abc"));
+#if !STRB_FREESTANDING
+    strb_free(s);
+#endif
+}
+#endif
+
+#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
+static void test_output_growth(void)
+{
+    char initial[STRB_DFL_SIZE];
+    memset(initial, 'a', sizeof initial - 1);
+    initial[sizeof initial - 1] = '\0';
+    const int modes[] = {strb_insert, strb_overwrite};
+    for (size_t t = 0; t < ARRAY_SIZE(output_cases); ++t) {
+        for (size_t m = 0; m < ARRAY_SIZE(modes); ++m) {
+            _Optional strb_t *actual = strb_alloc(STRB_DFL_SIZE);
+            _Optional strb_t *reference = strb_alloc(STRB_DFL_SIZE);
+            assert(actual);
+            assert(reference);
+            // Nonempty output at the end must exceed the initial capacity.
+            prepare_output(&*actual, initial, strlen(initial), modes[m],
+                           false, false);
+            prepare_output(&*reference, initial, strlen(initial), modes[m],
+                           false, false);
+            check_output(&*actual, &*reference, &output_cases[t]);
+            strb_free(actual);
+            strb_free(reference);
+        }
+    }
+}
+#endif
+
+// Exhausting a fixed external buffer must leave the operation's entire
+// previous state intact, apart from the sticky error indicator. Compare with
+// an untouched buffer so the oracle does not depend on strb_write failing.
+static void test_output_failure(void)
+{
+    enum { capacity = 8 };
+    const int modes[] = {strb_insert, strb_overwrite};
+    for (size_t t = 0; t < ARRAY_SIZE(output_cases); ++t) {
+        const output_case *testcase = &output_cases[t];
+        bool too_large = testcase->count >= capacity ||
+                         (testcase->operation == output_string &&
+                          strlen(testcase->text) >= capacity);
+#if !STRB_FREESTANDING
+        too_large = too_large ||
+                    ((testcase->operation == output_format ||
+                      testcase->operation == output_vformat) &&
+                     testcase->text[0]);
+#endif
+        if (!too_large)
+            continue;
+        for (size_t pos = 0; pos <= 6; pos += 3) {
+            for (size_t m = 0; m < ARRAY_SIZE(modes); ++m) {
+                char actual_array[capacity], reference_array[capacity];
+#if STRB_EXT_STATE
+                strbstate_t actual_state, reference_state;
+                strb_t *actual = strb_use(&actual_state, sizeof actual_array,
+                                          actual_array);
+                strb_t *reference = strb_use(&reference_state,
+                                             sizeof reference_array,
+                                             reference_array);
+#else
+                _Optional strb_t *actual = strb_use(sizeof actual_array,
+                                                    actual_array);
+                _Optional strb_t *reference = strb_use(sizeof reference_array,
+                                                       reference_array);
+#endif
+                assert(actual);
+                assert(reference);
+                prepare_output(&*actual, "abcdef", pos, modes[m], true, false);
+                prepare_output(&*reference, "abcdef", pos, modes[m], true, false);
+                assert(put_library_output(&*actual, testcase) == EOF);
+                assert(strb_error(&*actual));
+                strb_clearerr(&*actual);
+                compare_output(&*actual, &*reference, testcase);
+#if STRB_UNPUTC
+                // Failure must preserve the previously available undo.
+                assert(strb_unputc(&*actual) == strb_unputc(&*reference));
+                compare_output(&*actual, &*reference, testcase);
+#endif
+#if !STRB_FREESTANDING
+                strb_free(actual);
+                strb_free(reference);
+#endif
+            }
+        }
+    }
+}
+
+#endif // STRB_EXT_STATE || !STRB_FREESTANDING
+
 static void test(strb_t *const s)
 {
     int i;
@@ -277,6 +686,16 @@ static void test(strb_t *const s)
 
 int main(void)
 {
+#if STRB_EXT_STATE || !STRB_FREESTANDING
+    test_output_equivalence();
+#if STRB_UNPUTC
+    test_write_zero();
+#endif
+#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
+    test_output_growth();
+#endif
+    test_output_failure();
+#endif
     char array[1000];
     _Optional strb_t *s;
     int c;

@@ -685,11 +685,11 @@ _Optional char *strb_write(strb_t *sb, size_t n)
                 sb->p.len += n;
             } else {
 #if STRB_UNPUTC
-                // Behave as if the write were implemented by multiple
-                // putc operations, which would imply null termination at
-                // each successive position.
-                sb->p.unputc_char =
-                    old_pos + n - 1u > old_len ? '\0' : buf[n - 1];
+                // Preserve the final overwritten character only when a new
+                // character is prepared. Beyond the old end it is null.
+                if (n)
+                    sb->p.unputc_char =
+                        old_pos + n - 1u > old_len ? '\0' : buf[n - 1];
 #endif
             }
 

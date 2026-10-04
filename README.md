@@ -11,6 +11,8 @@ I haven't written a full test suite or anything, but it seems pretty solid for t
 
 [Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface is generated using Doxygen.
 
+[Interface design and usage](https://chrisbazley.github.io/strb_t/interface_design.html) explains the positional output model, why there are no separate append/prepend/insert functions, and how to use the same text producer in different editing contexts.
+
 
 ## Building
 

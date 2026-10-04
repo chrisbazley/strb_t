@@ -1,8 +1,9 @@
 PROJECT_NAME           = "strb_t"
 PROJECT_BRIEF          = "String buffer interface for C"
 
-INPUT                  = strb.h strb.c
-FILE_PATTERNS          = *.h *.c
+INPUT                  = strb.h strb.c docs/design.dox
+FILE_PATTERNS          = *.h *.c *.dox
+EXAMPLE_PATH           = examples
 
 OUTPUT_DIRECTORY       =
 GENERATE_HTML          = YES

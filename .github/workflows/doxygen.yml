@@ -7,12 +7,16 @@ on:
       - "strb.h"
       - "strb.c"
       - "Doxyfile"
+      - "docs/**"
+      - "examples/**"
       - ".github/workflows/doxygen.yml"
   pull_request:
     paths:
       - "strb.h"
       - "strb.c"
       - "Doxyfile"
+      - "docs/**"
+      - "examples/**"
   workflow_dispatch:
 
 permissions:
