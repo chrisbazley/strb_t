@@ -90,6 +90,23 @@ zero deletes back to the beginning. The "Deletion of characters" section in
 <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=60">N3306</a>
 explains the choice of an endpoint-based interface in more detail.
 
+@section design_state Why do some constructors need a state object?
+
+A string buffer needs state to track its storage, length, position and editing
+mode. The choice is who supplies storage for that state.
+
+With @ref strb_use, the caller supplies both a character array and a
+@ref strbstate_t object. No allocation is needed, so initialisation cannot fail.
+Both objects must remain alive for as long as the buffer is used.
+
+With @ref strb_alloc, the library supplies storage for both the state and the
+characters. The caller manages the buffer through the returned @ref strb_t
+pointer and releases it with @ref strb_free. Creation can fail if storage is
+unavailable.
+
+The output and editing functions use the same interface in either case.
+A text producer therefore need not know how its caller created the buffer.
+
 @section design_examples Appending, prepending, inserting and overwriting and deleting
 
 The following snippets are successive parts of one example in
