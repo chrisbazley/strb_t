@@ -177,7 +177,7 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
 
 #if STRB_REUSE_CONST
 _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
-                                         const char buf[STRB_SIZE_HINT(1)])
+                                         const char *restrict buf)
 {
     assert(sbs);
     assert(buf);
