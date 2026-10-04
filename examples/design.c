@@ -1,6 +1,7 @@
 // Copyright 2026 Christopher Bazley
 // SPDX-License-Identifier: MIT
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,7 @@
 //! [producer]
 static int put_label(strb_t *sb, unsigned number)
 {
+    assert(number < 10);
     return strb_putf(sb, "item%u", number);
 }
 //! [producer]
@@ -43,27 +45,28 @@ static bool editing_example(void)
     if (strb_setmode(sb, strb_insert) || strb_seek(sb, 0) ||
         strb_puts(sb, "New "))
         return false;
+    const size_t label_start = strb_tell(sb);
     // "New Selected: item7."; position 4, insert mode.
 //! [prepend]
     if (strcmp(strb_ptr(sb), "New Selected: item7."))
         return false;
 
 //! [insert]
-    if (strb_setmode(sb, strb_insert) || strb_seek(sb, sizeof "New " - 1))
-        return false;
+    strb_setmode(sb, strb_insert);
+    strb_seek(sb, label_start);
     put_label(sb, 2);
     strb_puts(sb, ": ");
     if (strb_error(sb))
         return false;
+    const size_t label_end = strb_tell(sb);
     // "New item2: Selected: item7."; position 11, insert mode.
 //! [insert]
     if (strcmp(strb_ptr(sb), "New item2: Selected: item7."))
         return false;
 
 //! [overwrite]
-    if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, sizeof "New " - 1))
-        return false;
-    if (put_label(sb, 3))
+    if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, label_start) ||
+        put_label(sb, 3))
         return false;
     // "New item3: Selected: item7."; position 9, overwrite mode.
 //! [overwrite]
@@ -71,14 +74,14 @@ static bool editing_example(void)
         return false;
 
 //! [delete]
-    const size_t start = sizeof "New " - 1,
-                 end = start + sizeof "item3: " - 1;
-    if (strb_setmode(sb, strb_insert) || strb_seek(sb, start))
+    strb_setmode(sb, strb_insert);
+    strb_seek(sb, label_start);
+    strb_delto(sb, label_end);
+    if (strb_error(sb))
         return false;
-    strb_delto(sb, end);
     // "New Selected: item7."; position 4, insert mode.
 //! [delete]
-    return strb_tell(sb) == start &&
+    return strb_tell(sb) == label_start &&
            !strcmp(strb_ptr(sb), "New Selected: item7.");
 }
 
@@ -103,8 +106,10 @@ static bool fruit_sentence_example(void)
     strbstate_t state;
     strb_t *sb = strb_use(&state, sizeof text, text);
 
-    if (strb_puts(sb, "Fruit: .") || strb_seek(sb, sizeof "Fruit: " - 1))
-        return false;
+    strb_puts(sb, "Fruit: ");
+    const size_t list_position = strb_tell(sb);
+    strb_putc(sb, '.');
+    strb_seek(sb, list_position);
     put_fruit_list(sb, sizeof indices / sizeof indices[0], indices);
     if (strb_error(sb))
         return false;
