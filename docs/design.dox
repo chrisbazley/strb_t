@@ -147,22 +147,39 @@ The position remains at the start of the range, ready for further output there:
 
 @snippet design.c delete
 
-@section design_reuse Reusing a buffer for successive results
+@section design_reuse One producer, different consumers
 
 The next example adapts the "List of fruit" example in
 <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf">WG14 N3306</a>,
-page 47. It separates the producer from the caller that allocates, resets and
-consumes the buffer. Every index supplied to the producer must be less than
+page 47. The producer knows neither who supplies the storage nor how its output
+will be used. Every index supplied to the producer must be less than
 four. The separator depends on the number of entries already generated in this
 call, so inserting the list into an existing string does not introduce a
 leading comma:
 
 @snippet design.c fruit_producer
 
-The hosted caller reuses one allocation for two results. Replacement by
-@ref strb_cpy deliberately differs from positioned output: it replaces the
-whole buffer and sets the position to the end of the new text. The producer
-then writes at that position:
+@subsection design_fruit_sentence Inserting into a caller-supplied array
+
+This consumer supplies both storage and buffer state. It first writes the
+surrounding sentence text, then positions the buffer before the full stop. The
+producer inserts its list there, preserving the following punctuation. The
+consumer passes the completed array directly to @c puts:
+
+@snippet design.c fruit_sentence
+
+The output is:
+@verbatim
+Fruit: apple,banana,orange.
+@endverbatim
+
+@subsection design_fruit_rows Producing successive results in allocated storage
+
+This consumer obtains an allocated buffer and uses the same producer to build
+two standalone lists. It prints each result before resetting the buffer for the
+next one, retaining the allocated storage. Replacement by @ref strb_cpy replaces
+the whole string and sets the position to the end of the new text; the producer
+then writes at that position. The consumer also releases the buffer when done:
 
 @snippet design.c fruit_caller
 
