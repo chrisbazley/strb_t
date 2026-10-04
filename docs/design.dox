@@ -19,6 +19,11 @@ string. Consequently, successive output calls naturally append. Use
 Positions and lengths are measured in bytes; callers editing multibyte text
 must choose positions at suitable character boundaries.
 
+The @ref strb_cpy, @ref strb_ncpy, @ref strb_printf and @ref strb_vprintf
+functions replace the whole string, regardless of the current position and
+mode. On success, they set the position to the end of the replacement text.
+Their individual contracts describe these whole-string operations.
+
 @section design_missing Why are there no append, prepend or insert functions?
 
 The output functions let a helper produce text without deciding where that
@@ -147,18 +152,22 @@ space independently.
 
 A count of zero still prepares space. At a position beyond the old end it
 extends the recorded length to that position and fills the gap with nulls.
-It also replaces any saved @ref strb_restore boundary with the character at the
-current position. Consequently, successful output leaves no boundary for
-@ref strb_restore to repair, whether or not it produced any characters. An empty
-@ref strb_puts is therefore not necessarily a no-op.
+An empty @ref strb_puts is therefore not necessarily a no-op.
 
-For integration with functions that write to a character array, @ref strb_write
-returns the prepared space. If a direct writer puts its terminating null over
-the following text, @ref strb_restore repairs that boundary character; it does
-not reverse the writing or move the position. The output wrappers preserve the
-boundary themselves. See those functions' contracts before using the direct-write
-interface. Borrowed pointers into the buffer should be obtained again after
-operations that may reallocate storage.
+A successful @ref strb_write saves the character at the new position so that
+@ref strb_restore can put it back later. This happens even with a count of zero;
+each call replaces the previously saved character. If a direct writer puts its
+terminating null over that character, @ref strb_restore repairs it. Restoration
+does not reverse the writing or move the position.
+
+The output wrappers preserve the character following their output themselves.
+After successful output, @ref strb_restore therefore writes back the character
+that is already there, leaving the contents unchanged. This also applies when
+no characters were produced.
+
+See those functions' contracts before using the direct-write interface.
+Borrowed pointers into the buffer should be obtained again after operations
+that may reallocate storage.
 
 @subsection design_unputc Optional single-character undo
 
@@ -167,8 +176,6 @@ from space preparation and boundary repair: it steps back one position, removing
 an inserted character or restoring an overwritten character. Nonempty output
 makes its last character available to this operation; empty output preserves
 any previously available character. It does not undo a whole output call.
-Functions such as @ref strb_cpy replace the whole string and have their own
-contracts, rather than following the positioned-output model.
 
 @section design_further Further reading
 
