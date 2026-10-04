@@ -1,10 +1,32 @@
 /**
 @page interface_design Interface design and usage
 
+@section design_state Why do some constructors need a state object?
+
+Even the most trivial string buffer implementation needs state
+to track its storage, typically a pointer of type @c char @c *;
+a string buffer of type @ref strb_t combines storage, a recorded length, an
+editing position and an editing mode.
+The choice is who supplies storage for that state.
+
+With @ref strb_use, the caller supplies both a character array and a
+@ref strbstate_t object. No allocation is needed, so initialisation cannot fail.
+Both objects must remain alive for as long as the buffer is used.  Because no
+storage is allocated by the library, this constructor can be provided even by
+freestanding implementations that do not provide @c malloc.
+
+With @ref strb_alloc, the library supplies storage for both the state and the
+characters. The caller manages the buffer through the returned @ref strb_t
+pointer and releases it with @ref strb_free. Creation can fail if storage is
+unavailable.
+
+The output and editing functions use the same interface in either case.
+A text producer therefore need not know how its caller created the buffer.
+
 @section design_model Output controlled by position and mode
 
-A string buffer of type @ref strb_t combines storage, a recorded length, an
-editing position and an editing mode. The @ref strb_putc, @ref strb_nputc,
+A string buffer of type @ref strb_t has an editing position and an editing mode.
+The @ref strb_putc, @ref strb_nputc,
 @ref strb_puts, @ref strb_nputs, @ref strb_putf and @ref strb_vputf functions
 write at that position and advance it. Position and mode determine how the
 output affects existing text:
@@ -110,27 +132,6 @@ In insertion mode, a target of @c SIZE_MAX deletes to the end and a target of
 zero deletes back to the beginning. The "Deletion of characters" section in
 <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=60">N3306</a>
 explains the choice of an endpoint-based interface in more detail.
-
-@section design_state Why do some constructors need a state object?
-
-Even the most trivial string buffer implementation needs state
-to track its storage; a string buffer of type @ref strb_t also
-tracks its length, position and editing mode.  The choice
-is who supplies storage for that state.
-
-With @ref strb_use, the caller supplies both a character array and a
-@ref strbstate_t object. No allocation is needed, so initialisation cannot fail.
-Both objects must remain alive for as long as the buffer is used.  Because no
-storage is allocated by the library, this constructor can be provided even by
-freestanding implementations that do not provide @c malloc.
-
-With @ref strb_alloc, the library supplies storage for both the state and the
-characters. The caller manages the buffer through the returned @ref strb_t
-pointer and releases it with @ref strb_free. Creation can fail if storage is
-unavailable.
-
-The output and editing functions use the same interface in either case.
-A text producer therefore need not know how its caller created the buffer.
 
 @section design_examples Appending, prepending, inserting and overwriting and deleting
 
