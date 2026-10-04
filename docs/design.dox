@@ -4,9 +4,10 @@
 @section design_state Why do some constructors need a state object?
 
 Even the most trivial string buffer implementation needs state, typically
-a pointer of type @c char @c *; a string buffer of type @ref strb_t
-combines storage, a recorded length, an editing position and an editing
-mode.  The choice is who supplies storage for that state.
+a pointer to storage for a character array; the state for a string buffer
+of type @ref strb_t combines storage, a recorded length, an error indicator,
+an editing position and an editing mode.  The choice is who supplies storage
+for that state.
 
 With @ref strb_use, the caller supplies both a character array and a
 @ref strbstate_t object. No allocation is needed, so initialisation cannot fail.
@@ -24,9 +25,9 @@ A text producer therefore need not know how its caller created the buffer.
 
 @section design_model Output controlled by position and mode
 
-A string buffer of type @ref strb_t has an editing position and an editing mode.
-The @ref strb_putc, @ref strb_nputc,
-@ref strb_puts, @ref strb_nputs, @ref strb_putf and @ref strb_vputf functions
+A string buffer of type @ref strb_t has a current editing position and
+editing mode. The @ref strb_putc, @ref strb_nputc, @ref strb_puts, @ref strb_nputs,
+@ref strb_putf and @ref strb_vputf functions
 write at that position and advance it. Position and mode determine how the
 output affects existing text:
 
