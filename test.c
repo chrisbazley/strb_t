@@ -419,6 +419,46 @@ static void test_output_failure(void)
 
 #endif // STRB_EXT_STATE || !STRB_FREESTANDING
 
+#if STRB_EXT_STATE || !STRB_FREESTANDING
+static void test_delto_large_target(void)
+{
+    const size_t targets[] = {
+        (size_t)STRB_MAX_SIZE - 1, STRB_MAX_SIZE,
+        (size_t)STRB_MAX_SIZE + 1, (size_t)STRB_MAX_SIZE + 2, SIZE_MAX
+    }, positions[] = {0, 3, 8};
+    const int modes[] = {strb_insert, strb_overwrite};
+    for (size_t t = 0; t < ARRAY_SIZE(targets); ++t) {
+        for (size_t p = 0; p < ARRAY_SIZE(positions); ++p) {
+            for (size_t m = 0; m < ARRAY_SIZE(modes); ++m) {
+                char array[128];
+#if STRB_EXT_STATE
+                strbstate_t state;
+                strb_t *s = strb_use(&state, sizeof array, array);
+#else
+                _Optional strb_t *s = strb_use(sizeof array, array);
+#endif
+                assert(s);
+                assert(!strb_puts(&*s, "abcdef"));
+                assert(!strb_setmode(&*s, modes[m]));
+                assert(!strb_seek(&*s, positions[p]));
+                strb_delto(&*s, targets[t]);
+                size_t expected_len = strlen("abcdef");
+                if (modes[m] == strb_insert && positions[p] < expected_len)
+                    expected_len = positions[p];
+                assert(strb_len(&*s) == expected_len);
+                assert(strb_tell(&*s) == positions[p]);
+                assert(!memcmp(strb_cptr(&*s), "abcdef", expected_len));
+                assert(strb_cptr(&*s)[expected_len] == '\0');
+                assert(!strb_error(&*s));
+#if !STRB_FREESTANDING
+                strb_free(s);
+#endif
+            }
+        }
+    }
+}
+#endif
+
 static void test(strb_t *const s)
 {
     int i;
@@ -672,12 +712,12 @@ static void test(strb_t *const s)
     }
 
     for (char *c = strb_ptr(s); *c != '\0'; ++c) {
-        *c = tolower((unsigned char)(*c));
+        *c = (char)tolower((unsigned char)(*c));
     }
     puts(strb_cptr(s));
 
     for (char *c = strb_ptr(s); *c != '\0'; ++c) {
-        *c = toupper((unsigned char)(*c));
+        *c = (char)toupper((unsigned char)(*c));
     }
     puts(strb_cptr(s));
 
@@ -695,6 +735,7 @@ int main(void)
     test_output_growth();
 #endif
     test_output_failure();
+    test_delto_large_target();
 #endif
     char array[1000];
     _Optional strb_t *s;

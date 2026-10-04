@@ -613,17 +613,33 @@ void strb_free(_Optional strb_t *sb);
  * The returned pointer is guaranteed to be usable as a string (i.e. null
  * terminated).
  *
+ * In C11 and later, a function-like macro also permits @c strb_ptr(sb) when
+ * @p sb has type @c const @c strb_t*. For a @c strb_t* argument it calls the
+ * mutable accessor and returns @c char*; for a @c const @c strb_t* argument it
+ * calls @ref strb_cptr and returns @c const @c char*. The argument is evaluated
+ * once. Before C11, use @ref strb_cptr explicitly for a constant string buffer.
+ *
  * @param[in] sb  String buffer.
  * @return Address of the character stored at position 0 in the string buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
- * @ref strb_vaprintf.
+ * @ref strb_vaprintf. The C11 macro's const accessor also accepts an address
+ * returned by @ref strb_reuse_const.
  * @post The returned pointer is valid until the next call to a strb_...
  * function.
  */
 char *strb_ptr(strb_t *sb);
 
 /**
+ * @brief Get read-only access to the underlying character array.
+ *
+ * Provides the same access as @ref strb_ptr, returning a pointer to constant
+ * characters. Accepts a mutable string buffer or an immutable string buffer
+ * created by @ref strb_reuse_const. The C11 @ref strb_ptr macro selects this
+ * function automatically for an argument of type @c const @c strb_t*.
+ *
+ * @param[in] sb  String buffer.
+ * @return Address of the character stored at position 0 in the string buffer.
  * @see strb_ptr
  */
 const char *strb_cptr(strb_t const *sb);
