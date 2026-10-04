@@ -358,7 +358,7 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * @post If successful, a call to @ref strb_error will return false.
  */
 _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
-                                         const char buf[STRB_SIZE_HINT(1)]);
+                                         const char *restrict buf);
 #endif
 
 #elif !STRB_FREESTANDING
@@ -613,17 +613,33 @@ void strb_free(_Optional strb_t *sb);
  * The returned pointer is guaranteed to be usable as a string (i.e. null
  * terminated).
  *
+ * In C11 and later, a function-like macro also permits @c strb_ptr(sb) when
+ * @p sb has type @c const @c strb_t*. For a @c strb_t* argument it calls the
+ * mutable accessor and returns @c char*; for a @c const @c strb_t* argument it
+ * calls @ref strb_cptr and returns @c const @c char*. The argument is evaluated
+ * once. Before C11, use @ref strb_cptr explicitly for a constant string buffer.
+ *
  * @param[in] sb  String buffer.
  * @return Address of the character stored at position 0 in the string buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
- * @ref strb_vaprintf.
+ * @ref strb_vaprintf. The C11 macro's const accessor also accepts an address
+ * returned by @ref strb_reuse_const.
  * @post The returned pointer is valid until the next call to a strb_...
  * function.
  */
 char *strb_ptr(strb_t *sb);
 
 /**
+ * @brief Get read-only access to the underlying character array.
+ *
+ * Provides the same access as @ref strb_ptr, returning a pointer to constant
+ * characters. Accepts a mutable string buffer or an immutable string buffer
+ * created by @ref strb_reuse_const. The C11 @ref strb_ptr macro selects this
+ * function automatically for an argument of type @c const @c strb_t*.
+ *
+ * @param[in] sb  String buffer.
+ * @return Address of the character stored at position 0 in the string buffer.
  * @see strb_ptr
  */
 const char *strb_cptr(strb_t const *sb);
@@ -760,7 +776,7 @@ size_t strb_tell(strb_t const *sb);
  * the position indicator. If the mode is @ref strb_insert, then characters at
  * the current position are first moved upward to make space; otherwise, no
  * characters are moved. Additional storage is allocated if permitted and
- * necessary. Space is prepared as by @ref strb_write with a count of one.
+ * necessary. Space is prepared as if by calling @ref strb_write with a count of one.
  *
  * @param[in,out] sb  String buffer.
  * @param         c   Character to put.
@@ -782,7 +798,7 @@ int strb_putc(strb_t *sb, int c);
 /**
  * @brief Put a character into a string buffer multiple times.
  *
- * Prepares space as by @ref strb_write with a count of @p n, then fills it
+ * Prepares space as if by calling @ref strb_write with a count of @p n, then fills it
  * with the given value of @p c converted to @c unsigned @c char. This includes
  * preparing space when @p n is zero.
  *
@@ -842,7 +858,7 @@ int strb_unputc(strb_t *sb);
 /**
  * @brief Put a string into a string buffer.
  *
- * Prepares space as by @ref strb_write for the length of @p str, then copies
+ * Prepares space as if by calling @ref strb_write for the length of @p str, then copies
  * its characters into that space. The terminating null is not copied. An empty
  * string still prepares space with a count of zero.
  *
@@ -871,7 +887,7 @@ int strb_puts(strb_t *restrict sb, const char *restrict str);
  * @brief Put a sequence of characters into a string buffer.
  *
  * Copies up to @p n characters from the array designated by @p str into the
- * buffer at the current position, preparing space as by @ref strb_write for
+ * buffer at the current position, preparing space as if by calling @ref strb_write for
  * the number of characters to copy. A null character and any characters
  * following it are not copied. Space is prepared even if that count is zero.
  *
@@ -902,7 +918,7 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n);
  * @brief Put a generated string into a string buffer.
  *
  * Generates characters under control of a format string, which are written into
- * space prepared as by @ref strb_write for the number of characters generated,
+ * space prepared as if by calling @ref strb_write for the number of characters generated,
  * excluding the terminating null. Space is prepared even if that count is
  * zero. The character following the output is preserved.
  *
@@ -934,7 +950,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args);
  * @brief Put a generated string into a string buffer.
  *
  * Generates characters under control of a format string, which are written into
- * space prepared as by @ref strb_write for the number of characters generated,
+ * space prepared as if by calling @ref strb_write for the number of characters generated,
  * excluding the terminating null. Space is prepared even if that count is
  * zero. The character following the output is preserved.
  *

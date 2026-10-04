@@ -49,7 +49,7 @@ static bool editing_example(void)
         return false;
 
 //! [insert]
-    if (strb_setmode(sb, strb_insert) || strb_seek(sb, 4))
+    if (strb_setmode(sb, strb_insert) || strb_seek(sb, sizeof "New " - 1))
         return false;
     put_label(sb, 2);
     strb_puts(sb, ": ");
@@ -61,13 +61,25 @@ static bool editing_example(void)
         return false;
 
 //! [overwrite]
-    if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, 4))
+    if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, sizeof "New " - 1))
         return false;
     if (put_label(sb, 3))
         return false;
     // "New item3: Selected: item7."; position 9, overwrite mode.
 //! [overwrite]
-    return !strcmp(strb_ptr(sb), "New item3: Selected: item7.");
+    if (strcmp(strb_ptr(sb), "New item3: Selected: item7."))
+        return false;
+
+//! [delete]
+    const size_t start = sizeof "New " - 1,
+                 end = start + sizeof "item3: " - 1;
+    if (strb_setmode(sb, strb_insert) || strb_seek(sb, start))
+        return false;
+    strb_delto(sb, end);
+    // "New Selected: item7."; position 4, insert mode.
+//! [delete]
+    return strb_tell(sb) == start &&
+           !strcmp(strb_ptr(sb), "New Selected: item7.");
 }
 
 //! [fruit_producer]

@@ -56,7 +56,31 @@ The implementation already knows when insertion is happening at position zero.
 Allocation strategies, including keeping spare capacity, are independent of
 how the operation is named.
 
-@section design_examples Appending, prepending, inserting and overwriting
+@section design_deletion Why strb_delto rather than separate deletion functions?
+
+The same approach of composing position and mode with one operation applies
+to deletion. @ref strb_delto uses the current position and a target position
+as the endpoints of a range. The target can be before or after the current
+position, so separate forward-deletion and backward-deletion functions are
+unnecessary. In insertion mode, it removes that range, closes the gap, and
+leaves the position at the lower endpoint.
+
+Deleting an arbitrary range can require a mode change and a seek as well as
+@ref strb_delto. For this less common operation, the interface favours
+composition over additional convenience functions.
+
+A helper can save @ref strb_tell before generating text, then pass that saved
+position to @ref strb_delto without counting how many characters were produced.
+Mode remains the caller's choice: insertion mode removes the inserted text;
+overwrite mode rewinds the position without moving the following text or
+restoring overwritten characters.
+
+In insertion mode, a target of @c SIZE_MAX deletes to the end and a target of
+zero deletes back to the beginning. The "Deletion of characters" section in
+<a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=60">N3306</a>
+explains the choice of an endpoint-based interface in more detail.
+
+@section design_examples Appending, prepending, inserting and overwriting and deleting
 
 The following snippets are successive parts of one example in
 @c examples/design.c. They use the default hosted configuration and a caller-owned buffer:
@@ -103,6 +127,15 @@ labels of equal length; a shorter label would leave part of the previous label
 in place:
 
 @snippet design.c overwrite
+
+@subsection design_delete Delete a range
+
+Select insertion mode, seek to the start of the range, and delete to its end.
+The prefix length determines the start; the label and separator determine the
+end. Subtracting one from each @c sizeof excludes the literal's null terminator.
+The position remains at the start of the range, ready for further output there:
+
+@snippet design.c delete
 
 @section design_reuse Reusing a buffer for successive results
 
