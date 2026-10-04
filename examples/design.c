@@ -7,9 +7,9 @@
 #include "strb.h"
 
 //! [producer]
-static void put_label(strb_t *sb, unsigned number)
+static int put_label(strb_t *sb, unsigned number)
 {
-    strb_putf(sb, "item%u", number);
+    return strb_putf(sb, "item%u", number);
 }
 //! [producer]
 
@@ -32,10 +32,7 @@ static bool editing_example(void)
         return false;
 
 //! [append]
-    if (strb_seek(sb, strb_len(sb)))
-        return false;
-    strb_puts(sb, ".");
-    if (strb_error(sb))
+    if (strb_seek(sb, strb_len(sb)) || strb_puts(sb, "."))
         return false;
     // "Selected: item7."; position 16.
 //! [append]
@@ -43,10 +40,8 @@ static bool editing_example(void)
         return false;
 
 //! [prepend]
-    if (strb_setmode(sb, strb_insert) || strb_seek(sb, 0))
-        return false;
-    strb_puts(sb, "New ");
-    if (strb_error(sb))
+    if (strb_setmode(sb, strb_insert) || strb_seek(sb, 0) ||
+        strb_puts(sb, "New "))
         return false;
     // "New Selected: item7."; position 4, insert mode.
 //! [prepend]
@@ -68,8 +63,7 @@ static bool editing_example(void)
 //! [overwrite]
     if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, 4))
         return false;
-    put_label(sb, 3);
-    if (strb_error(sb))
+    if (put_label(sb, 3))
         return false;
     // "New item3: Selected: item7."; position 9, overwrite mode.
 //! [overwrite]

@@ -65,7 +65,8 @@ The following snippets are successive parts of one example in
 
 Passing the array size once associates it with the buffer object. Later output
 calls need no destination-size argument. The buffer cannot grow beyond that
-array, so the examples check @ref strb_error before using a result.
+array. The examples check individual return values for immediate failure, or
+use @ref strb_error after a sequence of calls.
 
 @subsection design_sequential Ordinary sequential output
 
@@ -135,6 +136,14 @@ failure. A producer can make several output calls and let its caller check
 @ref strb_error once before consuming the completed result. Use
 @ref strb_clearerr explicitly when recovering from an error.
 
+For a single operation, checking its return value is often more convenient.
+For example, @ref strb_puts and @ref strb_putf return zero on success and EOF
+on failure. The producer above returns the result of @ref strb_putf directly,
+so its caller can check it immediately, as in the overwrite example, or defer
+checking until after several calls, as in the sequential and insertion examples.
+A successful return describes that operation; it does not clear or report an
+earlier failure recorded by @ref strb_error.
+
 A bulk output operation that fails because storage cannot be obtained leaves
 its previous contents, mode and position intact. This guarantee applies to the
 individual operation. A helper making several output calls is not a transaction:
@@ -179,7 +188,8 @@ any previously available character. It does not undo a whole output call.
 
 @section design_further Further reading
 
-N3306 discusses insertion, positioning and editing on pages 42-44 and gives
+<a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf">N3306</a>
+discusses insertion, positioning and editing on pages 42-44 and gives
 additional usage examples on pages 47-51. The function documentation in
 @ref strb.h describes the interface implemented by this prototype.
 */
