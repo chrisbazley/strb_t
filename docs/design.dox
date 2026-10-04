@@ -3,11 +3,10 @@
 
 @section design_state Why do some constructors need a state object?
 
-Even the most trivial string buffer implementation needs state
-to track its storage, typically a pointer of type @c char @c *;
-a string buffer of type @ref strb_t combines storage, a recorded length, an
-editing position and an editing mode.
-The choice is who supplies storage for that state.
+Even the most trivial string buffer implementation needs state, typically
+a pointer of type @c char @c *; a string buffer of type @ref strb_t
+combines storage, a recorded length, an editing position and an editing
+mode.  The choice is who supplies storage for that state.
 
 With @ref strb_use, the caller supplies both a character array and a
 @ref strbstate_t object. No allocation is needed, so initialisation cannot fail.
