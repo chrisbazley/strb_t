@@ -3,6 +3,7 @@
 /**
  * @file strb.h
  * @author Christopher Bazley (chris.bazley@arm.com)
+ * @see interface_design for the design rationale and usage examples.
  *
  * @copyright Copyright (c) 2024
  *
@@ -759,7 +760,7 @@ size_t strb_tell(strb_t const *sb);
  * the position indicator. If the mode is @ref strb_insert, then characters at
  * the current position are first moved upward to make space; otherwise, no
  * characters are moved. Additional storage is allocated if permitted and
- * necessary.
+ * necessary. Space is prepared as by @ref strb_write with a count of one.
  *
  * @param[in,out] sb  String buffer.
  * @param         c   Character to put.
@@ -768,7 +769,7 @@ size_t strb_tell(strb_t const *sb);
  * @ref strb_vaprintf.
  * @return If successful, the character written, otherwise EOF.
  * @post If successful, the position indicator was incremented and the string
- * length may have increased by one (depending on editing position and mode).
+ * length was updated as described by @ref strb_write.
  * @post If successful, the character written can be removed by @ref
  * strb_unputc.
  * @post If successful, a call to @ref strb_restore will have no effect until
@@ -781,7 +782,9 @@ int strb_putc(strb_t *sb, int c);
 /**
  * @brief Put a character into a string buffer multiple times.
  *
- * Equivalent to calling @ref strb_putc @p n times with the given value of @p c.
+ * Prepares space as by @ref strb_write with a count of @p n, then fills it
+ * with the given value of @p c converted to @c unsigned @c char. This includes
+ * preparing space when @p n is zero.
  *
  * @param[in,out] sb  String buffer.
  * @param         c   Character to put.
@@ -792,10 +795,10 @@ int strb_putc(strb_t *sb, int c);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the position indicator has advanced by @p n characters
- * and the string length has increased by not more than @p n (depending on
- * editing position and mode).
- * @post If successful, the last character written can be removed by @ref
- * strb_unputc.
+ * and the string length was updated as described by @ref strb_write.
+ * @post If successful and at least one character was written, the last
+ * character written can be removed by @ref strb_unputc. If no characters were
+ * written, any previously available @ref strb_unputc is preserved.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post On failure, a call to @ref strb_error will return true until
@@ -839,9 +842,9 @@ int strb_unputc(strb_t *sb);
 /**
  * @brief Put a string into a string buffer.
  *
- * Copies a string into the buffer at the current position as if by calling
- * @ref strb_putc for each character except for the terminating null, which is
- * not copied.
+ * Prepares space as by @ref strb_write for the length of @p str, then copies
+ * its characters into that space. The terminating null is not copied. An empty
+ * string still prepares space with a count of zero.
  *
  * @param[in,out] sb   String buffer.
  * @param[in]     str  A string to be copied into the buffer.
@@ -852,10 +855,11 @@ int strb_unputc(strb_t *sb);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the position indicator has advanced by the length of the
- * given @p str and the string length has increased by not more than the length
- * of the given @p str.
- * @post If successful, the last character copied can be removed by @ref
- * strb_unputc.
+ * given @p str and the string length was updated as described by
+ * @ref strb_write.
+ * @post If successful and at least one character was copied, the last
+ * character copied can be removed by @ref strb_unputc. If no characters were
+ * copied, any previously available @ref strb_unputc is preserved.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post On failure, a call to @ref strb_error will return true until
@@ -867,8 +871,9 @@ int strb_puts(strb_t *restrict sb, const char *restrict str);
  * @brief Put a sequence of characters into a string buffer.
  *
  * Copies up to @p n characters from the array designated by @p str into the
- * buffer at the current position as if by calling @ref strb_putc for each
- * character. A null character and any characters following it are not copied.
+ * buffer at the current position, preparing space as by @ref strb_write for
+ * the number of characters to copy. A null character and any characters
+ * following it are not copied. Space is prepared even if that count is zero.
  *
  * @param[in,out] sb   String buffer.
  * @param[in]     str  A string to be copied into the buffer.
@@ -880,10 +885,11 @@ int strb_puts(strb_t *restrict sb, const char *restrict str);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the position indicator has advanced by the number of
- * characters copied and the string length has increased by not more than the
- * number of characters copied.
- * @post If successful, the last character copied can be removed by @ref
- * strb_unputc.
+ * characters copied and the string length was updated as described by
+ * @ref strb_write.
+ * @post If successful and at least one character was copied, the last
+ * character copied can be removed by @ref strb_unputc. If no characters were
+ * copied, any previously available @ref strb_unputc is preserved.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post On failure, a call to @ref strb_error will return true until
@@ -896,8 +902,9 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n);
  * @brief Put a generated string into a string buffer.
  *
  * Generates characters under control of a format string, which are written into
- * the buffer at the current position as if by calling @ref strb_putc for each
- * character.
+ * space prepared as by @ref strb_write for the number of characters generated,
+ * excluding the terminating null. Space is prepared even if that count is
+ * zero. The character following the output is preserved.
  *
  * @param[in,out] sb       String buffer.
  * @param[in]     format   Specifies how to convert subsequent arguments to
@@ -911,10 +918,11 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the position indicator has advanced by the number of
- * characters generated and the string length has increased by not more than the
- * number of characters generated.
- * @post If successful, the last character written can be removed by @ref
- * strb_unputc.
+ * characters generated and the string length was updated as described by
+ * @ref strb_write.
+ * @post If successful and at least one character was written, the last
+ * character written can be removed by @ref strb_unputc. If no characters were
+ * written, any previously available @ref strb_unputc is preserved.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post On failure, a call to @ref strb_error will return true until
@@ -926,8 +934,9 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args);
  * @brief Put a generated string into a string buffer.
  *
  * Generates characters under control of a format string, which are written into
- * the buffer at the current position as if by calling @ref strb_putc for each
- * character.
+ * space prepared as by @ref strb_write for the number of characters generated,
+ * excluding the terminating null. Space is prepared even if that count is
+ * zero. The character following the output is preserved.
  *
  * @param[in,out] sb       String buffer.
  * @param[in]     format   Specifies how to convert subsequent arguments to
@@ -941,10 +950,11 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args);
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the position indicator has advanced by the number of
- * characters generated and the string length has increased by not more than the
- * number of characters generated.
- * @post If successful, the last character written can be removed by @ref
- * strb_unputc.
+ * characters generated and the string length was updated as described by
+ * @ref strb_write.
+ * @post If successful and at least one character was written, the last
+ * character written can be removed by @ref strb_unputc. If no characters were
+ * written, any previously available @ref strb_unputc is preserved.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post On failure, a call to @ref strb_error will return true until
@@ -968,6 +978,15 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * position upward to make space; otherwise, no characters are moved. Additional
  * storage is allocated if necessary to allow @p n + 1 characters to be written.
  *
+ * A zero count still prepares the buffer. If the position is beyond the old
+ * end, the intervening gap is filled with null characters and the length grows
+ * to the position. Any previous @ref strb_restore boundary is replaced by the
+ * character at the new boundary, even when @p n is zero.
+ *
+ * If @ref STRB_UNPUTC is enabled, a zero count preserves the character previously
+ * available to @ref strb_unputc; a nonzero count makes the last prepared character
+ * available to it. This is independent of boundary repair by @ref strb_restore.
+ *
  * @param[in,out] sb  String buffer.
  * @param         n   The number of characters expected to be written into the
  * buffer.
@@ -976,11 +995,14 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
- * @post The existing contents of the buffer are unmodified.
- *       Any space allocated beyond the previous end of the buffer is filled
- * with null characters.
- * @post If successful, the position indicator has advanced by @p n characters
- *       and the string length has increased by not more than @p n characters.
+ * @post If successful, existing characters are preserved, moving upward in
+ * insertion mode. A gap between the old end and the old position is filled with
+ * null characters. The new end has a null terminator; the caller fills the
+ * prepared space.
+ * @post If successful, the position indicator has advanced by @p n characters.
+ * In insertion mode, the new length is @p n plus the greater of the old length
+ * and old position. In overwrite mode, it is the greater of the old length
+ * and old position plus @p n.
  * @post After copying up to @p n + 1 characters (including any null terminator)
  * into the buffer at the returned address, the user may call @ref strb_restore
  * to restore the character that was at offset @p n from the current position

@@ -1,0 +1,178 @@
+/**
+@page interface_design Interface design and usage
+
+@section design_model Output controlled by position and mode
+
+A string buffer combines storage, a recorded length, an editing position and an
+editing mode. The @ref strb_putc, @ref strb_nputc, @ref strb_puts,
+@ref strb_nputs, @ref strb_putf and @ref strb_vputf functions write at that
+position and advance it. Position and mode determine how the output affects
+existing text:
+
+- @ref strb_insert makes room for the output by moving the following text.
+- @ref strb_overwrite replaces existing characters and extends the buffer when
+  the output reaches beyond its end. It does not remove any remaining suffix.
+
+The initial mode is insertion and the initial position is the end of the
+string. Consequently, successive output calls naturally append. Use
+@ref strb_seek and @ref strb_setmode when a different editing operation is wanted.
+Positions and lengths are measured in bytes; callers editing multibyte text
+must choose positions at suitable character boundaries.
+
+@section design_missing Why are there no append, prepend or insert functions?
+
+The output functions let a helper produce text without deciding where that
+text belongs. Its caller can arrange for the same helper to append, prepend,
+insert or overwrite. For example, this producer changes neither mode nor
+position explicitly and can be used in any of those contexts:
+
+@snippet design.c producer
+
+If the helper always sought the end, or used an append-only operation, callers
+could no longer use it to generate text elsewhere. A separate family for each
+editing operation would also duplicate the character, repeated-character,
+string, bounded-string and formatted-output interfaces.
+
+Prepending is insertion at position zero. Insertion at another position uses
+the same output functions. The short compositions below make both choices
+explicit. They also show what state subsequent output will use.
+
+A hypothetical prepend convenience function would have to decide whether to
+preserve the previous mode and position. Preserving the numeric position and
+preserving its relationship to the original text are different choices after
+characters have been inserted before it. The existing primitives leave these
+choices with the caller. A caller that temporarily changes editing state can
+save it with @ref strb_getmode and @ref strb_tell, then restore the state it
+needs. In configurations that enable @ref strb_unputc, setting position or
+mode also discards the character available to that operation.
+
+There is no inherent efficiency advantage to naming an operation `prepend`.
+The implementation already knows when insertion is happening at position zero.
+Allocation strategies, including keeping spare capacity, are independent of
+how the operation is named.
+
+@section design_examples Appending, prepending, inserting and overwriting
+
+The following snippets are successive parts of one example in
+@c examples/design.c. They use the default hosted configuration and a caller-owned buffer:
+
+@snippet design.c external
+
+Passing the array size once associates it with the buffer object. Later output
+calls need no destination-size argument. The buffer cannot grow beyond that
+array, so the examples check @ref strb_error before using a result.
+
+@subsection design_sequential Ordinary sequential output
+
+No repositioning is needed to build a new string from successive pieces:
+
+@snippet design.c sequential
+
+@subsection design_append Append after other editing
+
+If the position may have moved, explicitly seek the end before appending.
+At the end, insertion and overwrite mode both extend the buffer, so appending
+needs no mode change:
+
+@snippet design.c append
+
+@subsection design_prepend Prepend a prefix
+
+Select insertion mode as well as position zero; overwrite mode would replace
+characters at the start. This example leaves insertion mode selected and the
+position just after the new prefix:
+
+@snippet design.c prepend
+
+@subsection design_insert Insert generated text
+
+The same producer used for sequential output can insert into existing text:
+
+@snippet design.c insert
+
+@subsection design_overwrite Overwrite existing text
+
+Changing the mode lets that producer overwrite instead. The example uses
+labels of equal length; a shorter label would leave part of the previous label
+in place:
+
+@snippet design.c overwrite
+
+@section design_reuse Reusing a buffer for successive results
+
+The next example adapts the "List of fruit" example in
+<a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf">WG14 N3306</a>,
+page 47. It separates the producer from the caller that allocates, resets and
+consumes the buffer. Every index supplied to the producer must be less than
+four. The separator depends on the number of entries already generated in this
+call, so inserting the list into an existing string does not introduce a
+leading comma:
+
+@snippet design.c fruit_producer
+
+The hosted caller reuses one allocation for two results. Replacement by
+@ref strb_cpy deliberately differs from positioned output: it replaces the
+whole buffer and sets the position to the end of the new text. The producer
+then writes at that position:
+
+@snippet design.c fruit_caller
+
+The output is:
+@verbatim
+apple,banana,orange
+lime,orange,apple
+@endverbatim
+
+@section design_errors Deferred errors and operation boundaries
+
+The error indicator is sticky: a successful call does not clear an earlier
+failure. A producer can make several output calls and let its caller check
+@ref strb_error once before consuming the completed result. Use
+@ref strb_clearerr explicitly when recovering from an error.
+
+A bulk output operation that fails because storage cannot be obtained leaves
+its previous contents, mode and position intact. This guarantee applies to the
+individual operation. A helper making several output calls is not a transaction:
+if a later call fails, earlier successful calls have already modified the buffer.
+
+@section design_efficiency Space preparation is the common operation
+
+The common basis of positioned output is @ref strb_write. Each output function
+first determines its character count, prepares that much space, and fills it.
+Preparation applies the position and editing mode, grows storage if permitted,
+moves the suffix for insertion, and advances the position. A bulk insertion can
+therefore move the suffix once rather than once per character. The tests compare
+output wrappers with reference functions that use @ref strb_write and fill the
+space independently.
+
+A count of zero still prepares space. At a position beyond the old end it
+extends the recorded length to that position and fills the gap with nulls.
+It also replaces any saved @ref strb_restore boundary with the character at the
+current position. Consequently, successful output leaves no boundary for
+@ref strb_restore to repair, whether or not it produced any characters. An empty
+@ref strb_puts is therefore not necessarily a no-op.
+
+For integration with functions that write to a character array, @ref strb_write
+returns the prepared space. If a direct writer puts its terminating null over
+the following text, @ref strb_restore repairs that boundary character; it does
+not reverse the writing or move the position. The output wrappers preserve the
+boundary themselves. See those functions' contracts before using the direct-write
+interface. Borrowed pointers into the buffer should be obtained again after
+operations that may reallocate storage.
+
+@subsection design_unputc Optional single-character undo
+
+@ref strb_unputc is conditionally provided by @ref STRB_UNPUTC. It is separate
+from space preparation and boundary repair: it steps back one position, removing
+an inserted character or restoring an overwritten character. Nonempty output
+makes its last character available to this operation; empty output preserves
+any previously available character. It does not undo a whole output call.
+Functions such as @ref strb_cpy replace the whole string and have their own
+contracts, rather than following the positioned-output model.
+
+@section design_further Further reading
+
+N3306 discusses insertion, positioning and editing on pages 42-44 and gives
+additional usage examples on pages 47-51. The function documentation in
+@ref strb.h describes the interface implemented by this prototype.
+*/
