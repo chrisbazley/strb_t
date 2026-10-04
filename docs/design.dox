@@ -38,6 +38,15 @@ could no longer use it to generate text elsewhere. A separate family for each
 editing operation would also duplicate the character, repeated-character,
 string, bounded-string and formatted-output interfaces.
 
+A separate append function would also need a rule for the position after the
+call. If it preserved the old position, subsequent ordinary output could write
+in the middle of the string, despite the preceding append. If it left the
+position at the new end, it would interrupt editing at the old position. For
+example, appending a diagnostic while inserting text elsewhere would change
+where the next insertion occurs. Seeking the end explicitly makes that change
+visible to the caller; saving and restoring the position is an explicit choice
+when the earlier editing is to continue.
+
 Prepending is insertion at position zero. Insertion at another position uses
 the same output functions. The short compositions below make both choices
 explicit. They also show what state subsequent output will use.
@@ -184,6 +193,8 @@ if a later call fails, earlier successful calls have already modified the buffer
 
 @section design_efficiency Space preparation is the common operation
 
+@subsection design_prepare Preparing space for output
+
 The common basis of positioned output is @ref strb_write. Each output function
 first determines its character count, prepares that much space, and fills it.
 Preparation applies the position and editing mode, grows storage if permitted,
@@ -196,20 +207,34 @@ A count of zero still prepares space. At a position beyond the old end it
 extends the recorded length to that position and fills the gap with nulls.
 An empty @ref strb_puts is therefore not necessarily a no-op.
 
+@subsection design_restore Direct writing, splitting and restoration
+
 A successful @ref strb_write saves the character at the new position so that
 @ref strb_restore can put it back later. This happens even with a count of zero;
 each call replaces the previously saved character. If a direct writer puts its
-terminating null over that character, @ref strb_restore repairs it. Restoration
-does not reverse the writing or move the position.
+terminating null over that character, @ref strb_restore repairs it. It restores
+only that character; it does not undo the output or change the position or
+recorded length.
+
+@ref strb_split is equivalent to calling @ref strb_write with a count of zero
+and storing a null character at the returned address. It temporarily terminates
+the string at the current position without moving the following text or
+advancing the position. Like any zero-count preparation, it extends the recorded
+length if the position is beyond the old end; otherwise the recorded length is
+unchanged. Before an intervening operation discards or replaces the saved
+character, @ref strb_restore can replace that null with the saved character,
+making the following text accessible as part of the string again.
+
+See those functions' contracts before using the direct-write interface.
+Borrowed pointers into the buffer should be obtained again after operations
+that may reallocate storage.
+
+@subsection design_boundary Preserving the following character
 
 The output wrappers preserve the character following their output themselves.
 After successful output, @ref strb_restore therefore writes back the character
 that is already there, leaving the contents unchanged. This also applies when
 no characters were produced.
-
-See those functions' contracts before using the direct-write interface.
-Borrowed pointers into the buffer should be obtained again after operations
-that may reallocate storage.
 
 @subsection design_unputc Optional single-character undo
 
