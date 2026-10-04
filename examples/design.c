@@ -95,8 +95,25 @@ static void put_fruit_list(strb_t *sb, size_t count,
 }
 //! [fruit_producer]
 
+//! [fruit_sentence]
+static bool fruit_sentence_example(void)
+{
+    const unsigned indices[] = {0, 2, 1};
+    char text[64];
+    strbstate_t state;
+    strb_t *sb = strb_use(&state, sizeof text, text);
+
+    if (strb_puts(sb, "Fruit: .") || strb_seek(sb, sizeof "Fruit: " - 1))
+        return false;
+    put_fruit_list(sb, sizeof indices / sizeof indices[0], indices);
+    if (strb_error(sb))
+        return false;
+    return puts(text) != EOF;
+}
+//! [fruit_sentence]
+
 //! [fruit_caller]
-static bool fruit_example(void)
+static bool fruit_rows_example(void)
 {
     const unsigned rows[][3] = {{0, 2, 1}, {3, 1, 0}};
     _Optional strb_t *sb = strb_alloc(0);
@@ -112,7 +129,10 @@ static bool fruit_example(void)
             success = false;
             break;
         }
-        puts(strb_ptr(&*sb));
+        if (puts(strb_ptr(&*sb)) == EOF) {
+            success = false;
+            break;
+        }
     }
     strb_free(sb);
     return success;
@@ -121,5 +141,7 @@ static bool fruit_example(void)
 
 int main(void)
 {
-    return editing_example() && fruit_example() ? EXIT_SUCCESS : EXIT_FAILURE;
+    return editing_example() && fruit_sentence_example() && fruit_rows_example()
+               ? EXIT_SUCCESS
+               : EXIT_FAILURE;
 }
