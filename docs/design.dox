@@ -65,7 +65,7 @@ The implementation already knows when insertion is happening at position zero.
 Allocation strategies, including keeping spare capacity, are independent of
 how the operation is named.
 
-@section design_deletion Why strb_delto rather than separate deletion functions?
+@section design_deletion Why is there no delete function?
 
 The same approach of composing position and mode with one operation applies
 to deletion. @ref strb_delto uses the current position and a target position
@@ -201,7 +201,7 @@ first determines its character count, prepares that much space, and fills it.
 Preparation applies the position and editing mode, grows storage if permitted,
 moves the suffix for insertion, and advances the position. A bulk insertion can
 therefore move the suffix once rather than once per character. The tests compare
-output wrappers with reference functions that use @ref strb_write and fill the
+output functions with reference functions that use @ref strb_write and fill the
 space independently.
 
 A count of zero still prepares space. At a position beyond the old end it
@@ -230,10 +230,11 @@ See those functions' contracts before using the direct-write interface.
 Borrowed pointers into the buffer should be obtained again after operations
 that may reallocate storage.
 
-The output wrappers preserve the character following their output themselves.
-After successful output, @ref strb_restore therefore writes back the character
-that is already there, leaving the contents unchanged. This also applies when
-no characters were produced.
+The @ref strb_putc, @ref strb_nputc, @ref strb_puts, @ref strb_nputs,
+@ref strb_putf and @ref strb_vputf functions preserve the character immediately
+following their output. After a successful call to any of these functions,
+@ref strb_restore leaves the buffer contents unchanged, including when the
+successful call produced no characters.
 
 @section design_unputc Single-character undo
 
