@@ -191,5 +191,5 @@ any previously available character. It does not undo a whole output call.
 <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf">N3306</a>
 discusses insertion, positioning and editing on pages 42-44 and gives
 additional usage examples on pages 47-51. The function documentation in
-@ref strb.h describes the interface implemented by this prototype.
+@ref strb.h specifies the requirements and guarantees for each function.
 */
