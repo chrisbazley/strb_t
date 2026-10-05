@@ -1,10 +1,15 @@
 // Copyright 2026 Christopher Bazley
 // SPDX-License-Identifier: MIT
 
+#include <assert.h>
+#include <limits.h>
 #include <stdio.h>
+#include <uchar.h>
 #include <stdlib.h>
 #include <string.h>
 #include "strb.h"
+
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 //! [producer]
 static int put_path_segment(strb_t *sb, const char *segment)
@@ -101,7 +106,7 @@ static bool fruit_sentence_example(void)
     const size_t list_position = strb_tell(sb);
     strb_putc(sb, '.');
     strb_seek(sb, list_position);
-    put_fruit_list(sb, sizeof indices / sizeof indices[0], indices);
+    put_fruit_list(sb, ARRAY_SIZE(indices), indices);
     if (strb_error(sb))
         return false;
     return puts(text) != EOF;
@@ -117,10 +122,10 @@ static bool fruit_rows_example(void)
         return false;
 
     bool success = true;
-    for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+    for (size_t row = 0; row < ARRAY_SIZE(rows); ++row) {
         // Replace the previous result; retain the allocated storage.
         strb_cpy(&*sb, "");
-        put_fruit_list(&*sb, sizeof rows[row] / sizeof rows[row][0], rows[row]);
+        put_fruit_list(&*sb, ARRAY_SIZE(rows[row]), rows[row]);
         if (strb_error(&*sb)) {
             success = false;
             break;
@@ -135,9 +140,57 @@ static bool fruit_rows_example(void)
 }
 //! [fruit_caller]
 
+//! [short_write]
+static bool put_character(strb_t *sb, char32_t character)
+{
+    assert(character != 0);
+    mbstate_t conversion = {0};
+    const size_t start = strb_tell(sb);
+    _Optional char *output = strb_write(sb, MB_LEN_MAX);
+    if (!output)
+        return false;
+
+    const size_t count = c32rtomb(&*output, character, &conversion);
+    if (count == (size_t)-1) {
+        strb_delto(sb, start);
+        return false;
+    }
+    strb_delto(sb, start + count);
+    return true;
+}
+//! [short_write]
+
+static bool short_write_example(void)
+{
+    const char original[] = "012345678901234567890123456789";
+    const int modes[] = {strb_insert, strb_overwrite};
+    char text[64];
+    strbstate_t state;
+    strb_t *sb = strb_use(&state, sizeof text, text);
+
+    for (size_t i = 0; i < ARRAY_SIZE(modes); ++i) {
+        if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]) ||
+            strb_seek(sb, 0) || !put_character(sb, U'A'))
+            return false;
+        if (strb_tell(sb) != 1)
+            return false;
+        if (modes[i] == strb_insert) {
+            if (strb_len(sb) != sizeof original ||
+                strcmp(strb_cptr(sb), "A012345678901234567890123456789"))
+                return false;
+        } else {
+            if (strb_len(sb) != sizeof original - 1 ||
+                strcmp(strb_cptr(sb), "A12345678901234567890123456789"))
+                return false;
+        }
+    }
+    return true;
+}
+
 int main(void)
 {
-    return editing_example() && fruit_sentence_example() && fruit_rows_example()
+    return editing_example() && fruit_sentence_example() && fruit_rows_example() &&
+                   short_write_example()
                ? EXIT_SUCCESS
                : EXIT_FAILURE;
 }

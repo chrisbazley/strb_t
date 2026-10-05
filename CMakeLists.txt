@@ -110,6 +110,15 @@ add_strb_variant("" "")
 add_strb_variant("static" "STRB_STATIC_ALLOC")
 add_strb_variant("freestanding" "STRB_FREESTANDING")
 
+# Compile and run the examples used by the interface design page.
+add_executable(design_examples examples/design.c)
+target_link_libraries(design_examples PRIVATE strb)
+set_target_properties(design_examples PROPERTIES
+    C_STANDARD 11
+    C_STANDARD_REQUIRED YES
+)
+add_test(NAME check_design_examples COMMAND design_examples)
+
 # Optimization and Debug settings
 add_compile_definitions(
     $<$<CONFIG:Debug>:DEBUGOUT=1>
