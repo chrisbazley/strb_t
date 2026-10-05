@@ -23,20 +23,20 @@ static bool editing_example(void)
 
 //! [sequential]
     put_path_segment(sb, "manual");
-    put_path_segment(sb, "guide");
+    put_path_segment(sb, "guide.html");
     if (strb_error(sb))
         return false;
     // "/manual/guide"; position at the end, insert mode.
 //! [sequential]
-    if (strcmp(strb_ptr(sb), "/manual/guide"))
+    if (strcmp(strb_ptr(sb), "/manual/guide.html"))
         return false;
 
 //! [append]
-    if (strb_seek(sb, strb_len(sb)) || strb_puts(sb, "#details.html"))
+    if (strb_seek(sb, strb_len(sb)) || strb_puts(sb, "#details"))
         return false;
     // "/manual/guide#details.html"; position at the end.
 //! [append]
-    if (strcmp(strb_ptr(sb), "/manual/guide#details.html"))
+    if (strcmp(strb_ptr(sb), "/manual/guide.html#details"))
         return false;
 
 //! [prepend]
@@ -44,9 +44,9 @@ static bool editing_example(void)
         strb_puts(sb, "https://example.org"))
         return false;
     const size_t path_start = strb_tell(sb);
-    // "https://example.org/manual/guide#details.html"; position before the path.
+    // "https://example.org/manual/guide.html#details"; position before the path.
 //! [prepend]
-    if (strcmp(strb_ptr(sb), "https://example.org/manual/guide#details.html"))
+    if (strcmp(strb_ptr(sb), "https://example.org/manual/guide.html#details"))
         return false;
 
 //! [insert]
@@ -55,27 +55,27 @@ static bool editing_example(void)
     put_path_segment(sb, "docs");
     if (strb_error(sb))
         return false;
-    // "https://example.org/docs/manual/guide#details.html".
+    // "https://example.org/docs/manual/guide.html#details".
 //! [insert]
-    if (strcmp(strb_ptr(sb), "https://example.org/docs/manual/guide#details.html"))
+    if (strcmp(strb_ptr(sb), "https://example.org/docs/manual/guide.html#details"))
         return false;
 
 //! [overwrite]
     if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, path_start) ||
         put_path_segment(sb, "help"))
         return false;
-    // "https://example.org/help/manual/guide#details.html"; overwrite mode.
+    // "https://example.org/help/manual/guide.html#details"; overwrite mode.
 //! [overwrite]
-    if (strcmp(strb_ptr(sb), "https://example.org/help/manual/guide#details.html"))
+    if (strcmp(strb_ptr(sb), "https://example.org/help/manual/guide.html#details"))
         return false;
 
 //! [delete]
     strb_setmode(sb, strb_insert);
     strb_delto(sb, path_start);
-    // "https://example.org/manual/guide#details.html"; position before the path.
+    // "https://example.org/manual/guide.html#details"; position before the path.
 //! [delete]
     return strb_tell(sb) == path_start &&
-           !strcmp(strb_ptr(sb), "https://example.org/manual/guide#details.html");
+           !strcmp(strb_ptr(sb), "https://example.org/manual/guide.html#details");
 }
 
 //! [fruit_producer]
