@@ -274,9 +274,9 @@ typedef struct {
  * extra storage.
  *
  * @param[out] sbs   String buffer state.
- * @param      size  Size of the array to be used instead of an internal buffer,
- *                   measured in characters not bytes, including space for the
- *                   terminating null character. Must not be 0.
+ * @param      size  Number of elements in the array to be used instead of an
+ *                   internal buffer, including space for the terminating null
+ *                   character. Must not be 0.
  * @param[out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object.
@@ -317,9 +317,9 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * extra storage.
  *
  * @param[out]    sbs   String buffer state.
- * @param         size  Size of the array to be used instead of an internal
- * buffer, measured in characters not bytes, including space for the terminating
- * null character. Must not be 0.
+ * @param         size  Number of elements in the array to be used instead of an
+ *                      internal buffer, including space for the terminating null
+ *                      character. Must not be 0.
  * @param[in,out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object, or a null pointer on
@@ -395,9 +395,9 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
  * string buffer can use the whole of the external array but never allocate any
  * extra storage.
  *
- * @param      size  Size of the array to be used instead of an internal buffer,
- *                   measured in characters not bytes, including space for the
- *                   terminating null character. Must not be 0.
+ * @param      size  Number of elements in the array to be used instead of an
+ *                   internal buffer, including space for the terminating null
+ *                   character. Must not be 0.
  * @param[out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object, or a null pointer on
@@ -431,9 +431,9 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * string buffer can use the whole of the external array but never allocate any
  * extra storage.
  *
- * @param         size  Size of the array to be used instead of an internal
- * buffer, measured in characters not bytes, including space for the terminating
- * null character. Must not be 0.
+ * @param         size  Number of elements in the array to be used instead of an
+ *                      internal buffer, including space for the terminating null
+ *                      character. Must not be 0.
  * @param[in,out] buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object, or a null pointer on
@@ -465,9 +465,9 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * as if it had been allocated. Subsequent operations on the string buffer may
  * allocate or free extra storage, if supported by the implementation.
  *
- * @param n  A hint about how much storage to allocate for an internal buffer
- *           (where 0 means default size). Measured in characters not bytes,
- *           excluding the terminating null character.
+ * @param n  A hint about the number of elements to allocate for an internal
+ *           character array, excluding the terminating null character
+ *           (where 0 means default size).
  *
  * @return Address of the created string buffer object, or a null pointer on
  * failure.
