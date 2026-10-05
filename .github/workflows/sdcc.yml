@@ -1,0 +1,53 @@
+name: SDCC
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  freestanding:
+    name: Z80 freestanding with _Optional
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download SDCC 4.6.0
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/sdcc.tar.bz2"
+          curl --fail --location --retry 3 --max-time 180 \
+            https://downloads.sourceforge.net/project/sdcc/sdcc-linux-amd64/4.6.0/sdcc-4.6.0-amd64-unknown-linux2.5.tar.bz2 \
+            --output "$archive"
+          echo "f6b929c62ed3082a26087885e0f1f9bf41878602ef1f57e40b11b4a01bf4f366  $archive" | sha256sum --check
+          tar --no-same-owner -xjf "$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/sdcc-4.6.0/bin" >> "$GITHUB_PATH"
+
+      - name: Compile and link the freestanding tests
+        shell: bash
+        run: |
+          sdcc --version
+          mkdir -p build-sdcc
+          flags=(-mz80 --std-c99 --Werror -DSTRB_FREESTANDING=1 -I.)
+          # NDEBUG avoids an SDCC 4.6.0 internal compiler error when
+          # optimizing the assertion in strb_getmode. Test assertions stay enabled.
+          sdcc "${flags[@]}" -DNDEBUG -c strb.c -o build-sdcc/strb.rel
+          # Warning 110 reports optimizer changes to control flow in assertions.
+          sdcc "${flags[@]}" --disable-warning 110 -Dmain=strb_test_main -c test.c -o build-sdcc/test.rel
+          sdcc "${flags[@]}" -c tests/sdcc-runtime.c -o build-sdcc/runtime.rel
+          sdcc -mz80 build-sdcc/strb.rel build-sdcc/test.rel build-sdcc/runtime.rel -o build-sdcc/test.ihx
+
+      - name: Run the tests in uCsim
+        shell: bash
+        run: |
+          printf 'run\nquit\n' | timeout 60 ucsim_z80 -t Z80 -q -c - \
+            -I "if=rom[0xff00],out=build-sdcc/test-output.log" \
+            build-sdcc/test.ihx > build-sdcc/simulator.log 2>&1
+          cat build-sdcc/test-output.log
+          grep -Fx 'STRB TEST PASS' build-sdcc/test-output.log

@@ -176,12 +176,16 @@ static void compare_output(const strb_t *actual, const strb_t *reference,
                  !memcmp(strb_cptr(actual), strb_cptr(reference),
                          strb_len(reference) + 1);
     if (!equal) {
+#ifdef __SDCC
+        puts(testcase->name);
+#else
         fprintf(stderr, "%s: actual len=%zu pos=%zu mode=%d error=%d; "
                         "reference len=%zu pos=%zu mode=%d error=%d\n",
                 testcase->name, strb_len(actual), strb_tell(actual),
                 strb_getmode(actual), strb_error(actual), strb_len(reference),
                 strb_tell(reference), strb_getmode(reference),
                 strb_error(reference));
+#endif
     }
     assert(strb_len(actual) == strb_len(reference));
     assert(strb_tell(actual) == strb_tell(reference));
@@ -745,7 +749,10 @@ int main(void)
     strbstate_t state;
 
     s = strb_use(&state, sizeof array, array);
-    assert(s);
+    if (!s) {
+        assert(s);
+        return 1;
+    }
 #if STRB_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
@@ -754,7 +761,10 @@ int main(void)
     c = strb_ptr(&*s)[strb_len(&*s) - 1];
 
     s = strb_reuse(&state, sizeof array, array);
-    assert(s);
+    if (!s) {
+        assert(s);
+        return 1;
+    }
 #if STRB_UNPUTC
     assert(strb_unputc(&*s) == c);
 #else
@@ -767,7 +777,7 @@ int main(void)
     assert(strb_reuse(&state, sizeof array, array) ==
            NULL); // no null terminator
 
-    snprintf(array, sizeof array,
+    strcpy(array,
              "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
              "Curabitur lacinia mi "
              "mollis, tincidunt ipsum ut, commodo massa. Maecenas sit amet "
@@ -786,7 +796,10 @@ int main(void)
 #if STRB_REUSE_CONST
     {
         _Optional const strb_t *cs = strb_reuse_const(&state, "Cyclist");
-        assert(cs);
+        if (!cs) {
+            assert(cs);
+            return 1;
+        }
         assert(strb_getmode(&*cs) == strb_insert);
         assert(strb_tell(&*cs) == strlen("Cyclist"));
         assert(strb_len(&*cs) == strlen("Cyclist"));
