@@ -870,6 +870,8 @@ int strb_unputc(strb_t *sb);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p str is not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, the position indicator has advanced by the length of the
  * given @p str and the string length was updated as described by
  * @ref strb_write.
@@ -900,6 +902,8 @@ int strb_puts(strb_t *restrict sb, const char *restrict str);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p str is not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, the position indicator has advanced by the number of
  * characters copied and the string length was updated as described by
  * @ref strb_write.
@@ -917,7 +921,7 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n);
 /**
  * @brief Put a generated string into a string buffer.
  *
- * Generates characters under control of a format string, which are written into
+ * Generates characters under control of @p format, which are written into
  * space prepared as if by calling @ref strb_write for the number of characters generated,
  * excluding the terminating null. Space is prepared even if that count is
  * zero. The character following the output is preserved.
@@ -933,6 +937,9 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p format and any pointers to strings read through format arguments
+ *       are not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, the position indicator has advanced by the number of
  * characters generated and the string length was updated as described by
  * @ref strb_write.
@@ -949,7 +956,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args);
 /**
  * @brief Put a generated string into a string buffer.
  *
- * Generates characters under control of a format string, which are written into
+ * Generates characters under control of @p format, which are written into
  * space prepared as if by calling @ref strb_write for the number of characters generated,
  * excluding the terminating null. Space is prepared even if that count is
  * zero. The character following the output is preserved.
@@ -965,6 +972,9 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p format and any pointers to strings read through format arguments
+ *       are not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, the position indicator has advanced by the number of
  * characters generated and the string length was updated as described by
  * @ref strb_write.
@@ -1140,6 +1150,8 @@ void strb_delto(strb_t *sb, size_t pos);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p str is not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, @ref strb_tell and @ref strb_len return the number of
  * characters copied.
  * @post If successful, the last character copied (if any) can be removed by
@@ -1166,6 +1178,8 @@ int strb_cpy(strb_t *restrict sb, const char *restrict str);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p str is not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, @ref strb_tell and @ref strb_len return the number of
  * characters copied.
  * @post If successful, the last character copied (if any) can be removed by
@@ -1182,8 +1196,8 @@ int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n);
 /**
  * @brief Print a generated string into a string buffer.
  *
- * Replaces the string in a buffer by generating characters under control of a
- * format string.
+ * Replaces the string in a buffer by generating characters under control of
+ * @p format.
  *
  * @param[in,out] sb       String buffer.
  * @param[in]     format   Specifies how to convert subsequent arguments to
@@ -1197,6 +1211,9 @@ int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n);
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p format and any pointers to strings read through format arguments
+ *       are not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, @ref strb_tell and @ref strb_len return the number of
  * characters generated.
  * @post If successful, the last character written can be removed by @ref
@@ -1212,8 +1229,8 @@ int strb_vprintf(strb_t *restrict sb, const char *restrict format,
 /**
  * @brief Print a generated string into a string buffer.
  *
- * Replaces the string in a buffer by generating characters under control of a
- * format string.
+ * Replaces the string in a buffer by generating characters under control of
+ * @p format.
  *
  * @param[in,out] sb       String buffer.
  * @param[in]     format   Specifies how to convert subsequent arguments to
@@ -1227,6 +1244,9 @@ int strb_vprintf(strb_t *restrict sb, const char *restrict format,
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
+ * @pre  @p format and any pointers to strings read through format arguments
+ *       are not derived from the result of calling @ref strb_cptr or
+ *       @ref strb_ptr on the same @p sb; see @ref design_aliasing.
  * @post If successful, @ref strb_tell and @ref strb_len return the number of
  * characters generated.
  * @post If successful, the last character written can be removed by @ref
