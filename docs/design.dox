@@ -179,7 +179,7 @@ repositioning:
 
 If the position may have moved, explicitly seek the end before appending.
 At the end, insertion and overwrite mode both extend the buffer, so appending
-needs no mode change. Here the appended text identifies a fragment:
+needs no mode change. Here, the appended text identifies a fragment:
 
 @snippet design.c append
 
@@ -197,14 +197,13 @@ editing, so those operations do not need to know the prefix length.
 @subsection design_insert Insert generated text
 
 The same producer used for sequential output inserts a @c docs segment before
-the existing path. The example uses the saved path position and records the
-position after the inserted segment:
+the existing path. The example uses the saved path position:
 
 @snippet design.c insert
 
 @subsection design_overwrite Overwrite existing text
 
-Changing the mode lets that producer overwrite instead. Here @c help replaces
+Changing the mode lets that producer overwrite instead. Here, @c help replaces
 @c docs without changing the segment length. In general, a shorter replacement
 would leave part of the previous segment in place, while a longer one would
 overwrite following text:
@@ -213,8 +212,10 @@ overwrite following text:
 
 @subsection design_delete Delete a range
 
-Select insertion mode, seek to the start of the range, and delete to its end.
-Here it removes the @c /help segment. The endpoints were recorded while
+The current position is at the end of the range.
+Select insertion mode and delete to the start of the range (keeping the
+scheme and authority intact).
+Here, the @c /help segment is removed. The path position was recorded while
 generating and editing the URI, so deletion does not depend on knowing the
 segment length in advance.
 The position remains at the start of the range, ready for further output there:
@@ -284,7 +285,8 @@ The source passed to @ref strb_puts, @ref strb_nputs, @ref strb_cpy or
 @ref strb_ncpy must not be derived from the result of calling @ref strb_cptr or
 @ref strb_ptr on the same buffer. Self-copying is also unsupported when the
 source accesses the same storage through the original caller-supplied array.
-This applies to appending as well as inserting or replacing text. Preparing space can move the source characters or relocate
+This applies to appending as well as inserting or replacing text. Preparing
+space can move the source characters or relocate
 their storage before they are read. Overlapping copies can also violate the
 copy operation's requirements. Using @c memmove alone would not solve these
 problems.
