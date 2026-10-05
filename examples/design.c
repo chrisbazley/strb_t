@@ -26,7 +26,7 @@ static bool editing_example(void)
     put_path_segment(sb, "guide.html");
     if (strb_error(sb))
         return false;
-    // "/manual/guide"; position at the end, insert mode.
+    // "/manual/guide.html"; position at the end, insert mode.
 //! [sequential]
     if (strcmp(strb_ptr(sb), "/manual/guide.html"))
         return false;
@@ -34,7 +34,7 @@ static bool editing_example(void)
 //! [append]
     if (strb_seek(sb, strb_len(sb)) || strb_puts(sb, "#details"))
         return false;
-    // "/manual/guide#details.html"; position at the end.
+    // "/manual/guide.html#details"; position at the end.
 //! [append]
     if (strcmp(strb_ptr(sb), "/manual/guide.html#details"))
         return false;
