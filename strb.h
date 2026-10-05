@@ -268,10 +268,11 @@ typedef struct {
  * A null character is written as the first character of @p buf.
  * The initial string length is 0. This function cannot fail.
  *
- * The effects of strb_... functions on an external array are always immediately
- * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the whole of the external array but never allocate any
- * extra storage.
+ * Obtain the current string with @ref strb_ptr or @ref strb_cptr before
+ * accessing @p buf directly, including before discarding the buffer state.
+ * Editing may defer changes to the array's layout until such access is requested.
+ * Operations on the string buffer can use the whole of the external array but
+ * never allocate any extra storage.
  *
  * @param[out] sbs   String buffer state.
  * @param      size  Number of elements in the array to be used instead of an
@@ -311,10 +312,11 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * first @p size characters (or the maximum supported length, if less), a null
  * pointer is returned.
  *
- * The effects of strb_... functions on an external array are always immediately
- * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the whole of the external array but never allocate any
- * extra storage.
+ * Obtain the current string with @ref strb_ptr or @ref strb_cptr before
+ * accessing @p buf directly, including before discarding the buffer state.
+ * Editing may defer changes to the array's layout until such access is requested.
+ * Operations on the string buffer can use the whole of the external array but
+ * never allocate any extra storage.
  *
  * @param[out]    sbs   String buffer state.
  * @param         size  Number of elements in the array to be used instead of an
@@ -390,10 +392,11 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
  * A null character is written as the first character of @p buf.
  * The initial string length is 0.
  *
- * The effects of strb_... functions on an external array are always immediately
- * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the whole of the external array but never allocate any
- * extra storage.
+ * Obtain the current string with @ref strb_ptr or @ref strb_cptr before
+ * accessing @p buf directly, including before discarding the buffer state.
+ * Editing may defer changes to the array's layout until such access is requested.
+ * Operations on the string buffer can use the whole of the external array but
+ * never allocate any extra storage.
  *
  * @param      size  Number of elements in the array to be used instead of an
  *                   internal buffer, including space for the terminating null
@@ -426,10 +429,11 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * first @p size characters (or the maximum supported length, if less), a null
  * pointer is returned.
  *
- * The effects of strb_... functions on an external array are always immediately
- * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the whole of the external array but never allocate any
- * extra storage.
+ * Obtain the current string with @ref strb_ptr or @ref strb_cptr before
+ * accessing @p buf directly, including before discarding the buffer state.
+ * Editing may defer changes to the array's layout until such access is requested.
+ * Operations on the string buffer can use the whole of the external array but
+ * never allocate any extra storage.
  *
  * @param         size  Number of elements in the array to be used instead of an
  *                      internal buffer, including space for the terminating null
@@ -613,6 +617,10 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args);
  * internally allocated string to code that needs to take ownership of it, it
  * must first be copied (e.g., using @c strdup).
  *
+ * To retain the current contents of an external buffer, first obtain them
+ * with @ref strb_ptr or @ref strb_cptr. Destruction does not guarantee that
+ * deferred layout changes are completed.
+ *
  * May be called with a null pointer, in which case this function has no effect.
  *
  * @param[in] sb  String buffer to destroy, or a null pointer.
@@ -628,8 +636,17 @@ void strb_free(_Optional strb_t *sb);
 /**
  * @brief Get a pointer to the character array underlying a string buffer.
  *
- * The returned pointer is guaranteed to be usable as a string (i.e. null
- * terminated).
+ * The returned pointer provides the current contents as a contiguous,
+ * null-terminated character array. An implementation may defer changes to the
+ * array's layout between calls; this function completes any such changes without
+ * allocating storage or failing. It does not change the recorded length,
+ * position, editing mode, error indicator, or characters available to
+ * @ref strb_restore or @ref strb_unputc, and does not undo @ref strb_split.
+ *
+ * For an external buffer, the returned pointer is the array passed to
+ * @ref strb_use or @ref strb_reuse. Call this function or @ref strb_cptr before
+ * reading or modifying that array directly. Obtain a fresh pointer after any
+ * intervening call to a strb_... function on the same buffer.
  *
  * In C11 and later, a function-like macro also permits @c strb_ptr(sb) when
  * @p sb has type @c const @c strb_t*. For a @c strb_t* argument it calls the
@@ -653,7 +670,10 @@ char *strb_ptr(strb_t *sb);
  *
  * Provides the same access as @ref strb_ptr, returning a pointer to constant
  * characters. Accepts a mutable string buffer or an immutable string buffer
- * created by @ref strb_reuse_const. The C11 @ref strb_ptr macro selects this
+ * created by @ref strb_reuse_const. It completes any deferred layout changes
+ * under the same guarantees as @ref strb_ptr; read-only access does not require
+ * the implementation's internal representation to remain unchanged. An immutable
+ * buffer created by @ref strb_reuse_const is left unchanged. The C11 @ref strb_ptr macro selects this
  * function automatically for an argument of type @c const @c strb_t*.
  *
  * @param[in] sb  String buffer.

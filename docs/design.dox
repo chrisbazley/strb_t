@@ -206,7 +206,8 @@ leading comma:
 This consumer supplies both storage and buffer state. It writes the prefix and
 records the position with @ref strb_tell, then adds the full stop. Seeking back to the
 recorded position lets the producer insert its list before the punctuation. The
-consumer passes the completed array directly to @c puts:
+consumer obtains the completed string with @ref strb_cptr and passes it to
+@c puts:
 
 @snippet design.c fruit_sentence
 
@@ -267,6 +268,20 @@ if a later call fails, earlier successful calls have already modified the buffer
 
 @section design_strings Using existing string functions
 
+Obtain the current string with @ref strb_ptr or @ref strb_cptr, including when
+using a caller-supplied array. These accessors provide contiguous,
+null-terminated storage without allocating or failing. They preserve the editing
+state and any character saved for restoration or undo; they do not undo an
+intentional @ref strb_split. Obtain a fresh pointer after any intervening
+strb_... call on the same buffer. Before discarding the state or calling
+@ref strb_free, obtain a pointer if the external array's contents are to be retained.
+
+Between such access requests, implementations may defer changes to the array's
+layout. For example, keeping spare space at the editing position can avoid
+moving the suffix for every character in a sequence of @ref strb_putc calls.
+This freedom does not defer error reporting: each output call still reports
+failure and sets the error indicator as specified by its contract.
+
 The interface produces ordinary null-terminated character arrays. Read-only
 functions such as @c strlen and @c strchr can use @ref strb_cptr; consumers such
 as @c puts can use the resulting string directly, as in the examples above.
@@ -302,13 +317,16 @@ report it through @ref strb_error.
 
 @subsection design_prepare Preparing space for output
 
-The common basis of positioned output is @ref strb_write. Each output function
-first determines its character count, prepares that much space, and fills it.
-Preparation applies the position and editing mode, grows storage if permitted,
-moves the suffix for insertion, and advances the position. A bulk insertion can
-therefore move the suffix once rather than once per character. The tests compare
-output functions with reference functions that use @ref strb_write and fill the
-space independently.
+The positioned output functions have effects specified in terms of
+@ref strb_write followed by filling the prepared space and preserving the
+following character. This describes their observable behaviour, without requiring
+an implementation to call @ref strb_write for each output operation.
+The tests compare output functions with reference functions that use
+@ref strb_write and fill the space independently.
+
+For direct writing, @ref strb_write prepares contiguous space and places the
+following characters immediately after it. A bulk insertion can therefore move
+the suffix once rather than once per character.
 
 A count of zero still prepares space. At a position beyond the old end it
 extends the recorded length to that position and fills the gap with nulls.
@@ -333,8 +351,8 @@ character, @ref strb_restore can replace that null with the saved character,
 making the following text accessible as part of the string again.
 
 See those functions' contracts before using the direct-write interface.
-Borrowed pointers into the buffer should be obtained again after operations
-that may reallocate storage.
+Borrowed pointers into the buffer must be obtained again after any intervening
+strb_... call on the same buffer, even when no storage is reallocated.
 
 The @ref strb_putc, @ref strb_nputc, @ref strb_puts, @ref strb_nputs,
 @ref strb_putf and @ref strb_vputf functions preserve the character immediately

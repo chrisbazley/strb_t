@@ -104,7 +104,7 @@ static bool fruit_sentence_example(void)
     put_fruit_list(sb, sizeof indices / sizeof indices[0], indices);
     if (strb_error(sb))
         return false;
-    return puts(text) != EOF;
+    return puts(strb_cptr(sb)) != EOF;
 }
 //! [fruit_sentence]
 
