@@ -83,7 +83,7 @@ static bool editing_example(void)
 
 //! [fruit_producer]
 static void put_fruit_list(strb_t *sb, size_t count,
-                           const unsigned indices[static count])
+                           const unsigned indices[STRB_SIZE_HINT(count)])
 {
     const char *const fruit[] = {"apple", "orange", "banana", "lime"};
     for (size_t i = 0; i < count; ++i) {
