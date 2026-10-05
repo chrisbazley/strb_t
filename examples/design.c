@@ -50,8 +50,6 @@ static bool editing_example(void)
         return false;
 
 //! [insert]
-    strb_setmode(sb, strb_insert);
-    strb_seek(sb, path_start);
     put_path_segment(sb, "docs");
     if (strb_error(sb))
         return false;
