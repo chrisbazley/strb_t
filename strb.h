@@ -1022,6 +1022,10 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * position upward to make space; otherwise, no characters are moved. Additional
  * storage is allocated if necessary to allow @p n + 1 characters to be written.
  *
+ * If fewer than @p n characters are produced, @ref strb_delto can correct the
+ * position and, in insertion mode, remove unused space. See
+ * @ref design_short_write for an example and the limits in overwrite mode.
+ *
  * A zero count still prepares the buffer. If the position is beyond the old
  * end, the intervening gap is filled with null characters and the length grows
  * to the position. Any previous @ref strb_restore boundary is replaced by the
@@ -1139,6 +1143,8 @@ void strb_restore(strb_t *sb);
  * Afterwards, the value of the position indicator is the lower of the two
  * positions. This function may substitute a smaller buffer at the implementer's
  * discretion.
+ *
+ * See @ref design_short_write for its use in correcting a short direct write.
  *
  * Passing a position greater than the string length is allowed: @c SIZE_MAX or
  * @c (size_t)-1 can be used as a shorthand to delete all characters between the

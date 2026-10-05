@@ -116,6 +116,12 @@ Mode remains the caller's choice: insertion mode removes the inserted text;
 overwrite mode rewinds the position without moving the following text or
 restoring overwritten characters.
 
+The mode-dependent behaviour also supports correcting a short direct write.
+Insertion creates space that must be removed if unused. In overwrite mode,
+the unused part of the prepared range can still contain existing characters.
+Short-write correction must leave those characters in place.
+See @ref design_short_write for the correction and its limits.
+
 In insertion mode, a target of @c SIZE_MAX deletes to the end and a target of
 zero deletes back to the beginning. The "Deletion of characters" section in
 <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=60">N3306</a>
@@ -313,6 +319,48 @@ space independently.
 A count of zero still prepares space. At a position beyond the old end it
 extends the recorded length to that position and fills the gap with nulls.
 An empty @ref strb_puts is therefore not necessarily a no-op.
+
+@subsection design_short_write Producing fewer characters than prepared
+
+@ref strb_write advances the position and updates the length for the requested
+count before the caller writes anything. If a writer produces fewer characters,
+save the starting position before preparation and pass that position plus the
+actual count to @ref strb_delto afterwards, keeping the same editing mode.
+
+In insertion mode, this removes the unused prepared space and moves the suffix
+back to follow the actual output. A null terminator written after that output
+is in the removed space when the actual count is less than the prepared count.
+
+For example, this C11 producer writes the multibyte representation of a non-null
+character using the caller's position and editing mode. @c c32rtomb returns the
+number of bytes written, or @c (size_t)-1 on conversion failure:
+
+@snippet design.c short_write
+
+The conversion uses the current locale and starts in the initial conversion
+state. No @ref strb_restore is needed because a non-null character's conversion
+adds no terminator. Preparation still requires room for @c MB_LEN_MAX bytes,
+even if the actual output would be shorter. Conversion failure is reported by
+the helper; it does not set the buffer's error indicator. The caller must check
+this helper's return value: checking only @ref strb_error after a sequence of
+calls would miss a conversion failure.
+
+In overwrite mode, @ref strb_delto retreats the position without moving or
+zeroing characters. This preserves the original suffix when the writer emits
+only the actual output characters. However, it does not reduce the recorded
+length: if preparation extended the buffer, the excess extension remains.
+
+A writer that appends a null terminator can overwrite the first character of
+the suffix in overwrite mode. @ref strb_restore saves the character at the
+prepared end, not at an earlier actual end, so it cannot repair that short
+write. Determine the exact count before preparation, or generate into separate
+storage and copy the result with @ref strb_nputs.
+
+The "Direct insertion" discussion in
+<a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=65">N3306</a>
+explains why @ref strb_restore does not accept an actual count: preserving every
+potentially overwritten character would require extra storage, including for
+caller-supplied arrays.
 
 @subsection design_restore Direct writing, splitting and restoration
 
