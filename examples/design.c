@@ -55,7 +55,6 @@ static bool editing_example(void)
     put_path_segment(sb, "docs");
     if (strb_error(sb))
         return false;
-    const size_t directory_end = strb_tell(sb);
     // "https://example.org/docs/manual/guide#details.html".
 //! [insert]
     if (strcmp(strb_ptr(sb), "https://example.org/docs/manual/guide#details.html"))
@@ -72,8 +71,7 @@ static bool editing_example(void)
 
 //! [delete]
     strb_setmode(sb, strb_insert);
-    strb_seek(sb, path_start);
-    strb_delto(sb, directory_end);
+    strb_delto(sb, path_start);
     // "https://example.org/manual/guide#details.html"; position before the path.
 //! [delete]
     return strb_tell(sb) == path_start &&
