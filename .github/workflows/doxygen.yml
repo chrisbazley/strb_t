@@ -17,6 +17,7 @@ on:
       - "Doxyfile"
       - "docs/**"
       - "examples/**"
+      - ".github/workflows/doxygen.yml"
   workflow_dispatch:
 
 permissions:
