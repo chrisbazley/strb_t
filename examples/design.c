@@ -77,8 +77,6 @@ static bool editing_example(void)
     strb_setmode(sb, strb_insert);
     strb_seek(sb, label_start);
     strb_delto(sb, label_end);
-    if (strb_error(sb))
-        return false;
     // "New Selected: item7."; position 4, insert mode.
 //! [delete]
     return strb_tell(sb) == label_start &&

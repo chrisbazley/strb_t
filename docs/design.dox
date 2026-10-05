@@ -137,9 +137,7 @@ unnecessary. In insertion mode, it removes that range, closes the gap, and
 leaves the position at the lower endpoint.
 
 @ref strb_delto returns no value and does not report failure. A target beyond the
-end is allowed; the deletion is limited to existing characters. An error check
-after a sequence that includes deletion checks errors from other operations in
-that sequence, such as repositioning, rather than a failure to shrink the string.
+end is allowed; the deletion is limited to existing characters.
 
 Deleting an arbitrary range can require a mode change and a seek as well as
 @ref strb_delto. For this less common operation, the interface favours
