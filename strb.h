@@ -142,7 +142,11 @@ typedef uint16_t strbsize_t;
 
 #endif
 
-/* A type qualifier named _Optional has been used throughout this interface to
+/**
+ * @def _Optional
+ * @brief Compatibility macro for builds without the _Optional qualifier.
+ *
+ * A type qualifier named _Optional has been used throughout this interface to
  * clarify declarations. This qualifier was proposed by N3089, which was
  * reviewed by the committee at the Strasbourg meeting in January 2024 with
  * strong consensus to proceed. It can be ignored (here, by defining it as an
