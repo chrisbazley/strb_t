@@ -56,8 +56,9 @@ Their individual contracts describe these whole-string operations.
 The output functions let a helper produce text without deciding where that
 text belongs. Its caller can arrange for the same helper to append, prepend,
 insert or overwrite. For example, this producer changes neither mode nor
-position explicitly and can be used in any of those contexts. It requires a
-single-digit number, so all labels it produces have the same length:
+position explicitly and can be used in any of those contexts. It writes a
+slash followed by a URI path segment. The caller supplies a segment already
+encoded for use in a URI; the fixed ASCII segments below need no percent-encoding:
 
 @snippet design.c producer
 
@@ -102,7 +103,7 @@ failure. A producer can make several output calls and let its caller check
 
 For a single operation, checking its return value is often more convenient.
 For example, @ref strb_puts and @ref strb_putf return zero on success and EOF
-on failure. The @c put_label producer in @ref design_missing returns the result
+on failure. The @c put_path_segment producer in @ref design_missing returns the result
 of @ref strb_putf directly, so its caller can check it immediately, as in
 @ref design_overwrite, or defer checking until after several calls, as in
 @ref design_sequential and @ref design_insert.
@@ -154,11 +155,11 @@ zero deletes back to the beginning. The "Deletion of characters" section in
 <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=60">N3306</a>
 explains the choice of an endpoint-based interface in more detail.
 
-@section design_examples Appending, prepending, inserting and overwriting and deleting
+@section design_examples Editing a URI
 
-The following snippets are successive parts of one example in
-@c examples/design.c. The caller supplies both the character array and the
-buffer state:
+The following snippets build a relative URI, add a scheme and authority, then
+edit its path. They are successive parts of one example in @c examples/design.c.
+The caller supplies both the character array and the buffer state:
 
 @snippet design.c external
 
@@ -169,7 +170,8 @@ use @ref strb_error after a sequence of calls.
 
 @subsection design_sequential Ordinary sequential output
 
-No repositioning is needed to build a new string from successive pieces:
+Two calls to the same producer build the path @c /manual/guide without
+repositioning:
 
 @snippet design.c sequential
 
@@ -177,7 +179,7 @@ No repositioning is needed to build a new string from successive pieces:
 
 If the position may have moved, explicitly seek the end before appending.
 At the end, insertion and overwrite mode both extend the buffer, so appending
-needs no mode change:
+needs no mode change. Here the appended text identifies a fragment:
 
 @snippet design.c append
 
@@ -185,35 +187,36 @@ needs no mode change:
 
 Select insertion mode as well as position zero; overwrite mode would replace
 characters at the start. This example leaves insertion mode selected and the
-position just after the new prefix:
+position after the scheme and authority, immediately before the existing path:
 
 @snippet design.c prepend
 
-The example records that position with @ref strb_tell for subsequent editing,
-so those operations do not need to know the prefix length.
+The example records the path position with @ref strb_tell for subsequent
+editing, so those operations do not need to know the prefix length.
 
 @subsection design_insert Insert generated text
 
-The same producer used for sequential output can insert into existing text.
-The example uses the saved position and records the position after the inserted
-label and separator for later deletion:
+The same producer used for sequential output inserts a @c docs segment before
+the existing path. The example uses the saved path position and records the
+position after the inserted segment:
 
 @snippet design.c insert
 
 @subsection design_overwrite Overwrite existing text
 
-Changing the mode lets that producer overwrite instead. Its single-digit
-precondition guarantees labels of equal length. In general, a shorter
-replacement would leave part of the previous label in place, while a longer
-one would overwrite following text:
+Changing the mode lets that producer overwrite instead. Here @c help replaces
+@c docs without changing the segment length. In general, a shorter replacement
+would leave part of the previous segment in place, while a longer one would
+overwrite following text:
 
 @snippet design.c overwrite
 
 @subsection design_delete Delete a range
 
 Select insertion mode, seek to the start of the range, and delete to its end.
-The endpoints were recorded while generating the prefix, label and separator,
-so deletion does not depend on knowing their lengths in advance.
+Here it removes the @c /help segment. The endpoints were recorded while
+generating and editing the URI, so deletion does not depend on knowing the
+segment length in advance.
 The position remains at the start of the range, ready for further output there:
 
 @snippet design.c delete
