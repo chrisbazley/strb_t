@@ -94,40 +94,6 @@ The implementation already knows when insertion is happening at position zero.
 Allocation strategies, including keeping spare capacity, are independent of
 how the operation is named.
 
-@section design_errors Deferred errors and operation boundaries
-
-The error indicator is sticky: a successful call does not clear an earlier
-failure. A producer can make several output calls and let its caller check
-@ref strb_error once before consuming the completed result. Use
-@ref strb_clearerr explicitly when recovering from an error.
-
-For a single operation, checking its return value is often more convenient.
-For example, @ref strb_puts and @ref strb_putf return zero on success and EOF
-on failure. The @c put_path_segment producer in @ref design_missing returns the result
-of @ref strb_putf directly, so its caller can check it immediately, as in
-@ref design_overwrite, or defer checking until after several calls, as in
-@ref design_sequential and @ref design_insert.
-A successful return describes that operation; it does not clear or report an
-earlier failure recorded by @ref strb_error.
-
-For example, if @ref strb_seek fails, the position is unchanged. A subsequent
-@ref strb_puts can succeed at that old position while the error indicator remains
-set. Checking only the return value of that output call would miss the failed
-seek. Either check each operation that can fail, or check @ref strb_error after
-the sequence before consuming its result. Deferring the check does not prevent
-successful operations after a failure from changing the buffer.
-
-Seeking to an existing position, including the end obtained from @ref strb_len,
-does not require allocation. General seeking also permits positions beyond the
-current length, but can fail if the requested position is unsupported. Storage
-for output at such a position is obtained when output is attempted, not by the
-seek itself.
-
-A bulk output operation that fails because storage cannot be obtained leaves
-its previous contents, mode and position intact. This guarantee applies to the
-individual operation. A helper making several output calls is not a transaction:
-if a later call fails, earlier successful calls have already modified the buffer.
-
 @section design_deletion Why is there no delete function?
 
 The same approach of composing position and mode with one operation applies
@@ -263,6 +229,40 @@ The output is:
 apple,banana,orange
 lime,orange,apple
 @endverbatim
+
+@section design_errors Deferred errors and operation boundaries
+
+The error indicator is sticky: a successful call does not clear an earlier
+failure. A producer can make several output calls and let its caller check
+@ref strb_error once before consuming the completed result. Use
+@ref strb_clearerr explicitly when recovering from an error.
+
+For a single operation, checking its return value is often more convenient.
+For example, @ref strb_puts and @ref strb_putf return zero on success and EOF
+on failure. The @c put_path_segment producer in @ref design_missing returns the result
+of @ref strb_putf directly, so its caller can check it immediately, as in
+@ref design_overwrite, or defer checking until after several calls, as in
+@ref design_sequential and @ref design_insert.
+A successful return describes that operation; it does not clear or report an
+earlier failure recorded by @ref strb_error.
+
+For example, if @ref strb_seek fails, the position is unchanged. A subsequent
+@ref strb_puts can succeed at that old position while the error indicator remains
+set. Checking only the return value of that output call would miss the failed
+seek. Either check each operation that can fail, or check @ref strb_error after
+the sequence before consuming its result. Deferring the check does not prevent
+successful operations after a failure from changing the buffer.
+
+Seeking to an existing position, including the end obtained from @ref strb_len,
+does not require allocation. General seeking also permits positions beyond the
+current length, but can fail if the requested position is unsupported. Storage
+for output at such a position is obtained when output is attempted, not by the
+seek itself.
+
+A bulk output operation that fails because storage cannot be obtained leaves
+its previous contents, mode and position intact. This guarantee applies to the
+individual operation. A helper making several output calls is not a transaction:
+if a later call fails, earlier successful calls have already modified the buffer.
 
 @section design_strings Using existing string functions
 
