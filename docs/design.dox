@@ -170,7 +170,7 @@ use @ref strb_error after a sequence of calls.
 
 @subsection design_sequential Ordinary sequential output
 
-Two calls to the same producer build the path @c /manual/guide without
+Two calls to the same producer build the path @c /manual/guide.html without
 repositioning:
 
 @snippet design.c sequential
@@ -279,7 +279,7 @@ output uses the recorded position and mode, not the end of that first string.
 Token pointers must not be retained across buffer operations that invalidate
 the borrowed pointer; finish consuming them before reusing or growing the buffer.
 
-@subsection design_aliasing Can a buffer supply its own input?
+@section design_aliasing Can a string buffer supply its own input?
 
 The source passed to @ref strb_puts, @ref strb_nputs, @ref strb_cpy or
 @ref strb_ncpy must not be derived from the result of calling @ref strb_cptr or
