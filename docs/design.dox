@@ -41,6 +41,11 @@ string. Consequently, successive output calls naturally append. Use
 Positions and lengths are measured in bytes; callers editing multibyte text
 must choose positions at suitable character boundaries.
 
+Positions saved with @ref strb_tell are numeric offsets rather than borrowed
+pointers, so they remain usable if the character array is relocated during
+growth. Inserting or deleting text before a saved position can still change
+which character it identifies.
+
 The @ref strb_cpy, @ref strb_ncpy, @ref strb_printf and @ref strb_vprintf
 functions replace the whole string, regardless of the current position and
 mode. On success, they set the position to the end of the replacement text.
@@ -104,6 +109,19 @@ of @ref strb_putf directly, so its caller can check it immediately, as in
 A successful return describes that operation; it does not clear or report an
 earlier failure recorded by @ref strb_error.
 
+For example, if @ref strb_seek fails, the position is unchanged. A subsequent
+@ref strb_puts can succeed at that old position while the error indicator remains
+set. Checking only the return value of that output call would miss the failed
+seek. Either check each operation that can fail, or check @ref strb_error after
+the sequence before consuming its result. Deferring the check does not prevent
+successful operations after a failure from changing the buffer.
+
+Seeking to an existing position, including the end obtained from @ref strb_len,
+does not require allocation. General seeking also permits positions beyond the
+current length, but can fail if the requested position is unsupported. Storage
+for output at such a position is obtained when output is attempted, not by the
+seek itself.
+
 A bulk output operation that fails because storage cannot be obtained leaves
 its previous contents, mode and position intact. This guarantee applies to the
 individual operation. A helper making several output calls is not a transaction:
@@ -117,6 +135,11 @@ as the endpoints of a range. The target can be before or after the current
 position, so separate forward-deletion and backward-deletion functions are
 unnecessary. In insertion mode, it removes that range, closes the gap, and
 leaves the position at the lower endpoint.
+
+@ref strb_delto returns no value and does not report failure. A target beyond the
+end is allowed; the deletion is limited to existing characters. An error check
+after a sequence that includes deletion checks errors from other operations in
+that sequence, such as repositioning, rather than a failure to shrink the string.
 
 Deleting an arbitrary range can require a mode change and a seek as well as
 @ref strb_delto. For this less common operation, the interface favours
@@ -238,6 +261,38 @@ The output is:
 apple,banana,orange
 lime,orange,apple
 @endverbatim
+
+@section design_strings Using existing string functions
+
+The interface produces ordinary null-terminated character arrays. Read-only
+functions such as @c strlen and @c strchr can use @ref strb_cptr; consumers such
+as @c puts can use the resulting string directly, as in the examples above.
+
+Mutable access through @ref strb_ptr also permits operations such as BSD
+@c strsep, which replaces delimiters with null characters without moving text.
+These writes do not update the buffer's recorded length or editing position.
+After splitting, @ref strb_len still describes the stored character sequence,
+while @c strlen describes only its first null-terminated string. Subsequent
+output uses the recorded position and mode, not the end of that first string.
+Token pointers must not be retained across buffer operations that invalidate
+the borrowed pointer; finish consuming them before reusing or growing the buffer.
+
+@subsection design_aliasing Can a buffer supply its own input?
+
+The source passed to @ref strb_puts, @ref strb_nputs, @ref strb_cpy or
+@ref strb_ncpy must not be derived from the result of calling @ref strb_cptr or
+@ref strb_ptr on the same buffer. Self-copying is also unsupported when the
+source accesses the same storage through the original caller-supplied array.
+This applies to appending as well as inserting or replacing text. Preparing space can move the source characters or relocate
+their storage before they are read. Overlapping copies can also violate the
+copy operation's requirements. Using @c memmove alone would not solve these
+problems.
+
+The same restriction applies to the format string and strings read through
+format arguments by @ref strb_putf, @ref strb_vputf, @ref strb_printf and
+@ref strb_vprintf. Make an independent copy before using existing buffer
+contents as input. These functions do not promise to detect such aliasing or
+report it through @ref strb_error.
 
 @section design_efficiency Space preparation is the common operation
 
