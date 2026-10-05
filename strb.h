@@ -142,15 +142,29 @@ typedef uint16_t strbsize_t;
 
 #endif
 
+#if !defined(USE_OPTIONAL) && defined(__SDCC_VERSION_MAJOR) && \
+    defined(__SDCC_VERSION_MINOR) && \
+    (__SDCC_VERSION_MAJOR > 4 || \
+     (__SDCC_VERSION_MAJOR == 4 && __SDCC_VERSION_MINOR >= 6))
+/** Enable the _Optional qualifier. */
+#define USE_OPTIONAL
+#endif
+
 /**
  * @def _Optional
  * @brief Compatibility macro for builds without the _Optional qualifier.
  *
- * A type qualifier named _Optional has been used throughout this interface to
- * clarify declarations. This qualifier was proposed by N3089, which was
- * reviewed by the committee at the Strasbourg meeting in January 2024 with
- * strong consensus to proceed. It can be ignored (here, by defining it as an
- * empty macro) without substantially changing the meaning of the code.
+ * The @c _Optional qualifier is used throughout this interface to clarify
+ * pointer declarations. When @c USE_OPTIONAL is not defined, this macro expands
+ * to nothing, allowing builds without support for the qualifier.
+ *
+ * SDCC supports the qualifier from version 4.6.0; @c USE_OPTIONAL is
+ * defined automatically for those versions. See the
+ * <a href="https://sdcc.sourceforge.net/">SDCC release notes</a>.
+ *
+ * For discussion and ongoing standardisation work, see the
+ * <a href="https://mailmanlists.uk/mailman/listinfo/optional-study-group">_Optional
+ * study group mailing list</a>.
  */
 #ifdef USE_OPTIONAL
 
