@@ -163,7 +163,8 @@ editing, so those operations do not need to know the prefix length.
 @subsection design_insert Insert generated text
 
 The same producer used for sequential output inserts a @c docs segment before
-the existing path. The example uses the saved path position:
+the existing path. The preceding step leaves the buffer in insertion mode
+and at the start of the path, ready for the producer:
 
 @snippet design.c insert
 
