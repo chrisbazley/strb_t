@@ -1,86 +1,83 @@
 // Copyright 2026 Christopher Bazley
 // SPDX-License-Identifier: MIT
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "strb.h"
 
 //! [producer]
-static int put_label(strb_t *sb, unsigned number)
+static int put_path_segment(strb_t *sb, const char *segment)
 {
-    assert(number < 10);
-    return strb_putf(sb, "item%u", number);
+    return strb_putf(sb, "/%s", segment);
 }
 //! [producer]
 
 static bool editing_example(void)
 {
 //! [external]
-    char text[128];
+    char text[64];
     strbstate_t state;
     strb_t *sb = strb_use(&state, sizeof text, text);
 //! [external]
 
 //! [sequential]
-    strb_puts(sb, "Selected: ");
-    put_label(sb, 7);
+    put_path_segment(sb, "manual");
+    put_path_segment(sb, "guide");
     if (strb_error(sb))
         return false;
-    // "Selected: item7"; position 15, insert mode.
+    // "/manual/guide"; position at the end, insert mode.
 //! [sequential]
-    if (strcmp(strb_ptr(sb), "Selected: item7"))
+    if (strcmp(strb_ptr(sb), "/manual/guide"))
         return false;
 
 //! [append]
-    if (strb_seek(sb, strb_len(sb)) || strb_puts(sb, "."))
+    if (strb_seek(sb, strb_len(sb)) || strb_puts(sb, "#details.html"))
         return false;
-    // "Selected: item7."; position 16.
+    // "/manual/guide#details.html"; position at the end.
 //! [append]
-    if (strcmp(strb_ptr(sb), "Selected: item7."))
+    if (strcmp(strb_ptr(sb), "/manual/guide#details.html"))
         return false;
 
 //! [prepend]
     if (strb_setmode(sb, strb_insert) || strb_seek(sb, 0) ||
-        strb_puts(sb, "New "))
+        strb_puts(sb, "https://example.org"))
         return false;
-    const size_t label_start = strb_tell(sb);
-    // "New Selected: item7."; position 4, insert mode.
+    const size_t path_start = strb_tell(sb);
+    // "https://example.org/manual/guide#details.html"; position before the path.
 //! [prepend]
-    if (strcmp(strb_ptr(sb), "New Selected: item7."))
+    if (strcmp(strb_ptr(sb), "https://example.org/manual/guide#details.html"))
         return false;
 
 //! [insert]
     strb_setmode(sb, strb_insert);
-    strb_seek(sb, label_start);
-    put_label(sb, 2);
-    strb_puts(sb, ": ");
+    strb_seek(sb, path_start);
+    put_path_segment(sb, "docs");
     if (strb_error(sb))
         return false;
-    const size_t label_end = strb_tell(sb);
-    // "New item2: Selected: item7."; position 11, insert mode.
+    const size_t directory_end = strb_tell(sb);
+    // "https://example.org/docs/manual/guide#details.html".
 //! [insert]
-    if (strcmp(strb_ptr(sb), "New item2: Selected: item7."))
+    if (strcmp(strb_ptr(sb), "https://example.org/docs/manual/guide#details.html"))
         return false;
 
 //! [overwrite]
-    if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, label_start) ||
-        put_label(sb, 3))
+    if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, path_start) ||
+        put_path_segment(sb, "help"))
         return false;
-    // "New item3: Selected: item7."; position 9, overwrite mode.
+    // "https://example.org/help/manual/guide#details.html"; overwrite mode.
 //! [overwrite]
-    if (strcmp(strb_ptr(sb), "New item3: Selected: item7."))
+    if (strcmp(strb_ptr(sb), "https://example.org/help/manual/guide#details.html"))
         return false;
 
 //! [delete]
     strb_setmode(sb, strb_insert);
-    strb_seek(sb, label_start);
-    strb_delto(sb, label_end);
-    // "New Selected: item7."; position 4, insert mode.
+    strb_seek(sb, path_start);
+    strb_delto(sb, directory_end);
+    // "https://example.org/manual/guide#details.html"; position before the path.
 //! [delete]
-    return strb_tell(sb) == label_start &&
-           !strcmp(strb_ptr(sb), "New Selected: item7.");
+    return strb_tell(sb) == path_start &&
+           !strcmp(strb_ptr(sb), "https://example.org/manual/guide#details.html");
 }
 
 //! [fruit_producer]
