@@ -9,6 +9,7 @@
 
 #define _GNU_SOURCE
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -16,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "strb.h"
 
@@ -79,6 +81,8 @@ struct strb_t {
 static strb_t bufs[STRB_MAX];
 static uint8_t nbufs, buf_map;
 #endif
+
+int strb__vstprintf(char *restrict s, ssize_t size, const char *restrict fmt, va_list ap);
 
 #if defined(__CC65__) || \
     (!defined(_MSC_VER) && \
@@ -572,7 +576,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
                 sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
                 char const tmp = buf[len];
-                vsnprintf(buf, (size_t)len + 1u, format, args_copy);
+                strb__vstprintf(buf, len + 1, format, args_copy);
                 buf[len] = tmp;
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
@@ -844,4 +848,21 @@ void strb_clearerr(strb_t *sb)
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     sb->p.flags &= ~F_ERR;
+}
+
+int
+strb__vstprintf(char *restrict s, ssize_t size, const char *restrict fmt, va_list ap)
+{
+    int  len;
+
+    assert(size != 0);
+    len = vsnprintf(s, sign_cast(size_t, size), fmt, ap);
+    if (len < 0)
+        return -1;
+    if (len >= size) {
+        errno = E2BIG;
+        return -1;
+    }
+
+    return len;
 }
