@@ -49,7 +49,7 @@
 /**
  * Macro used to suppress variably modified types in parameter lists.
  */
-#if defined(_MSC_VER) ||                                                       \
+#if defined(_MSC_VER) || defined(__CC65__) ||                                                       \
     (defined(__STDC_VERSION__) && __STDC_VERSION__ < 199901L)
 #define STRB_SIZE_HINT(X)
 #else
