@@ -19,6 +19,8 @@
 
 #include "strb.h"
 
+#define vnprintf(fmt, ap)  vsnprintf(NULL, 0, fmt, ap)
+
 #if STRB_UNPUTC
 #define F_CAN_UNPUTC (1 << 0)
 #else
@@ -349,7 +351,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
     va_copy(args_copy, args);
 
     do {
-        int len = vsnprintf(NULL, 0, format, args);
+        int len = vnprintf(format, args);
         if (len < 0 || (size_t)len >= STRB_MAX_SIZE)
             break; // formatting failed or result too long
 
@@ -551,7 +553,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
     va_list args_copy;
     va_copy(args_copy, args);
     {
-        const int len = vsnprintf(NULL, 0, format, args);
+        const int len = vnprintf(format, args);
         if (len >= 0) {
             _Optional char *buf = strb_write(
                 sb, (size_t)len); // move tail by +len and keep buf[len]
