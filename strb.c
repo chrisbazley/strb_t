@@ -454,35 +454,25 @@ int strb_getmode(const strb_t *sb)
     }
 }
 
-int strb_seek(strb_t *sb, size_t pos)
+void strb_seek(strb_t *sb, size_t pos)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     DEBUGF("Seek to %zu\n", pos);
-    assert(sb->p.pos < sb->p.size);
-    if (pos < STRB_MAX_SIZE) {
-        sb->p.pos = (strbsize_t)pos;
+    // STRB_MAX_SIZE fits in strbsize_t but is not a supported position.
+    sb->p.pos = pos < STRB_MAX_SIZE ? (strbsize_t)pos : STRB_MAX_SIZE;
 #if STRB_UNPUTC || STRB_RESTORE
-        sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+    sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif
-        return 0;
-    } else {
-        DEBUGF("Bad seek %zu\n", pos);
-        return set_err(sb);
-    }
 }
 
 size_t strb_tell(strb_t const *sb)
 {
     assert(sb);
-    {
-        strbsize_t pos = sb->p.pos;
-        DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize
-               "\n",
-               pos, sb->p.len, sb->p.size);
-        assert(pos < sb->p.size);
-        return pos;
-    }
+    assert(sb->p.pos <= STRB_MAX_SIZE);
+    DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize
+           "\n", sb->p.pos, sb->p.len, sb->p.size);
+    return sb->p.pos == STRB_MAX_SIZE ? SIZE_MAX : sb->p.pos;
 }
 
 int strb_putc(strb_t *sb, int c)
@@ -651,7 +641,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     assert(sb->p.len < sb->p.size);
-    assert(sb->p.pos < sb->p.size);
+    assert(sb->p.pos <= STRB_MAX_SIZE);
     assert(sb->p.buf[sb->p.len] == '\0');
     DEBUGF("About to write %zu chars\n", n);
 
@@ -726,11 +716,14 @@ _Optional char *strb_write(strb_t *sb, size_t n)
     }
 }
 
-void strb_split(strb_t *sb)
+int strb_split(strb_t *sb)
 {
     _Optional char *p = strb_write(sb, 0);
-    assert(p);
-    *(char *)p = '\0';
+    if (!p)
+        return EOF;
+
+    *p = '\0';
+    return 0;
 }
 
 #if STRB_RESTORE
@@ -753,14 +746,14 @@ void strb_delto(strb_t *sb, size_t pos)
 
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
-    assert(sb->p.pos < sb->p.size);
+    const size_t old_pos = strb_tell(sb);
 
-    if (sb->p.pos > pos) {
+    if (old_pos > pos) {
         lo = pos;
-        hi = sb->p.pos;
+        hi = old_pos;
     } else {
         hi = pos;
-        lo = sb->p.pos;
+        lo = old_pos;
     }
     assert(lo <= hi);
 
@@ -775,11 +768,7 @@ void strb_delto(strb_t *sb, size_t pos)
         sb->p.len = (strbsize_t)(len - (chi - clo));
     }
 
-    // The lower endpoint cannot exceed the previous, representable position.
-    sb->p.pos = (strbsize_t)lo;
-#if STRB_UNPUTC || STRB_RESTORE
-    sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
-#endif
+    strb_seek(sb, lo);
 }
 
 static void strb_empty(strb_t *sb)

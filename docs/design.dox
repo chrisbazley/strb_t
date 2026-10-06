@@ -253,18 +253,14 @@ several calls, as in @ref design_sequential.
 A successful return describes that operation; it does not clear or report an
 earlier failure recorded by @ref strb_error.
 
-For example, if @ref strb_seek fails, the position is unchanged. A subsequent
-@ref strb_puts can succeed at that old position while the error indicator remains
-set. Checking only the return value of that output call would miss the failed
-seek. Either check each operation that can fail, or check @ref strb_error after
-the sequence before consuming its result. Deferring the check does not prevent
-successful operations after a failure from changing the buffer.
-
-Seeking to an existing position, including the end obtained from @ref strb_len,
-does not require allocation. General seeking also permits positions beyond the
-current length, but can fail if the requested position is unsupported. Storage
-for output at such a position is obtained when output is attempted, not by the
-seek itself.
+Seeking does not allocate storage or set the error indicator. Every position
+from zero through the current length is supported. Seeking beyond the length is
+also allowed, with storage obtained when output is attempted. If the requested
+position is unsupported, @ref strb_tell returns @c SIZE_MAX and positioned
+output fails instead of writing at the previous position. Seeking to a supported
+position recovers from that state; clearing the error indicator alone does not.
+A successful operation can still change the buffer after an earlier failure,
+so check @ref strb_error before consuming a result built by several operations.
 
 A bulk output operation that fails because storage cannot be obtained leaves
 its previous contents, mode and position intact. This guarantee applies to the
@@ -375,9 +371,12 @@ only that character; it does not undo the output or change the position or
 recorded length.
 
 @ref strb_split is equivalent to calling @ref strb_write with a count of zero
-and storing a null character at the returned address. It temporarily terminates
-the string at the current position without moving the following text or
-advancing the position. Like any zero-count preparation, it extends the recorded
+and, if preparation succeeds, storing a null character at the returned address.
+It returns zero on success or @c EOF on failure, setting the error indicator
+and leaving the contents unchanged on failure. Splitting beyond the current
+length can require additional storage, even though no characters are output.
+On success, it temporarily terminates the string at the current position without
+moving the following text or advancing the position. Like any zero-count preparation, it extends the recorded
 length if the position is beyond the old end; otherwise the recorded length is
 unchanged. Before an intervening operation discards or replaces the saved
 character, @ref strb_restore can replace that null with the saved character,
