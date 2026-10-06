@@ -19,15 +19,26 @@
 
 #include "strb.h"
 
-#define typeof_typename(T)  typeof(*(typeof(T) *){_Generic(0, T: NULL, default: NULL)})
+#if (__STDC_VERSION__ >= 201112L)
+# define typeof_typename(T)  typeof(*(typeof(T) *){_Generic(0, T: NULL, default: NULL)})
+#else
+# define typeof_typename(T)  typeof(T)
+#endif
 
-#define mempmoveL_T(dst, src, n, T)   mempmoveL_T_(dst, src, n, typeof_typename(T))
-#define mempmoveL_T_(dst, src, n, T)                                  \
+# define mempmoveL_T(dst, src, n, T)   mempmoveL_T_(dst, src, n, typeof_typename(T))
+#if (__STDC_VERSION__ >= 201112L)
+# define mempmoveL_T_(dst, src, n, T)                                 \
 (                                                                     \
     _Generic(dst, T *: (void)0),                                      \
     _Generic(src, T *: (void)0),                                      \
     (T *){strb__mempmoveL(dst, src, (n) * sizeof(T))}                 \
 )
+#else
+# define mempmoveL_T_(dst, src, n, T)                                 \
+(                                                                     \
+    (T *){strb__mempmoveL(dst, src, (n) * sizeof(T))}                 \
+)
+#endif
 
 #define vnprintf(fmt, ap)  vsnprintf(NULL, 0, fmt, ap)
 
