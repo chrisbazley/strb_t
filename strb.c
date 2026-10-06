@@ -334,8 +334,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
         if (!sb)
             return NULL;
 
-        memcpy(sb->p.buf, str, len); // more efficient than strncpy
-        sb->p.buf[len] = '\0';
+        strcpy(strb__mempcpy(sb->p.buf, str, len), "");
         sb->p.len = sb->p.pos = (strbsize_t)len;
 #if STRB_UNPUTC
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set unputc_char
@@ -631,7 +630,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
         new_buf = malloc(new_size);
         if (!new_buf)
             return false;
-        memcpy(&*new_buf, sb->internal, sb->p.len + 1u);
+        strcpy(strb__mempcpy(&*new_buf, sb->internal, sb->p.len), "");
     }
 
     sb->p.flags |= F_ALLOCATED;
