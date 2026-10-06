@@ -37,7 +37,8 @@ static bool editing_example(void)
         return false;
 
 //! [append]
-    if (strb_seek(sb, strb_len(sb)) || strb_puts(sb, "#details"))
+    strb_seek(sb, strb_len(sb));
+    if (strb_puts(sb, "#details"))
         return false;
     // "/manual/guide.html#details"; position at the end.
 //! [append]
@@ -45,8 +46,9 @@ static bool editing_example(void)
         return false;
 
 //! [prepend]
-    if (strb_setmode(sb, strb_insert) || strb_seek(sb, 0) ||
-        strb_puts(sb, "https://example.org"))
+    strb_setmode(sb, strb_insert);
+    strb_seek(sb, 0);
+    if (strb_puts(sb, "https://example.org"))
         return false;
     const size_t path_start = strb_tell(sb);
     // "https://example.org/manual/guide.html#details"; position before the path.
@@ -64,8 +66,9 @@ static bool editing_example(void)
         return false;
 
 //! [overwrite]
-    if (strb_setmode(sb, strb_overwrite) || strb_seek(sb, path_start) ||
-        put_path_segment(sb, "help"))
+    strb_setmode(sb, strb_overwrite);
+    strb_seek(sb, path_start);
+    if (put_path_segment(sb, "help"))
         return false;
     // "https://example.org/help/manual/guide.html#details"; overwrite mode.
 //! [overwrite]
