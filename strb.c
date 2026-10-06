@@ -195,13 +195,14 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
             // call.
             return NULL;
         }
-
-        strb_t *sb = init_use(sbs, (strbsize_t)(len + 1u), (char *)buf,
-                              (strbsize_t)len);
+        {
+            strb_t *sb = init_use(sbs, (strbsize_t)(len + 1u), (char *)buf,
+                                  (strbsize_t)len);
 #ifndef NDEBUG
-        sb->p.flags = (char)(sb->p.flags | F_IS_CONST);
+            sb->p.flags = (char)(sb->p.flags | F_IS_CONST);
 #endif
-        return sb;
+            return sb;
+        }
     }
 }
 #endif // STRB_REUSE_CONST
@@ -746,14 +747,15 @@ void strb_delto(strb_t *sb, size_t pos)
 
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
-    const size_t old_pos = strb_tell(sb);
-
-    if (old_pos > pos) {
-        lo = pos;
-        hi = old_pos;
-    } else {
-        hi = pos;
-        lo = old_pos;
+    {
+        const size_t old_pos = strb_tell(sb);
+        if (old_pos > pos) {
+            lo = pos;
+            hi = old_pos;
+        } else {
+            hi = pos;
+            lo = old_pos;
+        }
     }
     assert(lo <= hi);
 
