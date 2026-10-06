@@ -155,7 +155,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
     if (size > STRB_MAX_SIZE)
         size = STRB_MAX_SIZE;
 
-    buf[0] = '\0';
+    strcpy(buf, "");
     return init_use(sbs, (strbsize_t)size, buf, 0);
 }
 
@@ -232,7 +232,7 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
         sb->p.size = (strbsize_t)size;
         sb->p.buf = buf;
         sb->p.flags = F_EXTERNAL;
-        buf[0] = '\0';
+        strcpy(buf, "");
         return sb;
     }
 }
@@ -316,7 +316,7 @@ _Optional strb_t *strb_alloc(size_t n)
 
         sb->p.len = sb->p.pos = 0;
         sb->p.size = (strbsize_t)n;
-        sb->p.buf[0] = '\0';
+        strcpy(sb->p.buf, "");
         return sb;
     }
 }
@@ -727,7 +727,7 @@ int strb_split(strb_t *sb)
     if (!p)
         return EOF;
 
-    *p = '\0';
+    strcpy(&*p, "");
     return 0;
 }
 
@@ -782,7 +782,7 @@ static void strb_empty(strb_t *sb)
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     sb->p.len = sb->p.pos = 0;
-    sb->p.buf[0] = '\0';
+    strcpy(sb->p.buf, "");
 #if STRB_UNPUTC || STRB_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif
