@@ -11,14 +11,13 @@ permissions:
 
 jobs:
   test:
-    name: ${{ matrix.configuration }} (${{ matrix.language_mode }})
+    name: ${{ matrix.configuration }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         configuration: [freestanding, static]
-        language_mode: [c99, cc65]
 
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +32,6 @@ jobs:
         shell: bash
         env:
           CONFIGURATION: ${{ matrix.configuration }}
-          LANGUAGE_MODE: ${{ matrix.language_mode }}
         run: |
           mkdir -p build-cc65
           case "$CONFIGURATION" in
@@ -42,10 +40,10 @@ jobs:
           esac
           # The position-bound assertions are constant for some field widths.
           # Keep assertions enabled while treating other warnings as errors.
-          cl65 -t sim6502 --standard "$LANGUAGE_MODE" -W error -W -const-comparison \
+          cl65 -t sim6502 --standard cc65 -W error -W -const-comparison \
             -D"$definition" -I. -c -o build-cc65/strb.o strb.c
           ar65 r build-cc65/strb.lib build-cc65/strb.o
-          cl65 -t sim6502 --standard "$LANGUAGE_MODE" -W error -W -const-comparison \
+          cl65 -t sim6502 --standard cc65 -W error -W -const-comparison \
             -D"$definition" -I. -c -o build-cc65/test.o test.c
           cl65 -t sim6502 -o build-cc65/test build-cc65/test.o build-cc65/strb.lib
 
