@@ -78,6 +78,7 @@ static uint8_t nbufs, buf_map;
 #endif
 
 static void *strb__mempmoveL(void *dst, void *src, size_t n);
+static void strb__strmoveL(char *dst, char *src);
 
 #if defined(__CC65__) || \
     (!defined(_MSC_VER) && \
@@ -526,8 +527,7 @@ int strb_unputc(strb_t *sb)
         const strbsize_t new_pos = sb->p.pos - 1;
         char removed = sb->p.buf[new_pos];
         if (!(sb->p.flags & F_OVERWRITE)) {
-            strb__mempmoveL_T(sb->p.buf + new_pos, sb->p.buf + sb->p.pos,
-                    sb->p.len - new_pos, char);
+            strb__strmoveL(sb->p.buf + new_pos, sb->p.buf + sb->p.pos);
             --sb->p.len;
         } else {
             sb->p.buf[new_pos] = sb->p.unputc_char;
@@ -781,7 +781,7 @@ void strb_delto(strb_t *sb, size_t pos)
         strbsize_t chi = hi > len ? len : (strbsize_t)hi;
         strbsize_t clo = lo > len ? len : (strbsize_t)lo;
 
-        strb__mempmoveL_T(sb->p.buf + clo, sb->p.buf + chi, len + 1u - chi, char);
+        strb__strmoveL(sb->p.buf + clo, sb->p.buf + chi);
         sb->p.len = (strbsize_t)(len - (chi - clo));
     }
 
@@ -851,4 +851,9 @@ static void *strb__mempmoveL(void *dst, void *src, size_t n)
     assert(dst < src);
     p = memmove(dst, src, n);
     return p + n;
+}
+
+static void strb__strmoveL(char *dst, char *src)
+{
+    stpcpy(mempmoveL_T(dst, src, strlen(src), char), "");
 }
