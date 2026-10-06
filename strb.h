@@ -749,8 +749,9 @@ int strb_getmode(const strb_t *sb);
  * position is the end of the string. It is updated by operations on the string.
  *
  * Repositioning can fail if the requested position is not supported by the
- * library, in which case the current position is unchanged. Any value returned
- * by @ref strb_tell is accepted by @ref strb_seek.
+ * library, in which case the current position is unchanged. Every position from
+ * zero through the current length returned by @ref strb_len is supported. Any
+ * value returned by @ref strb_tell is also accepted by @ref strb_seek.
  *
  * Passing a position greater than the string buffer length is allowed and does
  * not change the length. If characters are later written beyond the end of the
