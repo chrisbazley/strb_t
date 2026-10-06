@@ -21,6 +21,14 @@
 
 #define typeof_typename(T)  typeof(*(typeof(T) *){_Generic(0, T: NULL, default: NULL)})
 
+#define mempmoveL_T(dst, src, n, T)   mempmoveL_T_(dst, src, n, typeof_typename(T))
+#define mempmoveL_T_(dst, src, n, T)                                  \
+(                                                                     \
+    _Generic(dst, T *: (void)0),                                      \
+    _Generic(src, T *: (void)0),                                      \
+    (T *){strb__mempmoveL(dst, src, (n) * sizeof(T))}                 \
+)
+
 #define vnprintf(fmt, ap)  vsnprintf(NULL, 0, fmt, ap)
 
 #if STRB_UNPUTC
@@ -518,8 +526,8 @@ int strb_unputc(strb_t *sb)
         const strbsize_t new_pos = sb->p.pos - 1;
         char removed = sb->p.buf[new_pos];
         if (!(sb->p.flags & F_OVERWRITE)) {
-            strb__mempmoveL(sb->p.buf + new_pos, sb->p.buf + sb->p.pos,
-                    sb->p.len - new_pos);
+            strb__mempmoveL_T(sb->p.buf + new_pos, sb->p.buf + sb->p.pos,
+                    sb->p.len - new_pos, char);
             --sb->p.len;
         } else {
             sb->p.buf[new_pos] = sb->p.unputc_char;
@@ -773,7 +781,7 @@ void strb_delto(strb_t *sb, size_t pos)
         strbsize_t chi = hi > len ? len : (strbsize_t)hi;
         strbsize_t clo = lo > len ? len : (strbsize_t)lo;
 
-        strb__mempmoveL(sb->p.buf + clo, sb->p.buf + chi, len + 1u - chi);
+        strb__mempmoveL_T(sb->p.buf + clo, sb->p.buf + chi, len + 1u - chi, char);
         sb->p.len = (strbsize_t)(len - (chi - clo));
     }
 
