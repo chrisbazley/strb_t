@@ -57,8 +57,7 @@ static bool editing_example(void)
         return false;
 
 //! [insert]
-    put_path_segment(sb, "docs");
-    if (strb_error(sb))
+    if (put_path_segment(sb, "docs"))
         return false;
     // "https://example.org/docs/manual/guide.html#details".
 //! [insert]
