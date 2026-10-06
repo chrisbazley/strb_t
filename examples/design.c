@@ -171,8 +171,10 @@ static bool short_write_example(void)
     strb_t *sb = strb_use(&state, sizeof text, text);
 
     for (size_t i = 0; i < ARRAY_SIZE(modes); ++i) {
-        if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]) ||
-            strb_seek(sb, 0) || !put_character(sb, U'A'))
+        if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]))
+            return false;
+        strb_seek(sb, 0);
+        if (!put_character(sb, U'A'))
             return false;
         if (strb_tell(sb) != 1)
             return false;

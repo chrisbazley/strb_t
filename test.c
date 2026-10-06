@@ -200,7 +200,7 @@ static void prepare_output(strb_t *s, const char *initial, size_t pos,
 {
     assert(!ref_puts(s, initial));
     assert(!strb_setmode(s, mode));
-    assert(!strb_seek(s, pos));
+    strb_seek(s, pos);
     if (pending_undo)
         assert(strb_putc(s, 'q') == 'q');
     if (error) {
@@ -276,8 +276,8 @@ static void test_output_equivalence(void)
                                        flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
 #if STRB_RESTORE
                         if (flags & HAS_PENDING_RESTORE) {
-                            strb_split(&*actual);
-                            strb_split(&*reference);
+                            assert(!strb_split(&*actual));
+                            assert(!strb_split(&*reference));
                         }
 #endif
                         check_output(&*actual, &*reference, &output_cases[t]);
@@ -297,8 +297,8 @@ static void test_output_equivalence(void)
                                        flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
 #if STRB_RESTORE
                         if (flags & HAS_PENDING_RESTORE) {
-                            strb_split(&*owned_actual);
-                            strb_split(&*owned_reference);
+                            assert(!strb_split(&*owned_actual));
+                            assert(!strb_split(&*owned_reference));
                         }
 #endif
                         check_output(&*owned_actual, &*owned_reference,
@@ -360,6 +360,22 @@ static void test_output_growth(void)
             strb_free(reference);
         }
     }
+    // Seeking beyond allocated storage is allowed; the write obtains storage.
+    _Optional strb_t *s = strb_alloc(0);
+    assert(s);
+    const size_t pos = STRB_DFL_SIZE + sizeof "gap";
+    strb_seek(&*s, pos);
+    assert(strb_tell(&*s) == pos);
+    assert(strb_len(&*s) == 0);
+    assert(!strb_error(&*s));
+    assert(strb_putc(&*s, 'X') == 'X');
+    assert(strb_tell(&*s) == pos + 1);
+    assert(strb_len(&*s) == pos + 1);
+    for (size_t i = 0; i < pos; ++i)
+        assert(strb_cptr(&*s)[i] == '\0');
+    assert(strb_cptr(&*s)[pos] == 'X');
+    assert(strb_cptr(&*s)[pos + 1] == '\0');
+    strb_free(s);
 }
 #endif
 
@@ -444,7 +460,7 @@ static void test_delto_large_target(void)
                 assert(s);
                 assert(!strb_puts(&*s, "abcdef"));
                 assert(!strb_setmode(&*s, modes[m]));
-                assert(!strb_seek(&*s, positions[p]));
+                strb_seek(&*s, positions[p]);
                 strb_delto(&*s, targets[t]);
                 size_t expected_len = strlen("abcdef");
                 if (modes[m] == strb_insert && positions[p] < expected_len)
@@ -463,6 +479,138 @@ static void test_delto_large_target(void)
 }
 #endif
 
+#if STRB_EXT_STATE || !STRB_FREESTANDING
+static void test_seek(void)
+{
+    static const char initial[] = "abcdef";
+    const size_t unsupported[] = {STRB_MAX_SIZE, (size_t)STRB_MAX_SIZE + 1, SIZE_MAX};
+    const int modes[] = {strb_insert, strb_overwrite};
+    char array[64];
+#if STRB_EXT_STATE
+    strbstate_t state;
+    strb_t *s = strb_use(&state, sizeof array, array);
+#else
+    _Optional strb_t *s = strb_use(sizeof array, array);
+#endif
+    assert(s);
+    for (size_t m = 0; m < ARRAY_SIZE(modes); ++m) {
+        assert(!strb_cpy(&*s, initial));
+        assert(!strb_setmode(&*s, modes[m]));
+        for (size_t pos = 0; pos <= strb_len(&*s); ++pos) {
+            strb_seek(&*s, pos);
+            assert(strb_tell(&*s) == pos);
+            assert(strb_len(&*s) == sizeof initial - 1);
+            assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+            assert(!strb_error(&*s));
+        }
+
+        // A supported seek beyond the end does not allocate or extend the buffer.
+        const size_t beyond_end = sizeof initial + 2;
+        strb_seek(&*s, beyond_end);
+        assert(strb_tell(&*s) == beyond_end);
+        assert(strb_len(&*s) == sizeof initial - 1);
+        assert(!strb_error(&*s));
+        assert(strb_putc(&*s, 'X') == 'X');
+        assert(strb_tell(&*s) == beyond_end + 1);
+        assert(strb_len(&*s) == beyond_end + 1);
+        assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+        for (size_t pos = sizeof initial - 1; pos < beyond_end; ++pos)
+            assert(strb_cptr(&*s)[pos] == '\0');
+        assert(strb_cptr(&*s)[beyond_end] == 'X');
+        assert(strb_cptr(&*s)[beyond_end + 1] == '\0');
+
+        for (size_t u = 0; u < ARRAY_SIZE(unsupported); ++u) {
+            for (size_t c = 0; c < ARRAY_SIZE(output_cases); ++c) {
+                assert(!strb_cpy(&*s, initial));
+                strb_seek(&*s, unsupported[u]);
+                assert(strb_tell(&*s) == SIZE_MAX);
+                assert(!strb_error(&*s));
+                assert(put_library_output(&*s, &output_cases[c]) == EOF);
+                assert(strb_error(&*s));
+                assert(strb_tell(&*s) == SIZE_MAX);
+                assert(strb_len(&*s) == sizeof initial - 1);
+                assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+                strb_clearerr(&*s);
+            }
+
+            strb_seek(&*s, unsupported[u]);
+#if STRB_UNPUTC
+            assert(strb_unputc(&*s) == EOF);
+            assert(strb_error(&*s));
+            strb_clearerr(&*s);
+#endif
+            assert(strb_putc(&*s, 'X') == EOF);
+            assert(strb_error(&*s));
+            strb_clearerr(&*s);
+            assert(!strb_write(&*s, 0));
+            assert(strb_error(&*s));
+            strb_clearerr(&*s);
+            assert(!strb_write(&*s, 1));
+            assert(strb_error(&*s));
+            strb_clearerr(&*s);
+            assert(strb_split(&*s) == EOF);
+            assert(strb_error(&*s));
+            assert(strb_tell(&*s) == SIZE_MAX);
+            assert(strb_len(&*s) == sizeof initial - 1);
+            assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+#if STRB_RESTORE
+            strb_restore(&*s);
+            assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+#endif
+            // A successful seek recovers the position but preserves the error.
+            strb_seek(&*s, 0);
+            assert(strb_tell(&*s) == 0);
+            assert(strb_error(&*s));
+            strb_clearerr(&*s);
+            assert(strb_putc(&*s, 'X') == 'X');
+            assert(strb_cptr(&*s)[0] == 'X');
+            assert(!strb_error(&*s));
+            assert(!strb_cpy(&*s, initial));
+
+            // Deletion treats an unsupported current position as SIZE_MAX.
+            strb_seek(&*s, unsupported[u]);
+            strb_delto(&*s, unsupported[u]);
+            assert(strb_tell(&*s) == SIZE_MAX);
+            assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+            strb_delto(&*s, sizeof initial - 1);
+            assert(strb_tell(&*s) == sizeof initial - 1);
+            assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+            strb_seek(&*s, unsupported[u]);
+            strb_delto(&*s, 0);
+            assert(strb_tell(&*s) == 0);
+            assert(strb_len(&*s) == (modes[m] == strb_insert ? 0 : sizeof initial - 1));
+            assert(!strb_error(&*s));
+            assert(!strb_cpy(&*s, initial));
+
+            // Whole-string replacement also recovers from an unsupported position.
+            strb_seek(&*s, unsupported[u]);
+            assert(!strb_cpy(&*s, initial));
+            assert(strb_tell(&*s) == sizeof initial - 1);
+        }
+    }
+    // Splitting beyond the length succeeds when the external array has room.
+    const size_t split_pos = strb_len(&*s) + sizeof "gap";
+    strb_seek(&*s, split_pos);
+    assert(!strb_split(&*s));
+    assert(strb_tell(&*s) == split_pos);
+    assert(strb_len(&*s) == split_pos);
+    assert(!strb_error(&*s));
+    for (size_t i = sizeof initial - 1; i <= split_pos; ++i)
+        assert(strb_cptr(&*s)[i] == '\0');
+    assert(!strb_cpy(&*s, initial));
+    // Even a representable position can require unavailable storage at output time.
+    strb_seek(&*s, STRB_MAX_SIZE - 1);
+    assert(strb_tell(&*s) == STRB_MAX_SIZE - 1);
+    assert(!strb_error(&*s));
+    assert(strb_split(&*s) == EOF);
+    assert(strb_error(&*s));
+    assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
+#if !STRB_FREESTANDING
+    strb_free(s);
+#endif
+}
+#endif
+
 static void test(strb_t *const s)
 {
     int i;
@@ -470,7 +618,7 @@ static void test(strb_t *const s)
     size_t pos;
 
     for (i = 5; i >= 0; --i) {
-        assert(!strb_seek(s, 0));
+        strb_seek(s, 0);
         assert(strb_putc(s, 'a' + i) == 'a' + i);
         assert(strb_ptr(s)[strb_len(s)] == '\0');
 #if !STRB_FREESTANDING
@@ -502,7 +650,7 @@ static void test(strb_t *const s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    assert(!strb_seek(s, strb_len(s) - 2));
+    strb_seek(s, strb_len(s) - 2);
     assert(!strb_puts(s, "OVERWRITE"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
@@ -512,14 +660,14 @@ static void test(strb_t *const s)
 
     found = strstr(strb_ptr(s), "fmt4");
     if (found) {
-        assert(!strb_seek(s, (size_t)(found - strb_ptr(s))));
+        strb_seek(s, (size_t)(found - strb_ptr(s)));
         printf("%zu\n", strb_tell(s));
         assert(!strb_puts(s, "INSERT"));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
         puts(strb_ptr(s));
     }
 
-    assert(!strb_seek(s, strb_len(s) + 2));
+    strb_seek(s, strb_len(s) + 2);
     pos = strb_tell(s);
     assert(!strb_puts(s, "BEYOND"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
@@ -548,12 +696,12 @@ static void test(strb_t *const s)
     {
         size_t lo = strlen("DELETEME") + 1, hi = lo + 1;
 
-        assert(!strb_seek(s, lo));
+        strb_seek(s, lo);
         assert(strb_tell(s) == lo);
         strb_delto(s, hi); // no-op
         assert(strb_tell(s) == lo);
 
-        assert(!strb_seek(s, hi));
+        strb_seek(s, hi);
         assert(strb_tell(s) == hi);
         strb_delto(s, lo); // reposition only
         assert(strb_tell(s) == lo);
@@ -570,7 +718,7 @@ static void test(strb_t *const s)
         assert(strb_len(s) == strlen("DELETEME"));
     }
 
-    assert(!strb_seek(s, strlen("DELETEM")));
+    strb_seek(s, strlen("DELETEM"));
     strb_delto(s, SIZE_MAX); // delete "E"
     assert(strb_tell(s) == strlen("DELETEM"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
@@ -585,7 +733,7 @@ static void test(strb_t *const s)
     assert(!strcmp(strb_ptr(s), "DEL"));
     assert(strb_len(s) == strlen("DEL"));
 
-    assert(!strb_seek(s, strlen("D")));
+    strb_seek(s, strlen("D"));
     strb_delto(s, strlen("DE")); // delete "E"
     assert(strb_tell(s) == strlen("D"));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
@@ -633,7 +781,7 @@ static void test(strb_t *const s)
     assert(strb_tell(s) == 4);
     puts(strb_ptr(s));
 
-    assert(!strb_seek(s, 2));
+    strb_seek(s, 2);
     {
         _Optional char *w = strb_write(s, 0);
         assert(w);
@@ -653,7 +801,7 @@ static void test(strb_t *const s)
     puts(strb_ptr(s));
 #endif
 
-    assert(!strb_seek(s, strb_len(s)));
+    strb_seek(s, strb_len(s));
     {
         _Optional char *w = strb_write(s, 0);
         assert(w);
@@ -673,8 +821,8 @@ static void test(strb_t *const s)
     assert(strb_tell(s) == 4);
     puts(strb_ptr(s));
 
-    assert(!strb_seek(s, 2));
-    strb_split(s);
+    strb_seek(s, 2);
+    assert(!strb_split(s));
     assert(!strcmp(strb_ptr(s), "C3"));
     assert(strb_len(s) == 4);
     assert(strb_tell(s) == 2);
@@ -688,8 +836,8 @@ static void test(strb_t *const s)
     puts(strb_ptr(s));
 #endif
 
-    assert(!strb_seek(s, strb_len(s)));
-    strb_split(s);
+    strb_seek(s, strb_len(s));
+    assert(!strb_split(s));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
 
 #if STRB_RESTORE
@@ -740,6 +888,7 @@ int main(void)
 #endif
     test_output_failure();
     test_delto_large_target();
+    test_seek();
 #endif
     char array[1000];
     _Optional strb_t *s;

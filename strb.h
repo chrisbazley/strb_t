@@ -748,10 +748,13 @@ int strb_getmode(const strb_t *sb);
  * position indicator is stored in the string buffer object. The initial
  * position is the end of the string. It is updated by operations on the string.
  *
- * Repositioning can fail if the requested position is not supported by the
- * library, in which case the current position is unchanged. Every position from
- * zero through the current length returned by @ref strb_len is supported. Any
- * value returned by @ref strb_tell is also accepted by @ref strb_seek.
+ * Every position from zero through the current length returned by @ref
+ * strb_len is supported. Positions beyond that length may also be supported.
+ * Seeking does not allocate storage or set the error indicator. If @p pos is
+ * unsupported, @ref strb_tell returns @c SIZE_MAX and subsequent positioned
+ * output fails, even with a count of zero. A seek to a supported position
+ * establishes that position again; it does not clear an earlier error.
+ * Unsupported positions need not be distinguished from one another.
  *
  * Passing a position greater than the string buffer length is allowed and does
  * not change the length. If characters are later written beyond the end of the
@@ -760,7 +763,6 @@ int strb_getmode(const strb_t *sb);
  *
  * @param[in,out] sb   String buffer.
  * @param         pos  New position, in characters.
- * @return Zero if successful, otherwise EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
@@ -769,18 +771,16 @@ int strb_getmode(const strb_t *sb);
  *       @ref strb_vputf, @ref strb_putf, @ref strb_write and @ref strb_delto.
  * @post A call to @ref strb_unputc will fail until a character has been put
  * into the buffer.
- * @post If successful, a call to @ref strb_restore will have no effect until
+ * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
- * @post On failure, a call to @ref strb_error will return true until
- *       @ref strb_clearerr has been called.
  */
-int strb_seek(strb_t *sb, size_t pos);
+void strb_seek(strb_t *sb, size_t pos);
 
 /**
  * @brief Get the editing position of a string buffer.
  *
  * @param[in] sb  String buffer.
- * @return Current editing position.
+ * @return Current editing position, or @c SIZE_MAX if it is unsupported.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
@@ -1033,7 +1033,8 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * character at the new boundary, even when @p n is zero.
  *
  * @ref strb_split is equivalent to calling this function with a count of zero
- * and storing a null character at the returned address. @ref strb_restore can
+ * and, if successful, storing a null character at the returned address.
+ * @ref strb_restore can
  * restore the character overwritten by that null.
  *
  * If @ref STRB_UNPUTC is enabled, a zero count preserves the character previously
@@ -1044,7 +1045,8 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * @param         n   The number of characters expected to be written into the
  * buffer.
  * @return A pointer to the position where the first character should be
- * written, or a null pointer on failure.
+ * written, or a null pointer on failure, including an unsupported position
+ * established by @ref strb_seek.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
@@ -1074,20 +1076,26 @@ _Optional char *strb_write(strb_t *sb, size_t n);
  * This function exists to make it efficient and simple to split or truncate the
  * string in a buffer (as @c strtok does) without moving characters. It is
  * equivalent to calling @ref strb_write with 0 and storing a null character at
- * the returned address.
+ * the returned address if preparation succeeds. If preparation fails, the
+ * contents, length and position are unchanged and the error indicator is set.
+ *
+ * Splitting beyond the current length extends the buffer to the position,
+ * zero-filling the gap. This can fail if the position is unsupported, the
+ * available fixed storage is insufficient, or storage allocation fails.
  *
  * @param[in,out] sb  String buffer.
+ * @return Zero if successful, otherwise @c EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
- * @post The character at the current position is null.
- * @post The position indicator is unmodified. The string length is the greater
- *       of its previous value and the current position, as for @ref strb_write
+ * @post If successful, the character at the current position is null.
+ * @post The position indicator is unmodified. If successful, the string length
+ *       is the greater of its previous value and the current position, as for @ref strb_write
  *       with a count of zero.
- * @post The user may call @ref strb_restore to restore the character that was
- *       at the current position before the call to @ref strb_split.
+ * @post If successful, the user may call @ref strb_restore to restore the
+ *       character that was at the current position before the call to @ref strb_split.
  */
-void strb_split(strb_t *sb);
+int strb_split(strb_t *sb);
 
 /**
  * @brief Restore a character that may have been overwritten by a preceding
@@ -1150,6 +1158,9 @@ void strb_restore(strb_t *sb);
  * Passing a position greater than the string length is allowed: @c SIZE_MAX or
  * @c (size_t)-1 can be used as a shorthand to delete all characters between the
  * current position and the end of the string.
+ * An unsupported current position is treated as @c SIZE_MAX. The new position
+ * is supported if the lower endpoint is supported; otherwise it remains
+ * unsupported. This operation does not set or clear the error indicator.
  *
  * @param[in,out] sb  String buffer.
  * @param         pos New position, in characters.
@@ -1300,7 +1311,7 @@ int strb_printf(strb_t *restrict sb, const char *restrict format, ...);
  * be read at any time by calling @ref strb_error. An error can only be cleared
  * explicitly (by calling @ref strb_clearerr). The error indicator is set as a
  * side-effect of any function that returns an error value, including because of
- * attempts to reposition to an unsupported index or select an unsupported
+ * attempts to output at an unsupported position or select an unsupported
  * editing mode. Consequently, it is a reliable indication of whether the
  * current string is valid.
  *
