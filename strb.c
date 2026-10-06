@@ -19,6 +19,8 @@
 
 #include "strb.h"
 
+#define typeof_typename(T)  typeof(*(typeof(T) *){_Generic(0, T: NULL, default: NULL)})
+
 #define vnprintf(fmt, ap)  vsnprintf(NULL, 0, fmt, ap)
 
 #if STRB_UNPUTC
