@@ -21,15 +21,25 @@
 
 #include "strb.h"
 
+#define must_be(e)                                                    \
+(                                                                     \
+       (void) sizeof(                                                 \
+               struct {                                               \
+                       _Static_assert(e, "");                         \
+                       int ISO_C_forbids_a_struct_with_no_members_;   \
+               }                                                      \
+       )                                                              \
+)
+
 #define is_signed(x)    ((typeof(x)) -1 < 1)
 
 #if (__STDC_VERSION__ >= 201112L)
 # define sign_cast(T, x)                                              \
-({                                                                    \
-	_Static_assert(is_signed(T) != is_signed(x), "");             \
-	_Static_assert(sizeof(T) == sizeof(x), "");                   \
-	(T) (x);                                                      \
-})
+(                                                                     \
+	must_be(is_signed(T) != is_signed(x)),                        \
+	must_be(sizeof(T) == sizeof(x)),                              \
+	(T) (x)                                                       \
+)
 #else
 # define sign_cast(T, x)  ((T) (x))
 #endif
