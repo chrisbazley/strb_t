@@ -65,9 +65,11 @@ static strb_t bufs[STRB_MAX];
 static uint8_t nbufs, buf_map;
 #endif
 
-#if !defined(_MSC_VER) && \
-    (!defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200809L) && \
-    (!defined(_POSIX_VERSION) || _POSIX_VERSION < 200809L)
+#if defined(__CC65__) || \
+    (!defined(_MSC_VER) && \
+     (!defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200809L) && \
+     (!defined(_POSIX_VERSION) || _POSIX_VERSION < 200809L))
+// cc65 does not provide strnlen in every version and language mode.
 // Keep the fallback private so it cannot conflict with a library declaration.
 static size_t strb_strnlen(const char *s, size_t n)
 {
