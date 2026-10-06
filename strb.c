@@ -20,9 +20,9 @@
 #include "strb.h"
 
 #if (__STDC_VERSION__ >= 201112L)
-# define typeof_typename(T)  typeof(*(typeof(T) *){_Generic(0, T: NULL, default: NULL)})
+# define typeof_typename(T)  __typeof__(*(__typeof__(T) *){_Generic(0, T: NULL, default: NULL)})
 #else
-# define typeof_typename(T)  typeof(T)
+# define typeof_typename(T)  __typeof__(T)
 #endif
 
 # define mempmoveL_T(dst, src, n, T)   mempmoveL_T_(dst, src, n, typeof_typename(T))
