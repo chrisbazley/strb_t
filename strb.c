@@ -19,6 +19,19 @@
 
 #include "strb.h"
 
+#define is_signed(x)    ((typeof(x)) -1 < 1)
+
+#if (__STDC_VERSION__ >= 201112L)
+# define sign_cast(T, x)                                              \
+({                                                                    \
+	_Static_assert(is_signed(T) != is_signed(x), "");             \
+	_Static_assert(sizeof(T) == sizeof(x), "");                   \
+	(T) (x);                                                      \
+})
+#else
+# define sign_cast(T, x)  ((T) (x))
+#endif
+
 #define vnprintf(fmt, ap)  vsnprintf(NULL, 0, fmt, ap)
 
 #if STRB_UNPUTC
