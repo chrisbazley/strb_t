@@ -91,7 +91,7 @@ static void put_fruit_list(strb_t *sb, size_t count,
     for (size_t i = 0; i < count; ++i) {
         if (i)
             strb_putc(sb, ',');
-        strb_puts(sb, fruit[indices[i]]);
+        strb_puts(sb, indices[i] < ARRAY_SIZE(fruit) ? fruit[indices[i]] : "unknown");
     }
 }
 //! [fruit_producer]
@@ -128,11 +128,7 @@ static bool fruit_rows_example(void)
         // Replace the previous result; retain the allocated storage.
         strb_cpy(&*sb, "");
         put_fruit_list(&*sb, ARRAY_SIZE(rows[row]), rows[row]);
-        if (strb_error(&*sb)) {
-            success = false;
-            break;
-        }
-        if (puts(strb_ptr(&*sb)) == EOF) {
+        if (strb_error(&*sb) || puts(strb_ptr(&*sb)) == EOF) {
             success = false;
             break;
         }

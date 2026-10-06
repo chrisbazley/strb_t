@@ -200,8 +200,8 @@ The position remains at the start of the range, ready for further output there:
 The next example adapts the "List of fruit" example in
 <a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf">WG14 N3306</a>,
 page 47. The producer knows neither who supplies the storage nor how its output
-will be used. Every index supplied to the producer must be less than
-four. The separator depends on the number of entries already generated in this
+will be used. The producer checks each index and writes @c "unknown" if it is
+out of range. The separator depends on the number of entries already generated in this
 call, so inserting the list into an existing string does not introduce a
 leading comma:
 
