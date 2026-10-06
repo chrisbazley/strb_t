@@ -67,6 +67,8 @@ static strb_t bufs[STRB_MAX];
 static uint8_t nbufs, buf_map;
 #endif
 
+static void *strb__mempcpy(void *restrict dst, const void *restrict src, size_t n);
+
 #if defined(__CC65__) || \
     (!defined(_MSC_VER) && \
      (!defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200809L) && \
@@ -831,4 +833,12 @@ void strb_clearerr(strb_t *sb)
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     sb->p.flags &= ~F_ERR;
+}
+
+static void *strb__mempcpy(void *restrict dst, const void *restrict src, size_t n)
+{
+    unsigned char  *p;
+
+    p = memcpy(dst, src, n);
+    return p + n;
 }
