@@ -47,7 +47,7 @@
 #endif
 
 /**
- * Macro used to suppress variably modified types in parameter lists.
+ * Macro used to selectively suppress static array bounds in parameter declarations.
  */
 #if defined(_MSC_VER) || defined(__CC65__) ||                                                       \
     (defined(__STDC_VERSION__) && __STDC_VERSION__ < 199901L)
