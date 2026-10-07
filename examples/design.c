@@ -12,7 +12,7 @@
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
 //! [producer]
-static int put_path_segment(strb_t *sb, const char *segment)
+static int put_path_segment(strb_t *const sb, const char *const segment)
 {
     return strb_putf(sb, "/%s", segment);
 }
@@ -84,10 +84,10 @@ static bool editing_example(void)
 }
 
 //! [fruit_producer]
-static void put_fruit_list(strb_t *sb, size_t count,
+static void put_fruit_list(strb_t *const sb, const size_t count,
                            const unsigned indices[STRB_SIZE_HINT(count)])
 {
-    const char *const fruit[] = {"apple", "orange", "banana", "lime"};
+    static const char *const fruit[] = {"apple", "orange", "banana", "lime"};
     for (size_t i = 0; i < count; ++i) {
         if (i)
             strb_putc(sb, ',');
@@ -99,7 +99,7 @@ static void put_fruit_list(strb_t *sb, size_t count,
 //! [fruit_sentence]
 static bool fruit_sentence_example(void)
 {
-    const unsigned indices[] = {0, 2, 1};
+    static const unsigned indices[] = {0, 2, 1};
     char text[64];
     strbstate_t state;
     strb_t *const sb = strb_use(&state, sizeof text, text);
@@ -118,7 +118,7 @@ static bool fruit_sentence_example(void)
 //! [fruit_caller]
 static bool fruit_rows_example(void)
 {
-    const unsigned rows[][3] = {{0, 2, 1}, {3, 1, 0}};
+    static const unsigned rows[][3] = {{0, 2, 1}, {3, 1, 0}};
     _Optional strb_t *const sb = strb_alloc(0);
     if (!sb)
         return false;
@@ -139,7 +139,7 @@ static bool fruit_rows_example(void)
 //! [fruit_caller]
 
 //! [short_write]
-static bool put_character(strb_t *sb, char32_t character)
+static bool put_character(strb_t *const sb, const char32_t character)
 {
     assert(character != 0);
     mbstate_t conversion = {0};
@@ -160,8 +160,8 @@ static bool put_character(strb_t *sb, char32_t character)
 
 static bool short_write_example(void)
 {
-    const char original[] = "012345678901234567890123456789";
-    const int modes[] = {strb_insert, strb_overwrite};
+    static const char original[] = "012345678901234567890123456789";
+    static const int modes[] = {strb_insert, strb_overwrite};
     char text[64];
     strbstate_t state;
     strb_t *const sb = strb_use(&state, sizeof text, text);

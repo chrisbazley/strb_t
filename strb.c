@@ -23,6 +23,13 @@
 
 #define vnprintf(fmt, ap)  vsnprintf(NULL, 0, fmt, ap)
 
+// cc65 rejects top-level parameter qualifiers that differ from a prototype.
+#if defined(__CC65__)
+#define PARAM_CONST
+#else
+#define PARAM_CONST const
+#endif
+
 #if STRB_UNPUTC
 #define F_CAN_UNPUTC (1 << 0)
 #else
@@ -75,7 +82,7 @@ static uint8_t nbufs, buf_map;
      (!defined(_POSIX_VERSION) || _POSIX_VERSION < 200809L))
 // cc65 does not provide strnlen in every version and language mode.
 // Keep the fallback private so it cannot conflict with a library declaration.
-static size_t strb_strnlen(const char *s, size_t n)
+static size_t strb_strnlen(const char *const s, const size_t n)
 {
     size_t p = 0;
     while (p < n && s[p])
@@ -107,7 +114,7 @@ static _Optional strb_t *alloc_metadata(void)
 }
 #define alloc_metadata(size) alloc_metadata()
 
-static void free_metadata(_Optional strb_t *sb)
+static void free_metadata(_Optional strb_t *const sb)
 {
     if (sb) {
         const ptrdiff_t alloc_idx = sb - bufs;
@@ -118,21 +125,21 @@ static void free_metadata(_Optional strb_t *sb)
     }
 }
 #elif !STRB_FREESTANDING
-static _Optional strb_t *alloc_metadata(strbsize_t size)
+static _Optional strb_t *alloc_metadata(const strbsize_t size)
 {
     assert(size <= STRB_MAX_INTERNAL_SIZE);
     return malloc(sizeof(strb_t) + (size * sizeof(memberof(strb_t, internal[0]))));
 }
 
-static void free_metadata(_Optional strb_t *sb)
+static void free_metadata(_Optional strb_t *const sb)
 {
     free(sb);
 }
 #endif
 
 #if STRB_EXT_STATE
-static strb_t *init_use(strbstate_t *restrict sbs, strbsize_t size,
-                        char buf[STRB_SIZE_HINT(size)], strbsize_t len)
+static strb_t *init_use(strbstate_t *const restrict sbs, const strbsize_t size,
+                        char buf[STRB_SIZE_HINT(size)], const strbsize_t len)
 {
     sbs->p.len = sbs->p.pos = len;
     sbs->p.size = size;
@@ -146,7 +153,7 @@ static strb_t *init_use(strbstate_t *restrict sbs, strbsize_t size,
     return (void *)sbs;
 }
 
-strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
+strb_t *strb_use(strbstate_t *PARAM_CONST restrict sbs, size_t size,
                  char buf[STRB_SIZE_HINT(size)])
 {
     assert(sbs);
@@ -161,7 +168,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
     return init_use(sbs, (strbsize_t)size, buf, 0);
 }
 
-_Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
+_Optional strb_t *strb_reuse(strbstate_t *PARAM_CONST restrict sbs, size_t size,
                              char buf[STRB_SIZE_HINT(size)])
 {
     assert(sbs);
@@ -186,8 +193,8 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
 }
 
 #if STRB_REUSE_CONST
-_Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
-                                         const char *restrict buf)
+_Optional const strb_t *strb_reuse_const(strbstate_t *PARAM_CONST restrict sbs,
+                                         const char *PARAM_CONST restrict buf)
 {
     assert(sbs);
     assert(buf);
@@ -241,8 +248,6 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
 
 _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
 {
-    _Optional strb_t *sb = NULL;
-
     assert(buf);
     assert(size > 0);
     DEBUGF("Reuse buffer %p of size %zu\n", (void *)buf, size);
@@ -259,21 +264,23 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
             return NULL;
         }
 
-        sb = alloc_metadata(0);
-        if (!sb)
-            return NULL;
+        {
+            _Optional strb_t *const sb = alloc_metadata(0);
+            if (!sb)
+                return NULL;
 
-        sb->p.len = sb->p.pos = (strbsize_t)len;
-        sb->p.size = (strbsize_t)size;
-        sb->p.buf = buf;
-        sb->p.flags = F_EXTERNAL;
+            sb->p.len = sb->p.pos = (strbsize_t)len;
+            sb->p.size = (strbsize_t)size;
+            sb->p.buf = buf;
+            sb->p.flags = F_EXTERNAL;
 
 #if STRB_UNPUTC
-        if (len)
-            sb->p.flags |= F_CAN_UNPUTC;
+            if (len)
+                sb->p.flags |= F_CAN_UNPUTC;
 #endif
+            return sb;
+        }
     }
-    return sb;
 }
 #endif // !STRB_EXT_STATE
 
@@ -323,7 +330,7 @@ _Optional strb_t *strb_alloc(size_t n)
     }
 }
 
-_Optional strb_t *strb_ndup(const char *str, size_t n)
+_Optional strb_t *strb_ndup(const char *PARAM_CONST str, PARAM_CONST size_t n)
 {
     const size_t len = strb_strnlen(str, n);
     if (len >= STRB_MAX_SIZE)
@@ -346,7 +353,7 @@ _Optional strb_t *strb_ndup(const char *str, size_t n)
     }
 }
 
-_Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
+_Optional strb_t *strb_vaprintf(const char *PARAM_CONST restrict format, va_list args)
 {
     _Optional strb_t *sb = NULL;
     va_list args_copy;
@@ -376,7 +383,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
     return sb;
 }
 
-_Optional strb_t *strb_dup(const char *str)
+_Optional strb_t *strb_dup(const char *PARAM_CONST str)
 {
     return strb_ndup(str, STRB_MAX_SIZE);
 }
@@ -392,7 +399,7 @@ _Optional strb_t *strb_aprintf(const char *restrict format, ...)
     }
 }
 
-void strb_free(_Optional strb_t *sb)
+void strb_free(_Optional strb_t *PARAM_CONST sb)
 {
     if (!sb)
         return;
@@ -410,33 +417,33 @@ void strb_free(_Optional strb_t *sb)
 #endif // !STRB_FREESTANDING
 
 #undef strb_ptr
-char *strb_ptr(strb_t *sb)
+char *strb_ptr(strb_t *PARAM_CONST sb)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     return sb->p.buf;
 }
 
-const char *strb_cptr(strb_t const *sb)
+const char *strb_cptr(strb_t const *PARAM_CONST sb)
 {
     assert(sb);
     return sb->p.buf;
 }
 
-size_t strb_len(strb_t const *sb)
+size_t strb_len(strb_t const *PARAM_CONST sb)
 {
     assert(sb);
     return sb->p.len;
 }
 
-static int set_err(strb_t *sb)
+static int set_err(strb_t *const sb)
 {
     assert(!(sb->p.flags & F_IS_CONST));
     sb->p.flags |= F_ERR;
     return EOF;
 }
 
-int strb_setmode(strb_t *sb, int mode)
+int strb_setmode(strb_t *PARAM_CONST sb, PARAM_CONST int mode)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
@@ -451,7 +458,7 @@ int strb_setmode(strb_t *sb, int mode)
     }
 }
 
-int strb_getmode(const strb_t *sb)
+int strb_getmode(const strb_t *PARAM_CONST sb)
 {
     assert(sb);
     {
@@ -461,7 +468,7 @@ int strb_getmode(const strb_t *sb)
     }
 }
 
-void strb_seek(strb_t *sb, size_t pos)
+void strb_seek(strb_t *PARAM_CONST sb, PARAM_CONST size_t pos)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
@@ -473,7 +480,7 @@ void strb_seek(strb_t *sb, size_t pos)
 #endif
 }
 
-size_t strb_tell(strb_t const *sb)
+size_t strb_tell(strb_t const *PARAM_CONST sb)
 {
     assert(sb);
     assert(sb->p.pos <= STRB_MAX_SIZE);
@@ -482,12 +489,12 @@ size_t strb_tell(strb_t const *sb)
     return sb->p.pos == STRB_MAX_SIZE ? SIZE_MAX : sb->p.pos;
 }
 
-int strb_putc(strb_t *sb, int c)
+int strb_putc(strb_t *PARAM_CONST sb, PARAM_CONST int c)
 {
     return strb_nputc(sb, c, 1);
 }
 
-int strb_nputc(strb_t *sb, int c, size_t n)
+int strb_nputc(strb_t *PARAM_CONST sb, PARAM_CONST int c, PARAM_CONST size_t n)
 {
     _Optional char *const buf = strb_write(sb, n);
     if (!buf)
@@ -530,7 +537,7 @@ int strb_unputc(strb_t *sb)
 }
 #endif
 
-int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
+int strb_nputs(strb_t *PARAM_CONST restrict sb, const char *PARAM_CONST restrict str, PARAM_CONST size_t n)
 {
     const size_t len = strb_strnlen(str, n);
     _Optional char *const buf = strb_write(sb, len);
@@ -543,14 +550,14 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
     return 0;
 }
 
-int strb_puts(strb_t *restrict sb, const char *restrict str)
+int strb_puts(strb_t *PARAM_CONST restrict sb, const char *PARAM_CONST restrict str)
 {
     return strb_nputs(sb, str, STRB_MAX_SIZE);
 }
 
 #if !STRB_FREESTANDING
 
-int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
+int strb_vputf(strb_t *PARAM_CONST restrict sb, const char *PARAM_CONST restrict format, va_list args)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -573,7 +580,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
     return set_err(sb);
 }
 
-int strb_putf(strb_t *restrict sb, const char *restrict format, ...)
+int strb_putf(strb_t *PARAM_CONST restrict sb, const char *restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -586,7 +593,7 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...)
 
 #endif // !STRB_FREESTANDING
 
-static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
+static bool strb_ensure(strb_t *const sb, size_t n, strbsize_t top)
 {
     assert(sb);
 
@@ -643,7 +650,7 @@ static bool strb_ensure(strb_t *sb, size_t n, strbsize_t top)
 #endif
 }
 
-_Optional char *strb_write(strb_t *sb, size_t n)
+_Optional char *strb_write(strb_t *PARAM_CONST sb, PARAM_CONST size_t n)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
@@ -723,7 +730,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
     }
 }
 
-int strb_split(strb_t *sb)
+int strb_split(strb_t *PARAM_CONST sb)
 {
     _Optional char *const p = strb_write(sb, 0);
     if (!p)
@@ -734,7 +741,7 @@ int strb_split(strb_t *sb)
 }
 
 #if STRB_RESTORE
-void strb_restore(strb_t *sb)
+void strb_restore(strb_t *PARAM_CONST sb)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
@@ -747,7 +754,7 @@ void strb_restore(strb_t *sb)
 }
 #endif
 
-void strb_delto(strb_t *sb, size_t pos)
+void strb_delto(strb_t *PARAM_CONST sb, PARAM_CONST size_t pos)
 {
     size_t hi, lo;
 
@@ -779,7 +786,7 @@ void strb_delto(strb_t *sb, size_t pos)
     strb_seek(sb, lo);
 }
 
-static void strb_empty(strb_t *sb)
+static void strb_empty(strb_t *const sb)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
@@ -790,26 +797,26 @@ static void strb_empty(strb_t *sb)
 #endif
 }
 
-int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n)
+int strb_ncpy(strb_t *PARAM_CONST restrict sb, const char *PARAM_CONST restrict str, PARAM_CONST size_t n)
 {
     strb_empty(sb);
     return strb_nputs(sb, str, n);
 }
 
-int strb_cpy(strb_t *restrict sb, const char *restrict str)
+int strb_cpy(strb_t *PARAM_CONST restrict sb, const char *PARAM_CONST restrict str)
 {
     return strb_ncpy(sb, str, STRB_MAX_SIZE);
 }
 
 #if !STRB_FREESTANDING
 
-int strb_vprintf(strb_t *restrict sb, const char *restrict format, va_list args)
+int strb_vprintf(strb_t *PARAM_CONST restrict sb, const char *PARAM_CONST restrict format, va_list args)
 {
     strb_empty(sb);
     return strb_vputf(sb, format, args);
 }
 
-int strb_printf(strb_t *restrict sb, const char *restrict format, ...)
+int strb_printf(strb_t *PARAM_CONST restrict sb, const char *restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -822,13 +829,13 @@ int strb_printf(strb_t *restrict sb, const char *restrict format, ...)
 
 #endif // !STRB_FREESTANDING
 
-bool strb_error(strb_t const *sb)
+bool strb_error(strb_t const *PARAM_CONST sb)
 {
     assert(sb);
     return (sb->p.flags & F_ERR) != 0;
 }
 
-void strb_clearerr(strb_t *sb)
+void strb_clearerr(strb_t *PARAM_CONST sb)
 {
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
