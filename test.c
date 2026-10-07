@@ -15,7 +15,7 @@
 #if STRB_EXT_STATE || !STRB_FREESTANDING
 // Reference output operations prepare space with strb_write, then fill it
 // independently of the library's character, string and formatting wrappers.
-static int ref_nputc(strb_t *s, int c, size_t n)
+static int ref_nputc(strb_t *const s, const int c, const size_t n)
 {
     size_t i;
     _Optional char *const output = strb_write(s, n);
@@ -26,7 +26,7 @@ static int ref_nputc(strb_t *s, int c, size_t n)
     return c;
 }
 
-static int ref_nputs(strb_t *s, const char *str, size_t n)
+static int ref_nputs(strb_t *const s, const char *const str, const size_t n)
 {
     size_t i;
     size_t len = 0;
@@ -42,13 +42,13 @@ static int ref_nputs(strb_t *s, const char *str, size_t n)
     }
 }
 
-static int ref_puts(strb_t *s, const char *str)
+static int ref_puts(strb_t *const s, const char *const str)
 {
     return ref_nputs(s, str, SIZE_MAX);
 }
 
 #if !STRB_FREESTANDING
-static int ref_vputf(strb_t *s, const char *format, va_list args)
+static int ref_vputf(strb_t *const s, const char *const format, va_list args)
 {
     // Formatting is independent of strb; use the returned count so embedded
     // null characters are written too. All test output fits in this array.
@@ -72,7 +72,7 @@ static int ref_vputf(strb_t *s, const char *format, va_list args)
     }
 }
 
-static int ref_putf(strb_t *s, const char *format, ...)
+static int ref_putf(strb_t *const s, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -83,7 +83,7 @@ static int ref_putf(strb_t *s, const char *format, ...)
     }
 }
 
-static int call_strb_vputf(strb_t *s, const char *format, ...)
+static int call_strb_vputf(strb_t *const s, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -135,7 +135,7 @@ static const output_case output_cases[] = {
 #endif
 };
 
-static int put_library_output(strb_t *s, const output_case *testcase)
+static int put_library_output(strb_t *const s, const output_case *const testcase)
 {
     switch (testcase->operation) {
     case output_repeat:
@@ -156,7 +156,7 @@ static int put_library_output(strb_t *s, const output_case *testcase)
     }
 }
 
-static int put_reference_output(strb_t *s, const output_case *testcase)
+static int put_reference_output(strb_t *const s, const output_case *const testcase)
 {
     switch (testcase->operation) {
     case output_repeat:
@@ -177,8 +177,8 @@ static int put_reference_output(strb_t *s, const output_case *testcase)
     }
 }
 
-static void compare_output(const strb_t *actual, const strb_t *reference,
-                           const output_case *testcase)
+static void compare_output(const strb_t *const actual, const strb_t *const reference,
+                           const output_case *const testcase)
 {
     const bool equal = strb_len(actual) == strb_len(reference) &&
                  strb_tell(actual) == strb_tell(reference) &&
@@ -206,8 +206,8 @@ static void compare_output(const strb_t *actual, const strb_t *reference,
                    strb_len(reference) + 1));
 }
 
-static void prepare_output(strb_t *s, const char *initial, size_t pos,
-                           int mode, bool pending_undo, bool error)
+static void prepare_output(strb_t *const s, const char *const initial, const size_t pos,
+                           const int mode, const bool pending_undo, const bool error)
 {
     assert(!ref_puts(s, initial));
     assert(!strb_setmode(s, mode));
@@ -220,8 +220,8 @@ static void prepare_output(strb_t *s, const char *initial, size_t pos,
     }
 }
 
-static void check_output(strb_t *actual, strb_t *reference,
-                         const output_case *testcase)
+static void check_output(strb_t *const actual, strb_t *const reference,
+                         const output_case *const testcase)
 {
     const int expected = put_reference_output(reference, testcase);
     assert(expected != EOF);
@@ -250,7 +250,7 @@ static void test_output_equivalence(void)
     size_t t;
     enum { HAS_PENDING_UNDO = 1u << 0, HAS_ERROR = 1u << 1,
            HAS_PENDING_RESTORE = 1u << 2 };
-    const unsigned initial_states[] = {
+    static const unsigned initial_states[] = {
         0, HAS_PENDING_UNDO, HAS_ERROR, HAS_PENDING_UNDO | HAS_ERROR,
 #if STRB_RESTORE
         HAS_PENDING_RESTORE, HAS_PENDING_RESTORE | HAS_PENDING_UNDO,
@@ -258,8 +258,8 @@ static void test_output_equivalence(void)
         HAS_PENDING_RESTORE | HAS_PENDING_UNDO | HAS_ERROR,
 #endif
     };
-    const char *const initial_strings[] = {"", "abcdef"};
-    const int modes[] = {strb_insert, strb_overwrite};
+    static const char *const initial_strings[] = {"", "abcdef"};
+    static const int modes[] = {strb_insert, strb_overwrite};
     for (t = 0; t < ARRAY_SIZE(output_cases); ++t) {
         size_t i;
         for (i = 0; i < ARRAY_SIZE(initial_strings); ++i) {
@@ -362,7 +362,7 @@ static void test_output_growth(void)
 {
     size_t i, t;
     char initial[STRB_DFL_SIZE];
-    const int modes[] = {strb_insert, strb_overwrite};
+    static const int modes[] = {strb_insert, strb_overwrite};
     memset(initial, 'a', sizeof initial - 1);
     initial[sizeof initial - 1] = '\0';
     for (t = 0; t < ARRAY_SIZE(output_cases); ++t) {
@@ -410,7 +410,7 @@ static void test_output_failure(void)
 {
     size_t t;
     enum { capacity = 8 };
-    const int modes[] = {strb_insert, strb_overwrite};
+    static const int modes[] = {strb_insert, strb_overwrite};
     for (t = 0; t < ARRAY_SIZE(output_cases); ++t) {
         size_t pos;
         const output_case *const testcase = &output_cases[t];
@@ -470,11 +470,11 @@ static void test_output_failure(void)
 static void test_delto_large_target(void)
 {
     size_t t;
-    const size_t targets[] = {
+    static const size_t targets[] = {
         (size_t)STRB_MAX_SIZE - 1, STRB_MAX_SIZE,
         (size_t)STRB_MAX_SIZE + 1, (size_t)STRB_MAX_SIZE + 2, SIZE_MAX
     }, positions[] = {0, 3, 8};
-    const int modes[] = {strb_insert, strb_overwrite};
+    static const int modes[] = {strb_insert, strb_overwrite};
     for (t = 0; t < ARRAY_SIZE(targets); ++t) {
         size_t p;
         for (p = 0; p < ARRAY_SIZE(positions); ++p) {
@@ -516,8 +516,8 @@ static void test_seek(void)
 {
     size_t i, m;
     static const char initial[] = "abcdef";
-    const size_t unsupported[] = {STRB_MAX_SIZE, (size_t)STRB_MAX_SIZE + 1, SIZE_MAX};
-    const int modes[] = {strb_insert, strb_overwrite};
+    static const size_t unsupported[] = {STRB_MAX_SIZE, (size_t)STRB_MAX_SIZE + 1, SIZE_MAX};
+    static const int modes[] = {strb_insert, strb_overwrite};
     char array[64];
 #if STRB_EXT_STATE
     strbstate_t state;
