@@ -110,7 +110,7 @@ static _Optional strb_t *alloc_metadata(void)
 static void free_metadata(_Optional strb_t *sb)
 {
     if (sb) {
-        ptrdiff_t alloc_idx = sb - bufs;
+        const ptrdiff_t alloc_idx = sb - bufs;
         assert(alloc_idx >= 0);
         assert(alloc_idx < STRB_MAX);
         buf_map = (uint8_t)(buf_map & ~(1u << alloc_idx));
@@ -173,7 +173,7 @@ _Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
         size = STRB_MAX_SIZE;
 
     {
-        size_t len = strb_strnlen(buf, size);
+        const size_t len = strb_strnlen(buf, size);
         if (len == size) {
             // Could be outside of the caller's control because of
             // STRB_MAX_SIZE. Don't want to force use of strb_error after any
@@ -194,7 +194,7 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
     DEBUGF("Reuse const buffer %p\n", (void *)buf);
 
     {
-        size_t len = strb_strnlen(buf, STRB_MAX_SIZE);
+        const size_t len = strb_strnlen(buf, STRB_MAX_SIZE);
         if (len == STRB_MAX_SIZE) {
             // Could be outside of the caller's control because of
             // STRB_MAX_SIZE. Don't want to force use of strb_error after any
@@ -202,7 +202,7 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
             return NULL;
         }
         {
-            strb_t *sb = init_use(sbs, (strbsize_t)(len + 1u), (char *)buf,
+            strb_t *const sb = init_use(sbs, (strbsize_t)(len + 1u), (char *)buf,
                                   (strbsize_t)len);
 #ifndef NDEBUG
             sb->p.flags = (char)(sb->p.flags | F_IS_CONST);
@@ -226,7 +226,7 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)])
         size = STRB_MAX_SIZE;
 
     {
-        _Optional strb_t *sb = alloc_metadata(0);
+        _Optional strb_t *const sb = alloc_metadata(0);
         if (!sb)
             return NULL;
 
@@ -251,7 +251,7 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
         size = STRB_MAX_SIZE;
 
     {
-        size_t len = strb_strnlen(buf, size);
+        const size_t len = strb_strnlen(buf, size);
         if (len == size) {
             // Could be outside of the caller's control because of
             // STRB_MAX_SIZE. Don't want to force use of strb_error after any
@@ -294,14 +294,14 @@ _Optional strb_t *strb_alloc(size_t n)
     {
         // Don't allocate huge internal strings because the storage can't be
         // recovered
-        _Optional strb_t *sb =
+        _Optional strb_t *const sb =
             alloc_metadata(n > STRB_MAX_INTERNAL_SIZE ? 0 : (strbsize_t)n);
         if (!sb)
             return NULL;
 #if !STRB_STATIC_ALLOC
         if (n > STRB_MAX_INTERNAL_SIZE) {
             DEBUGF("Oversize buffer of %zu characters\n", n);
-            _Optional char *buf = malloc(n * sizeof(*sb->p.buf));
+            _Optional char *const buf = malloc(n * sizeof(*sb->p.buf));
             if (!buf) {
                 free_metadata(sb);
                 return NULL;
@@ -325,12 +325,12 @@ _Optional strb_t *strb_alloc(size_t n)
 
 _Optional strb_t *strb_ndup(const char *str, size_t n)
 {
-    size_t len = strb_strnlen(str, n);
+    const size_t len = strb_strnlen(str, n);
     if (len >= STRB_MAX_SIZE)
         return NULL;
 
     {
-        _Optional strb_t *sb = strb_alloc(len + 1u);
+        _Optional strb_t *const sb = strb_alloc(len + 1u);
         if (!sb)
             return NULL;
 
@@ -353,7 +353,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args)
     va_copy(args_copy, args);
 
     do {
-        int len = vnprintf(format, args);
+        const int len = vnprintf(format, args);
         if (len < 0 || (size_t)len >= STRB_MAX_SIZE)
             break; // formatting failed or result too long
 
@@ -386,7 +386,7 @@ _Optional strb_t *strb_aprintf(const char *restrict format, ...)
     va_list args;
     va_start(args, format);
     {
-        _Optional strb_t *sb = strb_vaprintf(format, args);
+        _Optional strb_t *const sb = strb_vaprintf(format, args);
         va_end(args);
         return sb;
     }
@@ -455,7 +455,7 @@ int strb_getmode(const strb_t *sb)
 {
     assert(sb);
     {
-        int mode = (sb->p.flags & F_OVERWRITE) ? strb_overwrite : strb_insert;
+        const int mode = (sb->p.flags & F_OVERWRITE) ? strb_overwrite : strb_insert;
         assert(mode == strb_insert || mode == strb_overwrite);
         return mode;
     }
@@ -489,7 +489,7 @@ int strb_putc(strb_t *sb, int c)
 
 int strb_nputc(strb_t *sb, int c, size_t n)
 {
-    _Optional char *buf = strb_write(sb, n);
+    _Optional char *const buf = strb_write(sb, n);
     if (!buf)
         return EOF;
 
@@ -514,7 +514,7 @@ int strb_unputc(strb_t *sb)
 
     {
         const strbsize_t new_pos = sb->p.pos - 1;
-        char removed = sb->p.buf[new_pos];
+        const char removed = sb->p.buf[new_pos];
         if (!(sb->p.flags & F_OVERWRITE)) {
             memmove(sb->p.buf + new_pos, sb->p.buf + sb->p.pos,
                     sb->p.len - new_pos);
@@ -532,8 +532,8 @@ int strb_unputc(strb_t *sb)
 
 int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n)
 {
-    size_t len = strb_strnlen(str, n);
-    _Optional char *buf = strb_write(sb, len);
+    const size_t len = strb_strnlen(str, n);
+    _Optional char *const buf = strb_write(sb, len);
     if (!buf)
         return EOF;
 
@@ -557,7 +557,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args)
     {
         const int len = vnprintf(format, args);
         if (len >= 0) {
-            _Optional char *buf = strb_write(
+            _Optional char *const buf = strb_write(
                 sb, (size_t)len); // move tail by +len and keep buf[len]
             if (buf) {
                 char const tmp = buf[len];
@@ -578,7 +578,7 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...)
     va_list args;
     va_start(args, format);
     {
-        int e = strb_vputf(sb, format, args);
+        const int e = strb_vputf(sb, format, args);
         va_end(args);
         return e;
     }
@@ -678,7 +678,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
         assert(old_pos <= sb->p.len);
 
         {
-            char *buf = sb->p.buf + old_pos;
+            char *const buf = sb->p.buf + old_pos;
 
             if (!(sb->p.flags & F_OVERWRITE)) {
                 DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf,
@@ -725,7 +725,7 @@ _Optional char *strb_write(strb_t *sb, size_t n)
 
 int strb_split(strb_t *sb)
 {
-    _Optional char *p = strb_write(sb, 0);
+    _Optional char *const p = strb_write(sb, 0);
     if (!p)
         return EOF;
 
@@ -767,9 +767,9 @@ void strb_delto(strb_t *sb, size_t pos)
 
     if (!(sb->p.flags & F_OVERWRITE)) {
 
-        strbsize_t len = sb->p.len;
-        strbsize_t chi = hi > len ? len : (strbsize_t)hi;
-        strbsize_t clo = lo > len ? len : (strbsize_t)lo;
+        const strbsize_t len = sb->p.len,
+                         chi = hi > len ? len : (strbsize_t)hi,
+                         clo = lo > len ? len : (strbsize_t)lo;
         assert(clo <= chi);
 
         memmove(sb->p.buf + clo, sb->p.buf + chi, len + 1u - chi);
@@ -814,7 +814,7 @@ int strb_printf(strb_t *restrict sb, const char *restrict format, ...)
     va_list args;
     va_start(args, format);
     {
-        int e = strb_vprintf(sb, format, args);
+        const int e = strb_vprintf(sb, format, args);
         va_end(args);
         return e;
     }

@@ -23,7 +23,7 @@ static bool editing_example(void)
 //! [external]
     char text[64];
     strbstate_t state;
-    strb_t *sb = strb_use(&state, sizeof text, text);
+    strb_t *const sb = strb_use(&state, sizeof text, text);
 //! [external]
 
 //! [sequential]
@@ -102,7 +102,7 @@ static bool fruit_sentence_example(void)
     const unsigned indices[] = {0, 2, 1};
     char text[64];
     strbstate_t state;
-    strb_t *sb = strb_use(&state, sizeof text, text);
+    strb_t *const sb = strb_use(&state, sizeof text, text);
 
     strb_puts(sb, "Fruit: ");
     const size_t list_position = strb_tell(sb);
@@ -119,7 +119,7 @@ static bool fruit_sentence_example(void)
 static bool fruit_rows_example(void)
 {
     const unsigned rows[][3] = {{0, 2, 1}, {3, 1, 0}};
-    _Optional strb_t *sb = strb_alloc(0);
+    _Optional strb_t *const sb = strb_alloc(0);
     if (!sb)
         return false;
 
@@ -144,7 +144,7 @@ static bool put_character(strb_t *sb, char32_t character)
     assert(character != 0);
     mbstate_t conversion = {0};
     const size_t start = strb_tell(sb);
-    _Optional char *output = strb_write(sb, MB_LEN_MAX);
+    _Optional char *const output = strb_write(sb, MB_LEN_MAX);
     if (!output)
         return false;
 
@@ -164,7 +164,7 @@ static bool short_write_example(void)
     const int modes[] = {strb_insert, strb_overwrite};
     char text[64];
     strbstate_t state;
-    strb_t *sb = strb_use(&state, sizeof text, text);
+    strb_t *const sb = strb_use(&state, sizeof text, text);
 
     for (size_t i = 0; i < ARRAY_SIZE(modes); ++i) {
         if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]))

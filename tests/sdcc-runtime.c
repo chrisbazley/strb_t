@@ -17,7 +17,7 @@ int strb_test_main(void);
 
 int main(void)
 {
-    int result = strb_test_main();
+    const int result = strb_test_main();
     puts(result ? "STRB TEST FAIL" : "STRB TEST PASS");
     simif = 's';
     for (;;) {}
