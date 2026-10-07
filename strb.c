@@ -19,6 +19,8 @@
 
 #include "strb.h"
 
+#define memberof(T, member)  (((T *)NULL)->member)
+
 #define vnprintf(fmt, ap)  vsnprintf(NULL, 0, fmt, ap)
 
 #if STRB_UNPUTC
@@ -119,7 +121,7 @@ static void free_metadata(_Optional strb_t *sb)
 static _Optional strb_t *alloc_metadata(strbsize_t size)
 {
     assert(size <= STRB_MAX_INTERNAL_SIZE);
-    return malloc(sizeof(strb_t) + (size * sizeof(((strb_t *)0)->internal[0])));
+    return malloc(sizeof(strb_t) + (size * sizeof(memberof(strb_t, internal[0]))));
 }
 
 static void free_metadata(_Optional strb_t *sb)
