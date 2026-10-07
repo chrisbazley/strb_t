@@ -53,7 +53,7 @@
     (defined(__STDC_VERSION__) && __STDC_VERSION__ < 199901L)
 #define STRB_SIZE_HINT(X)
 #else
-#define STRB_SIZE_HINT(X) static restrict X
+#define STRB_SIZE_HINT(X) static const restrict X
 #endif
 
 #if STRB_FREESTANDING
