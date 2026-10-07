@@ -173,29 +173,29 @@ typedef uint16_t strbsize_t;
 #include <stdio.h>
 #include <stdlib.h>
 
-static inline void optional_free(_Optional void *x)
+static inline void optional_free(_Optional void *const x)
 {
     free((void *)x);
 }
 #undef free
 #define free(x) optional_free(x)
 
-static inline _Optional void *optional_malloc(size_t n)
+static inline _Optional void *optional_malloc(const size_t n)
 {
     return malloc(n);
 }
 #undef malloc
 #define malloc(n) optional_malloc(n)
 
-static inline _Optional void *optional_realloc(_Optional void *p, size_t n)
+static inline _Optional void *optional_realloc(_Optional void *const p, const size_t n)
 {
     return realloc((void *)p, n);
 }
 #undef realloc
 #define realloc(p, n) optional_realloc(p, n)
 
-static inline int optional_vsnprintf(_Optional char *buffer, size_t sz,
-                                     const char *format, va_list vlist)
+static inline int optional_vsnprintf(_Optional char *const buffer, const size_t sz,
+                                     const char *const format, va_list vlist)
 {
     return vsnprintf((char *)buffer, sz, format, vlist);
 }
