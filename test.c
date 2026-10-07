@@ -18,7 +18,7 @@
 static int ref_nputc(strb_t *s, int c, size_t n)
 {
     size_t i;
-    _Optional char *output = strb_write(s, n);
+    _Optional char *const output = strb_write(s, n);
     if (!output)
         return EOF;
     for (i = 0; i < n; ++i)
@@ -33,7 +33,7 @@ static int ref_nputs(strb_t *s, const char *str, size_t n)
     while (len < n && str[len])
         ++len;
     {
-        _Optional char *output = strb_write(s, len);
+        _Optional char *const output = strb_write(s, len);
         if (!output)
             return EOF;
         for (i = 0; i < len; ++i)
@@ -53,12 +53,12 @@ static int ref_vputf(strb_t *s, const char *format, va_list args)
     // Formatting is independent of strb; use the returned count so embedded
     // null characters are written too. All test output fits in this array.
     char output[128];
-    int len = vsnprintf(output, sizeof output, format, args);
+    const int len = vsnprintf(output, sizeof output, format, args);
     assert(len >= 0);
     assert((size_t)len < sizeof output);
     {
         int i;
-        _Optional char *destination = strb_write(s, (size_t)len);
+        _Optional char *const destination = strb_write(s, (size_t)len);
         if (!destination)
             return EOF;
         for (i = 0; i < len; ++i)
@@ -77,7 +77,7 @@ static int ref_putf(strb_t *s, const char *format, ...)
     va_list args;
     va_start(args, format);
     {
-        int result = ref_vputf(s, format, args);
+        const int result = ref_vputf(s, format, args);
         va_end(args);
         return result;
     }
@@ -88,7 +88,7 @@ static int call_strb_vputf(strb_t *s, const char *format, ...)
     va_list args;
     va_start(args, format);
     {
-        int result = strb_vputf(s, format, args);
+        const int result = strb_vputf(s, format, args);
         va_end(args);
         return result;
     }
@@ -180,7 +180,7 @@ static int put_reference_output(strb_t *s, const output_case *testcase)
 static void compare_output(const strb_t *actual, const strb_t *reference,
                            const output_case *testcase)
 {
-    bool equal = strb_len(actual) == strb_len(reference) &&
+    const bool equal = strb_len(actual) == strb_len(reference) &&
                  strb_tell(actual) == strb_tell(reference) &&
                  strb_getmode(actual) == strb_getmode(reference) &&
                  strb_error(actual) == strb_error(reference) &&
@@ -223,7 +223,7 @@ static void prepare_output(strb_t *s, const char *initial, size_t pos,
 static void check_output(strb_t *actual, strb_t *reference,
                          const output_case *testcase)
 {
-    int expected = put_reference_output(reference, testcase);
+    const int expected = put_reference_output(reference, testcase);
     assert(expected != EOF);
     assert(put_library_output(actual, testcase) == expected);
     compare_output(actual, reference, testcase);
@@ -264,7 +264,7 @@ static void test_output_equivalence(void)
         size_t i;
         for (i = 0; i < ARRAY_SIZE(initial_strings); ++i) {
             size_t pos;
-            const char *initial = initial_strings[i];
+            const char *const initial = initial_strings[i];
             for (pos = 0; pos <= strlen(initial) + 2; ++pos) {
                 size_t m;
                 for (m = 0; m < ARRAY_SIZE(modes); ++m) {
@@ -275,15 +275,15 @@ static void test_output_equivalence(void)
                         static char actual_array[128], reference_array[128];
 #if STRB_EXT_STATE
                         strbstate_t actual_state, reference_state;
-                        strb_t *actual = strb_use(&actual_state, sizeof actual_array,
+                        strb_t *const actual = strb_use(&actual_state, sizeof actual_array,
                                                   actual_array);
-                        strb_t *reference = strb_use(&reference_state,
+                        strb_t *const reference = strb_use(&reference_state,
                                                      sizeof reference_array,
                                                      reference_array);
 #else
-                        _Optional strb_t *actual = strb_use(sizeof actual_array,
+                        _Optional strb_t *const actual = strb_use(sizeof actual_array,
                                                             actual_array);
-                        _Optional strb_t *reference = strb_use(sizeof reference_array,
+                        _Optional strb_t *const reference = strb_use(sizeof reference_array,
                                                                reference_array);
 #endif
                         assert(actual);
@@ -306,8 +306,8 @@ static void test_output_equivalence(void)
 #if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
                         // Exercise owned storage as well as external arrays.
                         {
-                            _Optional strb_t *owned_actual = strb_alloc(10);
-                            _Optional strb_t *owned_reference = strb_alloc(10);
+                            _Optional strb_t *const owned_actual = strb_alloc(10);
+                            _Optional strb_t *const owned_reference = strb_alloc(10);
                             assert(owned_actual);
                             assert(owned_reference);
                             prepare_output(&*owned_actual, initial, pos, modes[m],
@@ -339,9 +339,9 @@ static void test_write_zero(void)
     char array[128];
 #if STRB_EXT_STATE
     strbstate_t state;
-    strb_t *s = strb_use(&state, sizeof array, array);
+    strb_t *const s = strb_use(&state, sizeof array, array);
 #else
-    _Optional strb_t *s = strb_use(sizeof array, array);
+    _Optional strb_t *const s = strb_use(sizeof array, array);
 #endif
     assert(s);
     prepare_output(&*s, "abc", 0, strb_overwrite, true, false);
@@ -368,8 +368,8 @@ static void test_output_growth(void)
     for (t = 0; t < ARRAY_SIZE(output_cases); ++t) {
         size_t m;
         for (m = 0; m < ARRAY_SIZE(modes); ++m) {
-            _Optional strb_t *actual = strb_alloc(STRB_DFL_SIZE);
-            _Optional strb_t *reference = strb_alloc(STRB_DFL_SIZE);
+            _Optional strb_t *const actual = strb_alloc(STRB_DFL_SIZE);
+            _Optional strb_t *const reference = strb_alloc(STRB_DFL_SIZE);
             assert(actual);
             assert(reference);
             // Nonempty output at the end must exceed the initial capacity.
@@ -384,7 +384,7 @@ static void test_output_growth(void)
     }
     // Seeking beyond allocated storage is allowed; the write obtains storage.
     {
-        _Optional strb_t *s = strb_alloc(0);
+        _Optional strb_t *const s = strb_alloc(0);
         const size_t pos = STRB_DFL_SIZE + sizeof "gap";
         assert(s);
         strb_seek(&*s, pos);
@@ -413,7 +413,7 @@ static void test_output_failure(void)
     const int modes[] = {strb_insert, strb_overwrite};
     for (t = 0; t < ARRAY_SIZE(output_cases); ++t) {
         size_t pos;
-        const output_case *testcase = &output_cases[t];
+        const output_case *const testcase = &output_cases[t];
         bool too_large = testcase->count >= capacity ||
                          (testcase->operation == output_string &&
                           strlen(testcase->text) >= capacity);
@@ -431,15 +431,15 @@ static void test_output_failure(void)
                 char actual_array[capacity], reference_array[capacity];
 #if STRB_EXT_STATE
                 strbstate_t actual_state, reference_state;
-                strb_t *actual = strb_use(&actual_state, sizeof actual_array,
+                strb_t *const actual = strb_use(&actual_state, sizeof actual_array,
                                           actual_array);
-                strb_t *reference = strb_use(&reference_state,
+                strb_t *const reference = strb_use(&reference_state,
                                              sizeof reference_array,
                                              reference_array);
 #else
-                _Optional strb_t *actual = strb_use(sizeof actual_array,
+                _Optional strb_t *const actual = strb_use(sizeof actual_array,
                                                     actual_array);
-                _Optional strb_t *reference = strb_use(sizeof reference_array,
+                _Optional strb_t *const reference = strb_use(sizeof reference_array,
                                                        reference_array);
 #endif
                 assert(actual);
@@ -483,9 +483,9 @@ static void test_delto_large_target(void)
                 char array[128];
 #if STRB_EXT_STATE
                 strbstate_t state;
-                strb_t *s = strb_use(&state, sizeof array, array);
+                strb_t *const s = strb_use(&state, sizeof array, array);
 #else
-                _Optional strb_t *s = strb_use(sizeof array, array);
+                _Optional strb_t *const s = strb_use(sizeof array, array);
 #endif
                 assert(s);
                 assert(!strb_puts(&*s, "abcdef"));
@@ -521,9 +521,9 @@ static void test_seek(void)
     char array[64];
 #if STRB_EXT_STATE
     strbstate_t state;
-    strb_t *s = strb_use(&state, sizeof array, array);
+    strb_t *const s = strb_use(&state, sizeof array, array);
 #else
-    _Optional strb_t *s = strb_use(sizeof array, array);
+    _Optional strb_t *const s = strb_use(sizeof array, array);
 #endif
     assert(s);
     for (m = 0; m < ARRAY_SIZE(modes); ++m) {
@@ -654,7 +654,7 @@ static void test(strb_t *const s)
 {
     char *c;
     int i;
-    char *found;
+    const char *found;
     size_t pos;
 
     for (i = 5; i >= 0; --i) {
@@ -734,7 +734,7 @@ static void test(strb_t *const s)
     assert(strb_len(s) == 8);
 
     {
-        size_t lo = strlen("DELETEME") + 1, hi = lo + 1;
+        const size_t lo = strlen("DELETEME") + 1, hi = lo + 1;
 
         strb_seek(s, lo);
         assert(strb_tell(s) == lo);
@@ -823,7 +823,7 @@ static void test(strb_t *const s)
 
     strb_seek(s, 2);
     {
-        _Optional char *w = strb_write(s, 0);
+        _Optional char *const w = strb_write(s, 0);
         assert(w);
         *w = '\0';
     }
@@ -843,7 +843,7 @@ static void test(strb_t *const s)
 
     strb_seek(s, strb_len(s));
     {
-        _Optional char *w = strb_write(s, 0);
+        _Optional char *const w = strb_write(s, 0);
         assert(w);
         *w = 'q'; // probably illegal!
     }
@@ -889,16 +889,16 @@ static void test(strb_t *const s)
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
     {
-        strb_t const *sc = s;
-        const char *q = strb_ptr(sc);
+        strb_t const *const sc = s;
+        const char *const q = strb_ptr(sc);
         assert(strb_ptr(sc)[strb_len(sc)] == '\0');
         puts(q);
     }
 #endif
 
     {
-        strb_t const *sc = s;
-        const char *q = strb_cptr(sc);
+        strb_t const *const sc = s;
+        const char *const q = strb_cptr(sc);
         assert(strb_cptr(sc)[strb_len(sc)] == '\0');
         puts(q);
     }
