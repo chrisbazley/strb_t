@@ -354,9 +354,11 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  *
  * The @p buf array must contain at least one null character, whose position is
  * the string length. Any following characters are ignored. If no null character
- * is found within the maximum supported length, a null pointer is returned.
+ * is found within the maximum supported size, the initial string length is 0
+ * and the error indicator is set. The input array is unchanged; the buffer
+ * instead refers to an empty string. This function cannot fail.
  *
- * If successful, the created string buffer object is immutable (as indicated by
+ * The created string buffer object is immutable (as indicated by
  * its qualified type). Functions that require a mutable string buffer object
  * have undefined behaviour when invoked with an object created by this
  * function.
@@ -364,18 +366,19 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * @param[out] sbs   String buffer state.
  * @param[in]  buf   The array to be used instead of an internal buffer.
  *
- * @return Address of the created string buffer object, or a null pointer on
- * failure.
+ * @return Address of the created string buffer object.
  * @post The created string buffer object becomes invalid if the storage for @p
  * sbs or @p buf is deallocated.
  * @post The created string buffer object becomes invalid if the @p sbs object
  * is modified.
- * @post If successful, @ref strb_tell and @ref strb_len return the constant
- * string's length.
- * @post If successful, @ref strb_ptr returns the constant string's address.
- * @post If successful, a call to @ref strb_error will return false.
+ * @post @ref strb_tell and @ref strb_len return the constant string's length,
+ * or 0 if it cannot be reused.
+ * @post @ref strb_cptr returns the constant string's address, or the address of
+ * an empty string if it cannot be reused.
+ * @post Initially, @ref strb_error returns true if no null character was found
+ * within the supported extent, otherwise false.
  */
-_Optional const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
+const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
                                          const char *restrict buf);
 #endif
 
@@ -1313,14 +1316,15 @@ int strb_printf(strb_t *restrict sb, const char *restrict format, ...);
  * explicitly (by calling @ref strb_clearerr). The error indicator is set as a
  * side-effect of any function that returns an error value, including because of
  * attempts to output at an unsupported position or select an unsupported
- * editing mode. It is also set by @ref strb_reuse if the initial contents cannot
- * be reused. Consequently, it is a reliable indication of whether the current
- * string is valid.
+ * editing mode. It is also set by @ref strb_reuse or @ref strb_reuse_const if
+ * the initial contents cannot be reused. Consequently, it is a reliable
+ * indication of whether the current string is valid.
  *
  * @param[in] sb  String buffer.
  * @return True if an error occurred since the most recent call to @ref
  * strb_clearerr, otherwise false.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
+ *       @ref strb_reuse_const,
  *       @ref strb_alloc, @ref strb_dup, @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  */

@@ -44,6 +44,12 @@ be used; @ref strb_error allows the user to check after construction or defer
 checking until after subsequent output. Successful output does not clear the
 construction error. The user must call @ref strb_clearerr explicitly to recover.
 
+With @ref strb_reuse_const, construction likewise returns a valid handle even
+when the initial contents cannot be reused. The error indicator is set and the
+buffer refers to an empty string, leaving the constant input unchanged. The
+created buffer remains immutable, so recovery requires constructing a new buffer
+with supported contents rather than clearing its error indicator.
+
 @section design_model Output controlled by position and mode
 
 A string buffer of type @ref strb_t has a current editing position and

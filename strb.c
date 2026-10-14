@@ -194,7 +194,7 @@ strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
 }
 
 #if STRB_REUSE_CONST
-_Optional const strb_t *strb_reuse_const(strbstate_t *STRB_CONST restrict sbs,
+const strb_t *strb_reuse_const(strbstate_t *STRB_CONST restrict sbs,
                                          const char *STRB_CONST restrict buf)
 {
     assert(sbs);
@@ -203,15 +203,22 @@ _Optional const strb_t *strb_reuse_const(strbstate_t *STRB_CONST restrict sbs,
 
     {
         const size_t len = strb_strnlen(buf, STRB_MAX_SIZE);
+        const size_t initial_len = len < STRB_MAX_SIZE ? len : 0;
+        const char *initial_buf = buf;
+
         if (len == STRB_MAX_SIZE) {
-            // Could be outside of the caller's control because of
-            // STRB_MAX_SIZE. Don't want to force use of strb_error after any
-            // call.
-            return NULL;
+            initial_buf = "";
         }
+
         {
-            strb_t *const sb = init_use(sbs, (strbsize_t)(len + 1u), (char *)buf,
-                                  (strbsize_t)len);
+            strb_t *const sb = init_use(sbs, (strbsize_t)(initial_len + 1u),
+                                       (char *)initial_buf,
+                                       (strbsize_t)initial_len);
+
+            if (len == STRB_MAX_SIZE) {
+                sb->p.flags |= F_ERR;
+            }
+
 #ifndef NDEBUG
             sb->p.flags = (char)(sb->p.flags | F_IS_CONST);
 #endif
