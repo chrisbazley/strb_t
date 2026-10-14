@@ -23,6 +23,27 @@ unavailable.
 The output and editing functions use the same interface in either case.
 A text producer therefore need not know how its caller created the buffer.
 
+@subsection design_reuse_contents Reusing an array with unsupported contents
+
+With @ref strb_reuse, the caller supplies both a character array and a
+@ref strbstate_t object, as with @ref strb_use, but retains an existing string
+if it fits within the supported extent. For a string produced through
+@ref strb_use, termination and a supported length have already been established.
+
+If no null character is found within the supplied array size or the maximum
+supported size, whichever is less, the initial string is empty and the error
+indicator is set. Construction still returns a valid buffer handle. This is
+conceptually equivalent to @ref strb_use followed by an attempted whole-string
+copy: the initial contents are either adopted completely or not adopted.
+Only the first character of the array is overwritten when the contents cannot
+be reused.
+
+This separates construction of the buffer from adoption of its initial contents.
+Returning a handle unconditionally avoids an error check before the buffer can
+be used; @ref strb_error allows the user to check after construction or defer
+checking until after subsequent output. Successful output does not clear the
+construction error. The user must call @ref strb_clearerr explicitly to recover.
+
 @section design_model Output controlled by position and mode
 
 A string buffer of type @ref strb_t has a current editing position and
