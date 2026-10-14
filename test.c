@@ -916,6 +916,117 @@ static void test(strb_t *const s)
     puts("========");
 }
 
+#if STRB_EXT_STATE && !STRB_FREESTANDING
+// All constructors share the same editing operations. Repeated construction
+// and cleanup must release character storage without freeing embedded state.
+static void test_external_state(void)
+{
+    struct {
+        unsigned before;
+        strbstate_t state;
+        unsigned after;
+    } owner;
+    static const size_t hints[] = {0, 5, 5000, SIZE_MAX};
+    size_t i;
+    owner.before = 123;
+    owner.after = 456;
+
+    {
+        strb_t *const sb = strb_init(&owner.state);
+        assert(!strb_len(sb));
+        assert(!strb_tell(sb));
+        assert(!strb_error(sb));
+        assert(strb_getmode(sb) == strb_insert);
+        assert(!strcmp(strb_cptr(sb), ""));
+        assert(strb_ptr(sb)[0] == '\0');
+        assert(strb_write(sb, 0));
+        assert(strb_len(sb) == 0);
+        assert(strb_tell(sb) == 0);
+        assert(!strb_error(sb));
+#if STRB_RESTORE
+        strb_restore(sb);
+#endif
+        // Even a buffer that never allocated storage requires cleanup.
+        strb_free(sb);
+    }
+
+    for (i = 0; i <= ARRAY_SIZE(hints); ++i) {
+        _Optional strb_t *const sb = i == ARRAY_SIZE(hints)
+            ? strb_init(&owner.state) : strb_init_alloc(&owner.state, hints[i]);
+        assert(sb);
+        assert(!strb_error(&*sb));
+        assert(strb_len(&*sb) == 0);
+        assert(strb_tell(&*sb) == 0);
+        assert(strb_getmode(&*sb) == strb_insert);
+        assert(!strcmp(strb_cptr(&*sb), ""));
+        // Run the existing positioned-output and editing tests on each form.
+        test(&*sb);
+        strb_free(sb);
+        assert(owner.before == 123);
+        assert(owner.after == 456);
+    }
+
+#if !STRB_STATIC_ALLOC
+    {
+        strb_t *const sb = strb_init(&owner.state);
+        // Force first allocation, then reallocation, preserving the text.
+        const size_t count = STRB_DFL_SIZE * 3u;
+        assert(!strb_puts(sb, "prefix"));
+        assert(strb_nputc(sb, 'x', count) == 'x');
+        assert(strb_len(sb) == strlen("prefix") + count);
+        assert(!memcmp(strb_cptr(sb), "prefix", strlen("prefix")));
+
+        for (i = strlen("prefix"); i < strb_len(sb); ++i) {
+            assert(strb_cptr(sb)[i] == 'x');
+        }
+
+        strb_free(sb);
+    }
+#else
+    {
+        strbstate_t states[STRB_MAX + 1];
+        strb_t *buffers[STRB_MAX + 1];
+        // Empty lazy buffers consume no pool slots. Allocating one later can
+        // fail, and releasing another must make its slot available again.
+        for (i = 0; i < ARRAY_SIZE(states); ++i) {
+            buffers[i] = strb_init(&states[i]);
+        }
+
+        for (i = 0; i < STRB_MAX; ++i) {
+            assert(!strb_puts(buffers[i], "pool"));
+        }
+
+        assert(strb_puts(buffers[STRB_MAX], "pool") == EOF);
+        assert(strb_error(buffers[STRB_MAX]));
+        assert(strb_len(buffers[STRB_MAX]) == 0);
+        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), ""));
+
+        {
+            strbstate_t unused;
+            assert(!strb_init_alloc(&unused, 0));
+        }
+
+        strb_free(buffers[0]);
+        strb_clearerr(buffers[STRB_MAX]);
+        assert(!strb_puts(buffers[STRB_MAX], "pool"));
+        // Once obtained, the pool buffer retains its fixed capacity.
+        assert(strb_nputc(buffers[STRB_MAX], 'x', STRB_MAX_SIZE) == EOF);
+        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), "pool"));
+
+        for (i = 1; i < ARRAY_SIZE(states); ++i) {
+            strb_free(buffers[i]);
+        }
+
+        {
+            _Optional strb_t *const sb = strb_init_alloc(&owner.state, 0);
+            assert(sb); // Allocating constructor can reuse a released slot.
+            strb_free(sb);
+        }
+    }
+#endif
+}
+#endif
+
 int main(void)
 {
     static char array[1000];
@@ -926,6 +1037,9 @@ int main(void)
     strbstate_t state;
 #endif
 
+#if STRB_EXT_STATE && !STRB_FREESTANDING
+    test_external_state();
+#endif
 #if STRB_EXT_STATE || !STRB_FREESTANDING
     test_output_equivalence();
 #if STRB_UNPUTC

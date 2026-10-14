@@ -20,7 +20,27 @@ characters. The caller manages the buffer through the returned @ref strb_t
 pointer and releases it with @ref strb_free. Creation can fail if storage is
 unavailable.
 
-The output and editing functions use the same interface in either case.
+With @ref strb_init, the caller supplies a @ref strbstate_t object and the
+library manages the character storage. Initialisation cannot fail and allocates
+nothing; output obtains character storage when needed and may fail. This is
+useful for a temporary buffer or state embedded in an application object.
+
+@ref strb_init_alloc makes the same ownership choice but accepts the initial
+size hint provided by @ref strb_alloc. It can fail when storage is unavailable.
+As with @ref strb_alloc, the implementation need not allocate character storage
+immediately. The size hint is not a guarantee of initial capacity.
+
+Both initialisers require a call to @ref strb_free before the caller's state
+storage ceases to exist or is reused, even if the buffer remains empty. This
+releases any library-owned character storage without freeing the state. Active
+state must not be copied or overwritten, including by copying its containing
+object. A buffer handle must not outlive its originating state.
+
+This prototype provides @ref strb_init and @ref strb_init_alloc in its dynamic
+and static-pool configurations. Its freestanding configuration provides
+@ref strb_use for caller-supplied arrays.
+
+The output and editing functions use the same interface in all these cases.
 A text producer therefore need not know how its caller created the buffer.
 
 @section design_model Output controlled by position and mode
@@ -236,6 +256,18 @@ The output is:
 apple,banana,orange
 lime,orange,apple
 @endverbatim
+
+@subsection design_fruit_local Growing text with local state
+
+This consumer keeps its state local while allowing the character storage to
+grow. Initialisation requires no failure check; the consumer checks the error
+indicator after generation and calls @ref strb_free on both success and failure:
+
+@snippet design.c fruit_local
+
+To supply an initial size hint, replace @ref strb_init with
+@c strb_init_alloc(&state, n) and check its result for null before using it.
+The cleanup obligation is the same after successful construction.
 
 @section design_errors Deferred errors and operation boundaries
 

@@ -45,11 +45,11 @@
 #endif
 
 #define F_OVERWRITE (1 << 3)
-#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
+#if !STRB_FREESTANDING
 #define F_ALLOCATED (1 << 4)
 #endif
 #define F_EXTERNAL (1 << 5)
-#define F_AUTOFREE (1 << 6)
+#define F_EXT_STATE (1 << 6)
 #if STRB_REUSE_CONST
 #define F_IS_CONST (1 << 7)
 #else
@@ -137,6 +137,85 @@ static void free_metadata(_Optional strb_t *const sb)
 }
 #endif
 
+#if !STRB_FREESTANDING
+// Apply the same initial size hint to both allocating constructors.
+static strbsize_t initial_size(size_t n)
+{
+#if STRB_STATIC_ALLOC
+    (void)n;
+    return STRB_MAX_SIZE;
+#else
+    if (n < STRB_DFL_SIZE) {
+        n = STRB_DFL_SIZE;
+    } else if (n >= STRB_MAX_SIZE) {
+        n = STRB_MAX_SIZE;
+    } else {
+        ++n; // allow space for a null terminator
+    }
+
+    return (strbsize_t)n;
+#endif
+}
+
+#if STRB_EXT_STATE
+// External state has inline storage only for an empty string. In the static
+// variant, obtain character storage from the same pool as strb_alloc.
+static _Optional char *alloc_characters(const strbsize_t size)
+{
+#if STRB_STATIC_ALLOC
+    _Optional strb_t *const backing = alloc_metadata(size);
+    // The alloc_metadata macro discards size because all pool blocks have
+    // STRB_MAX_SIZE characters. Mark the parameter as intentionally unused.
+    (void)size;
+    return backing ? &*backing->internal : NULL;
+#else
+    return malloc(size);
+#endif
+}
+
+strb_t *strb_init(strbstate_t *STRB_CONST sbs)
+{
+    assert(sbs);
+    sbs->p.len = sbs->p.pos = 0;
+
+    // Reuse a saved-character byte for the initial writable terminator.
+    // Zero-length writes can only save/restore null while this buffer is used;
+    // strb_ensure obtains character storage before a nonempty write uses it.
+#if STRB_RESTORE
+    sbs->p.buf = &sbs->p.restore_char;
+#elif STRB_UNPUTC
+    sbs->p.buf = &sbs->p.unputc_char;
+#else
+    sbs->p.buf = sbs->p.empty;
+#endif
+    sbs->p.size = 1;
+    sbs->p.buf[0] = '\0';
+    sbs->p.flags = F_EXT_STATE;
+    return (void *)sbs;
+}
+
+_Optional strb_t *strb_init_alloc(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
+{
+    const strbsize_t size = initial_size(n);
+    _Optional char *const buf = alloc_characters(size);
+    assert(sbs);
+
+    if (!buf) {
+        return NULL;
+    }
+
+    {
+        strb_t *const sb = strb_init(sbs);
+        sb->p.buf = &*buf;
+        sb->p.buf[0] = '\0';
+        sb->p.size = size;
+        sb->p.flags |= F_ALLOCATED;
+        return sb;
+    }
+}
+#endif // STRB_EXT_STATE
+#endif // !STRB_FREESTANDING
+
 #if STRB_EXT_STATE
 static strb_t *init_use(strbstate_t *const restrict sbs, const strbsize_t size,
                         char buf[STRB_SIZE_HINT(size)], const strbsize_t len)
@@ -144,7 +223,7 @@ static strb_t *init_use(strbstate_t *const restrict sbs, const strbsize_t size,
     sbs->p.len = sbs->p.pos = len;
     sbs->p.size = size;
     sbs->p.buf = buf;
-    sbs->p.flags = F_EXTERNAL | F_AUTOFREE;
+    sbs->p.flags = F_EXTERNAL | F_EXT_STATE;
 
 #if STRB_UNPUTC
     if (len)
@@ -288,16 +367,7 @@ _Optional strb_t *strb_alloc(size_t n)
 {
     DEBUGF("Alloc buffer of size %zu\n", n);
 
-#if STRB_STATIC_ALLOC
-    n = STRB_MAX_SIZE;
-#else
-    if (n < STRB_DFL_SIZE)
-        n = STRB_DFL_SIZE;
-    else if (n >= STRB_MAX_SIZE)
-        n = STRB_MAX_SIZE;
-    else
-        ++n; // allow space for a null terminator
-#endif
+    n = initial_size(n);
     {
         // Don't allocate huge internal strings because the storage can't be
         // recovered
@@ -401,18 +471,23 @@ _Optional strb_t *strb_aprintf(const char *STRB_CONST restrict format, ...)
 
 void strb_free(_Optional strb_t *STRB_CONST sb)
 {
-    if (!sb)
+    if (!sb) {
         return;
+    }
 
-    if (sb->p.flags & F_AUTOFREE)
-        return;
-
-#if !STRB_STATIC_ALLOC
-    if (sb->p.flags & F_ALLOCATED)
+    if (sb->p.flags & F_ALLOCATED) {
+#if STRB_STATIC_ALLOC
+        // The characters belong to a pool object, not to the external state.
+        strb_t *const backing = (void *)(sb->p.buf - offsetof(strb_t, internal));
+        free_metadata(backing);
+#else
         free(sb->p.buf);
 #endif
+    }
 
-    free_metadata(sb);
+    if (!(sb->p.flags & F_EXT_STATE)) {
+        free_metadata(sb);
+    }
 }
 #endif // !STRB_FREESTANDING
 
@@ -610,7 +685,29 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
             return true; // enough room for n chars and terminator
     }
 
-#if STRB_STATIC_ALLOC || STRB_FREESTANDING
+#if STRB_FREESTANDING
+    DEBUGF("Fixed buffer exhausted\n");
+    return false;
+#elif STRB_STATIC_ALLOC
+#if STRB_EXT_STATE
+    // A lazily initialised buffer has not obtained its pool storage yet.
+    // All pool buffers have STRB_MAX_SIZE characters, including the terminator.
+    if (!(sb->p.flags & (F_EXTERNAL | F_ALLOCATED)) &&
+        (sb->p.flags & F_EXT_STATE)) {
+        _Optional char *const buf = alloc_characters(STRB_MAX_SIZE);
+
+        if (!buf) {
+            return false;
+        }
+
+        buf[0] = '\0';
+        sb->p.buf = &*buf;
+        sb->p.size = STRB_MAX_SIZE;
+        sb->p.flags |= F_ALLOCATED;
+        return true;
+    }
+#endif
+
     DEBUGF("Fixed buffer exhausted\n");
     return false;
 #else
@@ -622,6 +719,12 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
     strbsize_t new_size = sb->p.size <= (STRB_MAX_SIZE / STRB_GROW_FACTOR)
                               ? sb->p.size * STRB_GROW_FACTOR
                               : STRB_MAX_SIZE;
+
+#if STRB_EXT_STATE
+    if ((sb->p.flags & F_EXT_STATE) && !(sb->p.flags & F_ALLOCATED)) {
+        new_size = initial_size(0);
+    }
+#endif
 
     assert(top + n + 1u <= STRB_MAX_SIZE);
 
@@ -638,7 +741,7 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
         new_buf = malloc(new_size);
         if (!new_buf)
             return false;
-        memcpy(&*new_buf, sb->internal, sb->p.len + 1u);
+        memcpy(&*new_buf, sb->p.buf, sb->p.len + 1u);
     }
 
     sb->p.flags |= F_ALLOCATED;
