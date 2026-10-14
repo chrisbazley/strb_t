@@ -168,7 +168,7 @@ strb_t *strb_use(strbstate_t *STRB_CONST restrict sbs, size_t size,
     return init_use(sbs, (strbsize_t)size, buf, 0);
 }
 
-_Optional strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
+strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
                              char buf[STRB_SIZE_HINT(size)])
 {
     assert(sbs);
@@ -180,14 +180,8 @@ _Optional strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
         size = STRB_MAX_SIZE;
 
     {
-        const size_t len = strb_strnlen(buf, size);
-        if (len == size) {
-            // Could be outside of the caller's control because of
-            // STRB_MAX_SIZE. Don't want to force use of strb_error after any
-            // call.
-            return NULL;
-        }
-
+        const size_t len = strb_strnlen(buf, size - 1u);
+        buf[len] = '\0';
         return init_use(sbs, (strbsize_t)size, buf, (strbsize_t)len);
     }
 }
@@ -256,19 +250,14 @@ _Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)])
         size = STRB_MAX_SIZE;
 
     {
-        const size_t len = strb_strnlen(buf, size);
-        if (len == size) {
-            // Could be outside of the caller's control because of
-            // STRB_MAX_SIZE. Don't want to force use of strb_error after any
-            // call.
-            return NULL;
-        }
+        const size_t len = strb_strnlen(buf, size - 1u);
 
         {
             _Optional strb_t *const sb = alloc_metadata(0);
             if (!sb)
                 return NULL;
 
+            buf[len] = '\0';
             sb->p.len = sb->p.pos = (strbsize_t)len;
             sb->p.size = (strbsize_t)size;
             sb->p.buf = buf;

@@ -305,16 +305,19 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * pass a string buffer state object to be used to store information about the
  * buffer.
  *
- * The @p buf array should contain at least one null character within the first
- * @p size characters, whose position is the initial string length. Any
- * following characters are ignored. If no null character is found within the
- * first @p size characters (or the maximum supported length, if less), a null
- * pointer is returned.
+ * The position of the first null character within the first @p size characters
+ * is the initial string length. Any following characters are ignored. If no
+ * null character is found within the first @p size characters (or the maximum
+ * supported size, if less), a null character is written as the last character
+ * within that extent. This function cannot fail.
+ * An existing string extending beyond the maximum supported size is shortened
+ * to fit, even if @p size is larger. Users requiring its complete contents must
+ * ensure that the string fits within the supported extent before calling.
  *
  * The effects of strb_... functions on an external array are always immediately
  * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the whole of the external array but never allocate any
- * extra storage.
+ * string buffer can use the supported extent of the external array but never
+ * allocate any extra storage.
  *
  * @param[out]    sbs   String buffer state.
  * @param         size  Number of elements in the array to be used instead of an
@@ -322,8 +325,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  *                      character. Must not be 0.
  * @param[in,out] buf   The array to be used instead of an internal buffer.
  *
- * @return Address of the created string buffer object, or a null pointer on
- * failure.
+ * @return Address of the created string buffer object.
  * @post The user may call @ref strb_free to free the string buffer object, but
  *       it is not required and has no effect.
  * @post The created string buffer object becomes invalid if the storage for @p
@@ -332,16 +334,16 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * is modified (other than as a side-effect of calling a strb_... function which
  * is not
  *       @ref strb_reuse or @ref strb_use).
- * @post If successful, @ref strb_tell and @ref strb_len return the reused
+ * @post @ref strb_tell and @ref strb_len return the reused
  * string length.
- * @post If successful, a call to @ref strb_restore will have no effect until
+ * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
- * @post If successful, the last character of the reused string (if any) can be
+ * @post The last character of the reused string (if any) can be
  *       removed by @ref strb_unputc.
- * @post If successful, a call to @ref strb_error will return false until an
+ * @post A call to @ref strb_error will return false until an
  * error occurs.
  */
-_Optional strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
+strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
                              char buf[STRB_SIZE_HINT(size)]);
 
 #if STRB_REUSE_CONST
@@ -420,16 +422,19 @@ _Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)]);
  * Allocates storage for a string buffer object, initialises it, and returns its
  * address. If storage allocation fails, a null pointer is returned.
  *
- * The @p buf array should contain at least one null character within the first
- * @p size characters, whose position is the initial string length. Any
- * following characters are ignored. If no null character is found within the
- * first @p size characters (or the maximum supported length, if less), a null
- * pointer is returned.
+ * The position of the first null character within the first @p size characters
+ * is the initial string length. Any following characters are ignored. If no
+ * null character is found within the first @p size characters (or the maximum
+ * supported size, if less), a null character is written as the last character
+ * within that extent.
+ * An existing string extending beyond the maximum supported size is shortened
+ * to fit, even if @p size is larger. Users requiring its complete contents must
+ * ensure that the string fits within the supported extent before calling.
  *
  * The effects of strb_... functions on an external array are always immediately
  * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the whole of the external array but never allocate any
- * extra storage.
+ * string buffer can use the supported extent of the external array but never
+ * allocate any extra storage.
  *
  * @param         size  Number of elements in the array to be used instead of an
  *                      internal buffer, including space for the terminating null

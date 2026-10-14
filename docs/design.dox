@@ -23,6 +23,26 @@ unavailable.
 The output and editing functions use the same interface in either case.
 A text producer therefore need not know how its caller created the buffer.
 
+@subsection design_reuse Why does reusing an array not fail?
+
+With @ref strb_reuse, the caller supplies both a character array and a
+@ref strbstate_t object, as with @ref strb_use, but retains the array's contents.
+For a string produced through @ref strb_use, termination and a supported length
+have already been established. Requiring an error check when reusing that array
+would add complexity without helping this use case.
+
+To keep construction infallible for other input, @ref strb_reuse ensures
+termination within the supplied array size or the maximum supported size,
+whichever is less. An existing terminator within that extent is preserved;
+otherwise the last character within the extent is replaced by null. A valid
+string longer than the implementation supports is therefore shortened, even
+when the supplied array is large enough to contain it. Users requiring the
+complete contents must ensure that they fit within the supported extent before
+calling. Returning null would make unsupported input detectable, but would not
+ensure that the user checks or handles the failure. This is a deliberate
+trade-off in favour of infallible construction, rather than validation of
+arbitrary strings.
+
 @section design_model Output controlled by position and mode
 
 A string buffer of type @ref strb_t has a current editing position and

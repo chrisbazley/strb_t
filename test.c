@@ -916,10 +916,102 @@ static void test(strb_t *const s)
     puts("========");
 }
 
+#if STRB_EXT_STATE || !STRB_FREESTANDING
+static void test_reuse_termination(void)
+{
+    static const struct {
+        size_t size, terminator;
+    } cases[] = {
+        {1, 1},   // Terminate a one-character extent.
+        {1, 0},   // Preserve a one-character empty string.
+        {64, 0},  // Preserve an empty string and its unused suffix.
+        {64, 7},  // Preserve a string ending before the extent's boundary.
+        {64, 63}, // Preserve a string ending at the extent's boundary.
+        {64, 64}  // Terminate an extent containing no null character.
+    };
+    size_t i;
+
+    for (i = 0; i < ARRAY_SIZE(cases); ++i) {
+        struct {
+            char before, buf[64], after;
+        } array;
+#if STRB_EXT_STATE
+        strb_t *sb;
+#else
+        _Optional strb_t *sb;
+#endif
+        const size_t size = cases[i].size, terminator = cases[i].terminator;
+        const size_t len = terminator < size ? terminator : size - 1u;
+        size_t j;
+#if STRB_EXT_STATE
+        strbstate_t state;
+#endif
+
+        array.before = 'b';
+        array.after = 'c';
+        memset(array.buf, 'a', sizeof array.buf);
+        if (terminator < size) {
+            array.buf[terminator] = '\0';
+        }
+
+        // Preserve existing strings, or terminate within the supplied extent.
+#if STRB_EXT_STATE
+        sb = strb_reuse(&state, size, array.buf);
+#else
+        sb = strb_reuse(size, array.buf);
+#endif
+        assert(sb);
+        assert(strb_len(&*sb) == len);
+        assert(strb_tell(&*sb) == len);
+        assert(strb_getmode(&*sb) == strb_insert);
+        assert(!strb_error(&*sb));
+        assert(strlen(strb_cptr(&*sb)) == len);
+
+        // Neither the unused suffix nor characters outside the extent change.
+        for (j = 0; j < sizeof array.buf; ++j) {
+            assert(array.buf[j] == (j == len ? '\0' : 'a'));
+        }
+
+        assert(array.before == 'b');
+        assert(array.after == 'c');
+#if STRB_UNPUTC
+        assert(strb_unputc(&*sb) == (len ? 'a' : EOF));
+#endif
+#if !STRB_FREESTANDING
+        strb_free(&*sb);
+#endif
+    }
+
+#if STRB_STATIC_ALLOC && !STRB_EXT_STATE
+    {
+        _Optional strb_t *allocated[STRB_MAX];
+        char buffers[STRB_MAX][1], buf[1] = {'a'};
+
+        // Allocation failure must leave the external array unchanged.
+        for (i = 0; i < ARRAY_SIZE(allocated); ++i) {
+            allocated[i] = strb_use(sizeof buffers[i], buffers[i]);
+            assert(allocated[i]);
+        }
+
+        assert(!strb_reuse(sizeof buf, buf));
+        assert(buf[0] == 'a');
+
+        for (i = 0; i < ARRAY_SIZE(allocated); ++i) {
+            strb_free(allocated[i]);
+        }
+    }
+#endif
+}
+#endif
+
 int main(void)
 {
     static char array[1000];
+#if STRB_FREESTANDING && STRB_EXT_STATE
+    strb_t *s;
+#else
     _Optional strb_t *s;
+#endif
     int c;
 
 #if STRB_EXT_STATE
@@ -927,6 +1019,7 @@ int main(void)
 #endif
 
 #if STRB_EXT_STATE || !STRB_FREESTANDING
+    test_reuse_termination();
     test_output_equivalence();
 #if STRB_UNPUTC
     test_write_zero();
@@ -967,7 +1060,15 @@ int main(void)
 
     memset(array, 'a', sizeof array);
     // No null terminator.
-    assert(strb_reuse(&state, sizeof array, array) == NULL);
+    s = strb_reuse(&state, sizeof array, array);
+    assert(s);
+    {
+        const size_t size = sizeof array < STRB_MAX_SIZE ? sizeof array : STRB_MAX_SIZE;
+        assert(strb_len(&*s) == size - 1u);
+        assert(strb_tell(&*s) == size - 1u);
+        assert(array[size - 1u] == '\0');
+        assert(size == sizeof array || array[size] == 'a');
+    }
 
     strcpy(array,
              "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
@@ -978,12 +1079,11 @@ int main(void)
              "accumsan, ante sit amet "
              "commodo massa nunc. ");
     s = strb_reuse(&state, sizeof array, array);
-#if STRB_MAX_SIZE <= UINT8_MAX
-    assert(!s); // too long
-#else
     assert(s);
+    assert(strb_len(&*s) == strlen(array));
+    assert(strb_tell(&*s) == strlen(array));
+    assert(strb_len(&*s) < STRB_MAX_SIZE);
     puts(strb_ptr(&*s));
-#endif
 
 #if STRB_REUSE_CONST
     {
@@ -1039,7 +1139,16 @@ int main(void)
     strb_free(s);
 
     memset(array, 'a', sizeof array);
-    assert(strb_reuse(sizeof array, array) == NULL);
+    s = strb_reuse(sizeof array, array);
+    assert(s);
+    {
+        const size_t size = sizeof array < STRB_MAX_SIZE ? sizeof array : STRB_MAX_SIZE;
+        assert(strb_len(&*s) == size - 1u);
+        assert(strb_tell(&*s) == size - 1u);
+        assert(array[size - 1u] == '\0');
+        assert(size == sizeof array || array[size] == 'a');
+    }
+    strb_free(&*s);
 #else
     (void)s;
     (void)array;
