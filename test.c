@@ -1117,7 +1117,8 @@ int main(void)
 #endif
 
     test(&*s);
-    c = strb_ptr(&*s)[strb_len(&*s) - 1];
+    // Reuse stops at the first null, including an unrestored split.
+    c = array[strlen(array) - 1];
 
     s = strb_reuse(&state, sizeof array, array);
     if (!s) {
@@ -1211,7 +1212,8 @@ int main(void)
 #endif
 
     test(&*s);
-    c = strb_ptr(&*s)[strb_len(s) - 1];
+    // Reuse stops at the first null, including an unrestored split.
+    c = array[strlen(array) - 1];
     strb_free(s);
 
     s = strb_reuse(sizeof array, array);

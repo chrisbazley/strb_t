@@ -109,6 +109,8 @@ endfunction()
 add_strb_variant("" "")
 add_strb_variant("static" "STRB_STATIC_ALLOC")
 add_strb_variant("freestanding" "STRB_FREESTANDING")
+# Exercise split strings without restoring their overwritten characters.
+add_strb_variant("no_restore" "STRB_RESTORE=0")
 
 # Compile and run the examples used by the interface design page.
 add_executable(design_examples examples/design.c)
