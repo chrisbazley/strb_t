@@ -2,43 +2,37 @@
 # Copyright 2024 Christopher Bazley
 # SPDX-License-Identifier: MIT
 
-# Tools
 CC = gcc
-Link = gcc
-
-# Toolflags:
-CCFlags = -c -Wall -Wextra -Wsign-compare -pedantic -std=c11 -MMD -MP -g -MF $*.d
+Link = $(CC)
+CCFlags = -c -Wall -Wextra -Wsign-compare -pedantic -std=c11 -MMD -MP -g
 LinkFlags = -o $@
 
-# Final targets:
+dynamic_objects = $(addprefix build-make/dynamic/,strb_core.o strb_constructors.o strb_format.o strb_dynamic.o test.o)
+static_objects = $(addprefix build-make/static/,strb_core.o strb_constructors.o strb_format.o strb_static.o test.o)
+freestanding_objects = $(addprefix build-make/freestanding/,strb_core.o strb_fixed.o test.o)
+
+.PHONY: all
 all: test statictest freestandingtest
 
-test: strb.o test.o
-	$(Link) strb.o test.o $(LinkFlags)
+test: $(dynamic_objects)
+	$(Link) $^ $(LinkFlags)
 
-statictest: staticstrb.o statictest.o
-	$(Link) staticstrb.o statictest.o $(LinkFlags)
+statictest: $(static_objects)
+	$(Link) $^ $(LinkFlags)
 
-freestandingtest: freestandingstrb.o freestandingtest.o
-	$(Link) freestandingstrb.o freestandingtest.o $(LinkFlags)
+freestandingtest: $(freestanding_objects)
+	$(Link) $^ $(LinkFlags)
 
-# Static dependencies:
-strb.o:
-	$(CC) $(CCFlags) -o strb.o strb.c
-test.o:
-	$(CC) $(CCFlags) -o test.o test.c
+build-make/dynamic/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CCFlags) -o $@ $<
 
-staticstrb.o:
-	$(CC) $(CCFlags) -DSTRB_STATIC_ALLOC -o staticstrb.o strb.c
-statictest.o:
-	$(CC) $(CCFlags) -DSTRB_STATIC_ALLOC -o statictest.o test.c
+build-make/static/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CCFlags) -DSTRB_STATIC_ALLOC -o $@ $<
 
-freestandingstrb.o:
-	$(CC) $(CCFlags) -DSTRB_FREESTANDING -o freestandingstrb.o strb.c
-freestandingtest.o:
-	$(CC) $(CCFlags) -DSTRB_FREESTANDING -o freestandingtest.o test.c
+build-make/freestanding/%.o: %.c
+	@mkdir -p $(@D)
+	$(CC) $(CCFlags) -DSTRB_FREESTANDING -o $@ $<
 
-# Dynamic dependencies:
-# These files are generated during compilation to track C header #includes.
-# It's not an error if they don't exist.
--include strb.d test.d staticstrb.d statictest.d freestandingstrb.d freestandingtest.d
+-include $(dynamic_objects:.o=.d) $(static_objects:.o=.d) $(freestanding_objects:.o=.d)

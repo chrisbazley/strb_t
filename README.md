@@ -3,7 +3,30 @@ A new type and functions to manage strings, as proposed in WG14 papers N3250, N3
 
 See https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3276.pdf (slides) and https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf (latest paper).
 
-The prototype can be configured with -DSTRB_STATIC_ALLOC (no dynamic allocation), -DSTRB_FREESTANDING (no static allocation either), and/or -DDEBUGOUT (extra messages to stderr) and -DNDEBUG (no assertions).
+`strb_core.c` implements the common interface subset: construction
+with supplied state and character storage, accessors, editing and error handling.
+Every storage configuration compiles this translation unit.
+
+The additional functions are grouped by responsibility. `strb_constructors.c`
+provides shared construction and duplication functions; `strb_format.c` provides
+formatted construction and output. Their availability in this prototype is a
+configuration choice, not a restriction on what freestanding implementations
+may provide.
+
+Each configuration selects one implementation of storage allocation, growth and
+release:
+
+| Configuration | Sources in addition to `strb_core.c` | Definition |
+| --- | --- | --- |
+| Dynamic allocation | `strb_constructors.c`, `strb_format.c`, `strb_dynamic.c` | None |
+| Static pool | `strb_constructors.c`, `strb_format.c`, `strb_static.c` | `STRB_STATIC_ALLOC` |
+| Freestanding | `strb_fixed.c` | `STRB_FREESTANDING` |
+
+Apply the configuration definition to every translation unit, including code
+using the interface. CMake and Make select the corresponding sources and
+definitions. The private header `strb_internal.h` shares implementation state;
+users include only `strb.h`. `DEBUGOUT` enables messages to stderr, and `NDEBUG`
+disables assertions.
 
 I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 

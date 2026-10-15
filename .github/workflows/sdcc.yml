@@ -37,11 +37,13 @@ jobs:
           flags=(-mz80 --std-c99 --Werror -DSTRB_FREESTANDING=1 -I.)
           # NDEBUG avoids an SDCC 4.6.0 internal compiler error when
           # optimizing the assertion in strb_getmode. Test assertions stay enabled.
-          sdcc "${flags[@]}" -DNDEBUG -c strb.c -o build-sdcc/strb.rel
+          sdcc "${flags[@]}" -DNDEBUG -c strb_core.c -o build-sdcc/core.rel
+          sdcc "${flags[@]}" -DNDEBUG -c strb_fixed.c -o build-sdcc/fixed.rel
           # Warning 110 reports optimizer changes to control flow in assertions.
           sdcc "${flags[@]}" --disable-warning 110 -Dmain=strb_test_main -c test.c -o build-sdcc/test.rel
           sdcc "${flags[@]}" -c tests/sdcc-runtime.c -o build-sdcc/runtime.rel
-          sdcc -mz80 build-sdcc/strb.rel build-sdcc/test.rel build-sdcc/runtime.rel -o build-sdcc/test.ihx
+          sdcc -mz80 build-sdcc/core.rel build-sdcc/fixed.rel \
+            build-sdcc/test.rel build-sdcc/runtime.rel -o build-sdcc/test.ihx
 
       - name: Run the tests in uCsim
         shell: bash
