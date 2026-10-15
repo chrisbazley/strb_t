@@ -1074,6 +1074,125 @@ static void test_reuse_const_contents(void)
 }
 #endif
 
+#if STRB_EXT_STATE && !STRB_FREESTANDING
+// All constructors share the same editing operations. Repeated construction
+// and cleanup must release character storage without freeing embedded state.
+static void test_external_state(void)
+{
+    struct {
+        unsigned before;
+        strbstate_t state;
+        unsigned after;
+    } owner;
+    static const size_t hints[] = {0, 5, 5000, SIZE_MAX};
+    size_t i;
+    owner.before = 123;
+    owner.after = 456;
+
+    {
+        strb_t *const sb = strb_init(&owner.state, 0);
+        assert(!strb_len(sb));
+        assert(!strb_tell(sb));
+        assert(!strb_error(sb));
+        assert(strb_getmode(sb) == strb_insert);
+        assert(!strcmp(strb_cptr(sb), ""));
+        assert(strb_ptr(sb)[0] == '\0');
+        assert(strb_write(sb, 0));
+        assert(strb_len(sb) == 0);
+        assert(strb_tell(sb) == 0);
+        assert(!strb_error(sb));
+#if STRB_RESTORE
+        strb_restore(sb);
+#endif
+        // Cleanup is also valid before any character storage is allocated.
+        strb_free(sb);
+    }
+
+    for (i = 0; i < ARRAY_SIZE(hints); ++i) {
+        strb_t *const sb = strb_init(&owner.state, hints[i]);
+        assert(sb);
+        assert(!strb_error(&*sb));
+        assert(strb_len(&*sb) == 0);
+        assert(strb_tell(&*sb) == 0);
+        assert(strb_getmode(&*sb) == strb_insert);
+        assert(!strcmp(strb_cptr(&*sb), ""));
+        // Neither an empty write nor a failed write consumes the hint.
+        assert(strb_write(&*sb, 0));
+#if STRB_RESTORE
+        strb_restore(&*sb);
+#endif
+        assert(!strb_write(&*sb, STRB_MAX_SIZE));
+        assert(strb_error(&*sb));
+        assert(strb_len(&*sb) == 0);
+        assert(!strcmp(strb_cptr(&*sb), ""));
+        strb_clearerr(&*sb);
+        // Run the existing positioned-output and editing tests on each form.
+        test(&*sb);
+        strb_free(sb);
+        assert(owner.before == 123);
+        assert(owner.after == 456);
+    }
+
+    {
+        strb_t *const sb = strb_init(&owner.state, 64);
+        // A zero-length write away from the origin still needs real storage.
+        strb_seek(sb, 3);
+        assert(strb_write(sb, 0));
+        assert(strb_len(sb) == 3);
+        assert(strb_tell(sb) == 3);
+        assert(!memcmp(strb_cptr(sb), "\0\0\0", 4));
+        assert(!strb_error(sb));
+        strb_free(sb);
+    }
+
+#if !STRB_STATIC_ALLOC
+    {
+        strb_t *const sb = strb_init(&owner.state, 0);
+        // Force first allocation, then reallocation, preserving the text.
+        const size_t count = STRB_DFL_SIZE * 3u;
+        assert(!strb_puts(sb, "prefix"));
+        assert(strb_nputc(sb, 'x', count) == 'x');
+        assert(strb_len(sb) == strlen("prefix") + count);
+        assert(!memcmp(strb_cptr(sb), "prefix", strlen("prefix")));
+
+        for (i = strlen("prefix"); i < strb_len(sb); ++i) {
+            assert(strb_cptr(sb)[i] == 'x');
+        }
+
+        strb_free(sb);
+    }
+#else
+    {
+        strbstate_t states[STRB_MAX + 1];
+        strb_t *buffers[STRB_MAX + 1];
+        // Exhaust the pool, then construct another buffer without allocating.
+        for (i = 0; i < STRB_MAX; ++i) {
+            buffers[i] = strb_init(&states[i], SIZE_MAX);
+            assert(!strb_puts(buffers[i], "pool"));
+        }
+
+        buffers[STRB_MAX] = strb_init(&states[STRB_MAX], SIZE_MAX);
+        assert(!strb_error(buffers[STRB_MAX]));
+        assert(strb_puts(buffers[STRB_MAX], "pool") == EOF);
+        assert(strb_error(buffers[STRB_MAX]));
+        assert(strb_len(buffers[STRB_MAX]) == 0);
+        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), ""));
+
+        // Failed allocation leaves a usable buffer; cleanup releases a slot.
+        strb_free(buffers[0]);
+        strb_clearerr(buffers[STRB_MAX]);
+        assert(!strb_puts(buffers[STRB_MAX], "pool"));
+        assert(!strb_error(buffers[STRB_MAX]));
+        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), "pool"));
+
+        for (i = 1; i < ARRAY_SIZE(states); ++i) {
+            strb_free(buffers[i]);
+        }
+    }
+#endif
+}
+#endif
+
 int main(void)
 {
     static char array[1000];
@@ -1088,6 +1207,9 @@ int main(void)
     strbstate_t state;
 #endif
 
+#if STRB_EXT_STATE && !STRB_FREESTANDING
+    test_external_state();
+#endif
 #if STRB_EXT_STATE || !STRB_FREESTANDING
     test_reuse_contents();
     test_output_equivalence();

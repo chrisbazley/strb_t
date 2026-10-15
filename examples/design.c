@@ -138,6 +138,20 @@ static bool fruit_rows_example(void)
 }
 //! [fruit_caller]
 
+//! [fruit_local]
+static bool fruit_local_example(void)
+{
+    static const unsigned indices[] = {0, 2, 1};
+    strbstate_t state;
+    strb_t *const sb = strb_init(&state, 0);
+
+    put_fruit_list(sb, ARRAY_SIZE(indices), indices);
+    const bool success = !strb_error(sb) && puts(strb_cptr(sb)) != EOF;
+    strb_free(sb);
+    return success;
+}
+//! [fruit_local]
+
 //! [short_write]
 static bool put_character(strb_t *const sb, const char32_t character)
 {
@@ -190,7 +204,7 @@ static bool short_write_example(void)
 int main(void)
 {
     return editing_example() && fruit_sentence_example() && fruit_rows_example() &&
-                   short_write_example()
+                   fruit_local_example() && short_write_example()
                ? EXIT_SUCCESS
                : EXIT_FAILURE;
 }
