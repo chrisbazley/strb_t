@@ -1155,6 +1155,8 @@ _Optional char *strb_write(strb_t *sb, size_t n);
  *       with a count of zero.
  * @post If successful, the user may call @ref strb_restore to restore the
  *       character that was at the current position before the call to @ref strb_split.
+ * @post On failure, a call to @ref strb_error will return true until
+ *       @ref strb_clearerr has been called.
  */
 int strb_split(strb_t *sb);
 
