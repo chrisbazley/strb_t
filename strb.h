@@ -689,11 +689,11 @@ void strb_free(_Optional strb_t *sb);
  * @return Address of the character stored at position 0 in the string buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
- *       @ref strb_ndup, @ref strb_aprintf or
- * @ref strb_vaprintf. The C11 macro's const accessor also accepts an address
- * returned by @ref strb_reuse_const.
+ *       @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
+         The C11 macro's const accessor also accepts an address
+ *       returned by @ref strb_reuse_const.
  * @post The returned pointer is valid until the next call to a strb_...
- * function.
+ *       function.
  */
 char *strb_ptr(strb_t *sb);
 
@@ -707,6 +707,11 @@ char *strb_ptr(strb_t *sb);
  *
  * @param[in] sb  String buffer.
  * @return Address of the character stored at position 0 in the string buffer.
+ * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
+ *       @ref strb_reuse_const, @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
+ * @post The returned pointer is valid until the next call to a strb_...
+ *       function.
  * @see strb_ptr
  */
 const char *strb_cptr(strb_t const *sb);
@@ -728,9 +733,8 @@ const char *strb_cptr(strb_t const *sb);
  * @param[in] sb  String buffer.
  * @return Number of characters stored in the string buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
- *       @ref strb_ndup, @ref strb_aprintf or
- * @ref strb_vaprintf.
+ *       @ref strb_reuse_const, @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
  */
 size_t strb_len(strb_t const *sb);
 
@@ -835,7 +839,7 @@ void strb_seek(strb_t *sb, size_t pos);
  * @param[in] sb  String buffer.
  * @return Current editing position, or @c SIZE_MAX if it is unsupported.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_reuse_const, @ref strb_init, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post The returned value may be passed to @ref strb_seek.
