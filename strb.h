@@ -321,25 +321,23 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * @param         size  Number of elements in the array to be used instead of an
  *                      internal buffer, including space for the terminating null
  *                      character. Must not be 0.
- * @param[in,out] buf   The array to be used instead of an internal buffer.
+ * @param[in]     buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object.
  * @post The user may call @ref strb_free to free the string buffer object, but
  *       it is not required and has no effect.
- * @post The created string buffer object becomes invalid if the storage for @p
- * sbs or @p buf is deallocated.
+ * @post The created string buffer object becomes invalid if the storage for
+ *       @p sbs or @p buf is deallocated.
  * @post The created string buffer object becomes invalid if the @p sbs object
- * is modified (other than as a side-effect of calling a strb_... function which
- * is not
- *       @ref strb_reuse or @ref strb_use).
- * @post @ref strb_tell and @ref strb_len return the reused
- * string length.
+ *       is modified (other than as a side-effect of calling a strb_... function which
+ *       is not @ref strb_reuse or @ref strb_use).
+ * @post @ref strb_tell and @ref strb_len return the reused string length.
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post The last character of the reused string (if any) can be
  *       removed by @ref strb_unputc.
  * @post Initially, @ref strb_error returns true if no null character was found
- * within the supported extent, otherwise false.
+ *       within the supported extent, otherwise false.
  */
 strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
                              char buf[STRB_SIZE_HINT(size)]);
