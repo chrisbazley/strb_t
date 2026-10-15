@@ -367,16 +367,16 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * @param[in]  buf   The array to be used instead of an internal buffer.
  *
  * @return Address of the created string buffer object.
- * @post The created string buffer object becomes invalid if the storage for @p
- * sbs or @p buf is deallocated.
+ * @post The created string buffer object becomes invalid if the storage for 
+ *       @p sbs or @p buf is deallocated.
  * @post The created string buffer object becomes invalid if the @p sbs object
- * is modified.
+ *       is modified.
  * @post @ref strb_tell and @ref strb_len return the constant string's length,
- * or 0 if it cannot be reused.
- * @post @ref strb_cptr returns the constant string's address, or the address of
- * an empty string if it cannot be reused.
- * @post Initially, @ref strb_error returns true if no null character was found
- * within the supported extent, otherwise false.
+ *       or 0 if if no null character was found within the supported extent.
+ * @post @ref strb_cptr returns the value of @buf, or the address of an empty
+ *       string if no null character was found within the supported extent.
+ * @post @ref strb_error returns true if no null character was found
+ *       within the supported extent, otherwise false.
  */
 const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
                                          const char *restrict buf);
