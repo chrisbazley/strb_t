@@ -202,13 +202,9 @@ const strb_t *strb_reuse_const(strbstate_t *STRB_CONST restrict sbs,
     DEBUGF("Reuse const buffer %p\n", (void *)buf);
 
     {
-        const size_t len = strb_strnlen(buf, STRB_MAX_SIZE);
-        const size_t initial_len = len < STRB_MAX_SIZE ? len : 0;
-        const char *initial_buf = buf;
-
-        if (len == STRB_MAX_SIZE) {
-            initial_buf = "";
-        }
+        const size_t len = strb_strnlen(buf, STRB_MAX_SIZE),
+                     initial_len = len < STRB_MAX_SIZE ? len : 0;
+        const char *const initial_buf = len < STRB_MAX_SIZE ? buf : "";
 
         {
             strb_t *const sb = init_use(sbs, (strbsize_t)(initial_len + 1u),
