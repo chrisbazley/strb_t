@@ -9,26 +9,26 @@ of type @ref strb_t combines a character array, a recorded length, an error
 indicator, an editing position and an editing mode.  The choice is who
 supplies storage for that state.
 
-With @ref strb_use, the caller supplies both a character array and a
-@ref strbstate_t object. No allocation is needed, so initialisation cannot fail.
-Both objects must remain alive for as long as the buffer is used.  Because no
-storage is allocated by the library, this constructor can be provided even by
-freestanding implementations that do not provide @c malloc.
+With @ref strb_use, @ref strb_reuse or @ref strb_reuse_const, the caller supplies
+both a character array and a @ref strbstate_t object. No allocation is needed,
+so initialisation cannot fail. Both objects must remain alive for as long as the
+buffer is used.  Because no storage is allocated by the library, these constructors
+can be provided even by freestanding implementations that do not provide @c malloc.
 
-With @ref strb_alloc, the library supplies storage for both the state and the
-characters. The caller manages the buffer through the returned @ref strb_t
-pointer and releases it with @ref strb_free. Creation can fail if storage is
-unavailable.
+With @ref strb_alloc and similar functions such as @ref strb_dup and @ref strb_aprintf,
+the library supplies storage for both the state and the characters. The caller manages
+the buffer through the returned @ref strb_t pointer and releases it with @ref strb_free.
+Creation can fail if storage is unavailable.
 
 The output and editing functions use the same interface in either case.
 A text producer therefore need not know how its caller created the buffer.
 
-@subsection design_reuse_contents Reusing an array with unsupported contents
+@section design_reuse_contents Reusing an array
 
-With @ref strb_reuse, the caller supplies both a character array and a
-@ref strbstate_t object, as with @ref strb_use, but retains an existing string
-if it fits within the supported extent. For a string produced through
-@ref strb_use, termination and a supported length have already been established.
+With @ref strb_reuse or @ref strb_reuse_const, the library reuses the existing
+content of the supplied character array as the initial string if it fits within
+the supported extent. For a character array populated through @ref strb_use,
+null termination and a supported length have already been established.
 
 If no null character is found within the supplied array size or the maximum
 supported size, whichever is less, the initial string is empty and the error
