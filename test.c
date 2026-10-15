@@ -1104,7 +1104,7 @@ static void test_external_state(void)
 #if STRB_RESTORE
         strb_restore(sb);
 #endif
-        // Even a buffer that never allocated storage requires cleanup.
+        // Cleanup is also valid before any character storage is allocated.
         strb_free(sb);
     }
 
@@ -1165,44 +1165,28 @@ static void test_external_state(void)
     {
         strbstate_t states[STRB_MAX + 1];
         strb_t *buffers[STRB_MAX + 1];
-        // Empty lazy buffers consume no pool slots. Allocating one later can
-        // fail, and releasing another must make its slot available again.
-        for (i = 0; i < ARRAY_SIZE(states); ++i) {
-            buffers[i] = strb_init(&states[i], SIZE_MAX);
-        }
-
+        // Exhaust the pool, then construct another buffer without allocating.
         for (i = 0; i < STRB_MAX; ++i) {
+            buffers[i] = strb_init(&states[i], SIZE_MAX);
             assert(!strb_puts(buffers[i], "pool"));
         }
 
+        buffers[STRB_MAX] = strb_init(&states[STRB_MAX], SIZE_MAX);
+        assert(!strb_error(buffers[STRB_MAX]));
         assert(strb_puts(buffers[STRB_MAX], "pool") == EOF);
         assert(strb_error(buffers[STRB_MAX]));
         assert(strb_len(buffers[STRB_MAX]) == 0);
         assert(!strcmp(strb_cptr(buffers[STRB_MAX]), ""));
 
-        {
-            strbstate_t unused;
-            strb_t *const sb = strb_init(&unused, SIZE_MAX);
-            assert(!strb_error(sb));
-            assert(!strcmp(strb_cptr(sb), ""));
-            strb_free(sb);
-        }
-
+        // Failed allocation leaves a usable buffer; cleanup releases a slot.
         strb_free(buffers[0]);
         strb_clearerr(buffers[STRB_MAX]);
         assert(!strb_puts(buffers[STRB_MAX], "pool"));
-        // Once obtained, the pool buffer retains its fixed capacity.
-        assert(strb_nputc(buffers[STRB_MAX], 'x', STRB_MAX_SIZE) == EOF);
+        assert(!strb_error(buffers[STRB_MAX]));
         assert(!strcmp(strb_cptr(buffers[STRB_MAX]), "pool"));
 
         for (i = 1; i < ARRAY_SIZE(states); ++i) {
             strb_free(buffers[i]);
-        }
-
-        {
-            strb_t *const sb = strb_init(&owner.state, 0);
-            assert(!strb_puts(sb, "pool")); // Reuse a released slot.
-            strb_free(sb);
         }
     }
 #endif

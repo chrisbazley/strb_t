@@ -59,7 +59,7 @@
 #if STRB_FREESTANDING
 // No static or dynamic allocation
 /**
- * Maximum number of allocated string buffer objects.
+ * Maximum number of string buffers using internally allocated storage.
  */
 #define STRB_MAX SIZE_MAX
 /**
@@ -80,7 +80,7 @@ typedef uint8_t strbsize_t;
 #elif STRB_STATIC_ALLOC
 // About 2KB of static storage
 /**
- * Maximum number of allocated string buffer objects.
+ * Maximum number of string buffers using internally allocated storage.
  */
 #define STRB_MAX (8) // must not exceed 8
 
@@ -103,7 +103,7 @@ typedef uint8_t strbsize_t;
 #else
 // Unlimited dynamic allocation
 /**
- * Maximum number of allocated string buffer objects.
+ * Maximum number of string buffers using internally allocated storage.
  */
 #define STRB_MAX SIZE_MAX
 
@@ -399,8 +399,9 @@ const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
  *           storage is first allocated.
  *
  * @return Address of the created string buffer object.
- * @post The user is responsible for calling @ref strb_free to free the string
- * buffer object before the storage for @p sbs is deallocated or reused.
+ * @post The user is responsible for calling @ref strb_free to release any
+ * library-owned character storage before the storage for @p sbs is deallocated
+ * or reused. Calling @ref strb_free unconditionally is valid.
  * @post The created string buffer object becomes invalid if the storage for @p
  * sbs is deallocated.
  * @post The created string buffer object becomes invalid if the @p sbs object

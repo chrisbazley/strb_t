@@ -31,11 +31,13 @@ The existing capacity field records the hint until storage is obtained, so
 remembering it requires no additional state. The hint is not a guarantee of
 initial capacity.
 
-This initialiser requires a call to @ref strb_free before the caller's state
-storage ceases to exist or is reused, even if the buffer remains empty. This
-releases any library-owned character storage without freeing the state. Active
-state must not be copied or overwritten, including by copying its containing
-object. A buffer handle must not outlive its originating state.
+Any library-owned character storage must be released with @ref strb_free before
+the supplied state storage ceases to exist or is reused. Calling @ref strb_free
+unconditionally is valid, including when no character storage was allocated.
+An empty string does not imply that no storage is allocated. The state storage
+itself is never freed. Active state must not be copied or overwritten, including
+by copying its containing object. A buffer handle must not outlive its
+originating state.
 
 This prototype provides @ref strb_init in its dynamic and static-pool
 configurations. Its freestanding configuration provides
