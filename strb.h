@@ -373,7 +373,7 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  *       is modified.
  * @post @ref strb_tell and @ref strb_len return the constant string's length,
  *       or 0 if if no null character was found within the supported extent.
- * @post @ref strb_cptr returns the value of @buf, or the address of an empty
+ * @post @ref strb_cptr returns the value of @p buf, or the address of an empty
  *       string if no null character was found within the supported extent.
  * @post @ref strb_error returns true if no null character was found
  *       within the supported extent, otherwise false.
