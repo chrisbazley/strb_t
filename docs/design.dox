@@ -20,7 +20,28 @@ the library supplies storage for both the state and the characters. The caller m
 the buffer through the returned @ref strb_t pointer and releases it with @ref strb_free.
 Creation can fail if storage is unavailable.
 
-The output and editing functions use the same interface in either case.
+With @ref strb_init, the caller supplies a @ref strbstate_t object and the
+library manages the character storage. Initialisation cannot fail and allocates
+nothing; output obtains character storage when needed and may fail. This is
+useful for a temporary buffer or state embedded in an application object.
+
+The size hint has the same meaning as for @ref strb_alloc, but is used when
+character storage is first allocated. It does not make construction fallible.
+The existing capacity field records the hint until storage is obtained, so
+remembering it requires no additional state. The hint is not a guarantee of
+initial capacity.
+
+This initialiser requires a call to @ref strb_free before the caller's state
+storage ceases to exist or is reused, even if the buffer remains empty. This
+releases any library-owned character storage without freeing the state. Active
+state must not be copied or overwritten, including by copying its containing
+object. A buffer handle must not outlive its originating state.
+
+This prototype provides @ref strb_init in its dynamic and static-pool
+configurations. Its freestanding configuration provides
+@ref strb_use for caller-supplied arrays.
+
+The output and editing functions use the same interface in all these cases.
 A text producer therefore need not know how its caller created the buffer.
 
 @section design_reuse_contents Reusing an array
@@ -263,6 +284,17 @@ The output is:
 apple,banana,orange
 lime,orange,apple
 @endverbatim
+
+@subsection design_fruit_local Growing text with local state
+
+This consumer keeps its state local while allowing the character storage to
+grow. Initialisation requires no failure check; the consumer checks the error
+indicator after generation and calls @ref strb_free on both success and failure:
+
+@snippet design.c fruit_local
+
+To supply an initial size hint, pass it as the second argument to
+@ref strb_init. Construction remains infallible.
 
 @section design_errors Deferred errors and operation boundaries
 
