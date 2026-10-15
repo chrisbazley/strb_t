@@ -64,11 +64,10 @@ else()
     add_compile_options(-Wall -Wextra -Wsign-conversion -pedantic)
 endif()
 
-set(SOURCES strb.c)
-file(GLOB PUBLIC_HEADERS "*.h")
+set(PUBLIC_HEADERS strb.h)
 
 # Helper function to create library + corresponding test
-function(add_strb_variant suffix definitions)
+function(add_strb_variant suffix definitions sources)
     set(lib_target "strb${suffix}")
 
     if("${suffix}" STREQUAL "")
@@ -78,7 +77,7 @@ function(add_strb_variant suffix definitions)
     endif()
 
     # Create the Library
-    add_library(${lib_target} STATIC ${SOURCES} ${PUBLIC_HEADERS})
+    add_library(${lib_target} STATIC strb_core.c ${sources} ${PUBLIC_HEADERS})
     target_compile_definitions(${lib_target} PRIVATE ${definitions})
     target_include_directories(${lib_target} PUBLIC .)
     
@@ -106,11 +105,11 @@ function(add_strb_variant suffix definitions)
 endfunction()
 
 ## Build all variants
-add_strb_variant("" "")
-add_strb_variant("static" "STRB_STATIC_ALLOC")
-add_strb_variant("freestanding" "STRB_FREESTANDING")
+add_strb_variant("" "" "strb_constructors.c;strb_format.c;strb_dynamic.c")
+add_strb_variant("static" "STRB_STATIC_ALLOC" "strb_constructors.c;strb_format.c;strb_static.c")
+add_strb_variant("freestanding" "STRB_FREESTANDING" "strb_fixed.c")
 # Exercise split strings without restoring their overwritten characters.
-add_strb_variant("no_restore" "STRB_RESTORE=0")
+add_strb_variant("no_restore" "STRB_RESTORE=0" "strb_constructors.c;strb_format.c;strb_dynamic.c")
 
 # Compile and run the examples used by the interface design page.
 add_executable(design_examples examples/design.c)

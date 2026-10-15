@@ -5,7 +5,8 @@ on:
     branches: [main]
     paths:
       - "strb.h"
-      - "strb.c"
+      - "strb*.c"
+      - "strb_internal.h"
       - "Doxyfile"
       - "docs/**"
       - "examples/**"
@@ -13,7 +14,8 @@ on:
   pull_request:
     paths:
       - "strb.h"
-      - "strb.c"
+      - "strb*.c"
+      - "strb_internal.h"
       - "Doxyfile"
       - "docs/**"
       - "examples/**"
