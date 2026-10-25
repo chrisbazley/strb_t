@@ -163,11 +163,7 @@ int strb_setmode(strb_t *STRB_CONST sb, STRB_CONST int mode)
 int strb_getmode(const strb_t *STRB_CONST sb)
 {
     assert(sb);
-    {
-        const int mode = (sb->p.flags & F_OVERWRITE) ? strb_overwrite : strb_insert;
-        assert(mode == strb_insert || mode == strb_overwrite);
-        return mode;
-    }
+    return (sb->p.flags & F_OVERWRITE) ? strb_overwrite : strb_insert;
 }
 
 void strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
@@ -185,7 +181,10 @@ void strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
 size_t strb_tell(strb_t const *STRB_CONST sb)
 {
     assert(sb);
+    // Only static allocation has a position limit below the storage type maximum.
+#if STRB_STATIC_ALLOC && !STRB_FREESTANDING
     assert(sb->p.pos <= STRB_MAX_SIZE);
+#endif
     DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize
            "\n", sb->p.pos, sb->p.len, sb->p.size);
     return sb->p.pos == STRB_MAX_SIZE ? SIZE_MAX : sb->p.pos;
@@ -301,7 +300,9 @@ _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
     assert(sb);
     assert(!(sb->p.flags & F_IS_CONST));
     assert(sb->p.len < sb->p.size);
+#if STRB_STATIC_ALLOC && !STRB_FREESTANDING
     assert(sb->p.pos <= STRB_MAX_SIZE);
+#endif
     assert(sb->p.buf[sb->p.len] == '\0');
     DEBUGF("About to write %zu chars\n", n);
 
