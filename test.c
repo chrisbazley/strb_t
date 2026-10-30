@@ -1329,6 +1329,7 @@ int main(void)
 
 #elif !STRB_FREESTANDING
     s = strb_use(sizeof array, array);
+    assert(s);
 #if STRB_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
@@ -1339,6 +1340,7 @@ int main(void)
     strb_free(s);
 
     s = strb_reuse(sizeof array, array);
+    assert(s);
 #if STRB_UNPUTC
     assert(strb_unputc(&*s) == c);
 #else

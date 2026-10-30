@@ -30,6 +30,26 @@ disables assertions.
 
 I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 
+## Configuration tests
+
+CMake builds and runs the existing suite with each optional interface disabled:
+`STRB_EXT_STATE`, `STRB_UNPUTC`, `STRB_RESTORE` and `STRB_REUSE_CONST`. It also
+tests a minimal configuration with all four disabled. These variants cover
+dynamic allocation, the static pool, and freestanding storage where applicable.
+Freestanding configurations without external state are omitted because they
+provide no constructors and would run no string-buffer tests.
+
+The feature-off targets use their own interface definitions; the design examples
+continue to use the full-interface `strb` target. Definitions propagate from each
+library target to its consumers. The additional test-only archives are not
+installed. Run all 17 registered tests with:
+
+```
+cmake -S . -B build -DWARNINGS_AS_ERRORS=ON
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
 ## Documentation
 
 [Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface is generated using Doxygen.

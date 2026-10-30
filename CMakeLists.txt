@@ -68,6 +68,7 @@ set(PUBLIC_HEADERS strb.h)
 
 # Helper function to create library + corresponding test
 function(add_strb_variant suffix definitions sources)
+    cmake_parse_arguments(VARIANT "TEST_ONLY" "" "" ${ARGN})
     set(lib_target "strb${suffix}")
 
     if("${suffix}" STREQUAL "")
@@ -78,7 +79,8 @@ function(add_strb_variant suffix definitions sources)
 
     # Create the Library
     add_library(${lib_target} STATIC strb_core.c ${sources} ${PUBLIC_HEADERS})
-    target_compile_definitions(${lib_target} PRIVATE ${definitions})
+    # These definitions select the interface as well as the implementation.
+    target_compile_definitions(${lib_target} PUBLIC ${definitions})
     target_include_directories(${lib_target} PUBLIC .)
     
     set_target_properties(${lib_target} PROPERTIES
@@ -91,25 +93,51 @@ function(add_strb_variant suffix definitions sources)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test.c")
         add_executable(${test_target} test.c)
         target_link_libraries(${test_target} PRIVATE ${lib_target})
-        # Ensure the test executable also gets the variant definitions
-        target_compile_definitions(${test_target} PRIVATE ${definitions})
 
         # Register the test so CTest can run it
         add_test(NAME "check_${test_target}" COMMAND ${test_target})
     endif()
 
-    install(TARGETS ${lib_target}
-        ARCHIVE DESTINATION lib
-        PUBLIC_HEADER DESTINATION include
-    )
+    if(NOT VARIANT_TEST_ONLY)
+        install(TARGETS ${lib_target}
+            ARCHIVE DESTINATION lib
+            PUBLIC_HEADER DESTINATION include
+        )
+    endif()
 endfunction()
 
 ## Build all variants
-add_strb_variant("" "" "strb_constructors.c;strb_format.c;strb_dynamic.c")
-add_strb_variant("static" "STRB_STATIC_ALLOC" "strb_constructors.c;strb_format.c;strb_static.c")
+set(DYNAMIC_SOURCES strb_constructors.c strb_format.c strb_dynamic.c)
+set(STATIC_SOURCES strb_constructors.c strb_format.c strb_static.c)
+add_strb_variant("" "" "${DYNAMIC_SOURCES}")
+add_strb_variant("static" "STRB_STATIC_ALLOC" "${STATIC_SOURCES}")
 add_strb_variant("freestanding" "STRB_FREESTANDING" "strb_fixed.c")
 # Exercise split strings without restoring their overwritten characters.
-add_strb_variant("no_restore" "STRB_RESTORE=0" "strb_constructors.c;strb_format.c;strb_dynamic.c")
+add_strb_variant("no_restore" "STRB_RESTORE=0" "${DYNAMIC_SOURCES}")
+add_strb_variant("static_no_restore" "STRB_STATIC_ALLOC;STRB_RESTORE=0" "${STATIC_SOURCES}" TEST_ONLY)
+add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" "strb_fixed.c" TEST_ONLY)
+
+# Exercise optional interfaces independently and together, without changing
+# the full-interface library used by the documentation examples.
+foreach(configuration no_ext_state no_unputc no_reuse_const minimal)
+    if(configuration STREQUAL "no_ext_state")
+        set(definitions STRB_EXT_STATE=0)
+    elseif(configuration STREQUAL "no_unputc")
+        set(definitions STRB_UNPUTC=0)
+    elseif(configuration STREQUAL "no_reuse_const")
+        set(definitions STRB_REUSE_CONST=0)
+    else()
+        set(definitions STRB_EXT_STATE=0 STRB_UNPUTC=0 STRB_RESTORE=0 STRB_REUSE_CONST=0)
+    endif()
+
+    add_strb_variant("${configuration}" "${definitions}" "${DYNAMIC_SOURCES}" TEST_ONLY)
+    add_strb_variant("static_${configuration}" "STRB_STATIC_ALLOC;${definitions}" "${STATIC_SOURCES}" TEST_ONLY)
+    # Without external state or allocation there is no way to construct a
+    # string buffer; avoid counting an empty test program as coverage.
+    if(NOT configuration STREQUAL "no_ext_state" AND NOT configuration STREQUAL "minimal")
+        add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "strb_fixed.c" TEST_ONLY)
+    endif()
+endforeach()
 
 # Compile and run the examples used by the interface design page.
 add_executable(design_examples examples/design.c)
