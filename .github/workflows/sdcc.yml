@@ -18,14 +18,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download SDCC trunk r17089
+      - name: Cache SDCC snapshot
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/sdcc.tar.bz2
+          key: sdcc-linux-amd64-17140-ef5fc1de3b189510
+
+      - name: Download SDCC trunk r17140
         shell: bash
         run: |
           archive="$RUNNER_TEMP/sdcc.tar.bz2"
-          curl --fail --location --retry 3 --max-time 180 \
-            https://downloads.sourceforge.net/project/sdcc/snapshot_builds/amd64-unknown-linux2.5/sdcc-snapshot-amd64-unknown-linux2.5-20261025-17089-cf-x86.tar.bz2 \
-            --output "$archive"
-          echo "19b90b14579d3cb7394bfe2513382f899c40e45de35ca630298683ff806b3ed0  $archive" | sha256sum --check
+          if test ! -f "$archive"; then
+            curl --fail --location --retry 3 --max-time 180 \
+              https://downloads.sourceforge.net/project/sdcc/snapshot_builds/amd64-unknown-linux2.5/sdcc-snapshot-amd64-unknown-linux2.5-20261105-17140-cf-x86.tar.bz2 \
+              --output "$archive"
+          fi
+          echo "ef5fc1de3b18951056d38778dc9770a65205baed6f1a56838b0f1a5fd5b15f83  $archive" | sha256sum --check
           tar --no-same-owner -xjf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/sdcc/bin" >> "$GITHUB_PATH"
 

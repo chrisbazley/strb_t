@@ -84,7 +84,7 @@ jobs:
     timeout-minutes: 60
 
     env:
-      OPTIONAL_CLANG_TAG: v1.0.12-optional
+      OPTIONAL_CLANG_TAG: v1.0.14-optional
       OPTIONAL_CLANG_PLATFORM: linux-x86_64
       GH_TOKEN: ${{ github.token }}
 
@@ -147,7 +147,9 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_C_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang" \
+            -DCMAKE_C_FLAGS="-Werror=null-to-nonoptional -Werror=implicit-null-initialization" \
             -DCMAKE_CXX_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang++" \
+            -DCMAKE_CXX_FLAGS="-Werror=null-to-nonoptional -Werror=implicit-null-initialization" \
             -DCLANG_TIDY_EXE="$OPTIONAL_CLANG_ROOT/bin/clang-tidy" \
             -DWARNINGS_AS_ERRORS=ON \
             -DUSE_OPTIONAL=ON \
