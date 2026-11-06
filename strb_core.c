@@ -291,7 +291,7 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
         }
     }
 
-    return strb_grow(sb, (strbsize_t)(top + n + 1u));
+    return STRB_GROW(sb, (strbsize_t)(top + n + 1u));
 }
 
 _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)

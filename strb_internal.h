@@ -56,9 +56,12 @@ bool strb_grow(strb_t *sb, strbsize_t minimum_size);
 #if STRB_FREESTANDING
 // A zero mask avoids unreachable-code diagnostics for fixed storage.
 #define STRB_DEFERRED_ALLOC(sb) (((sb)->p.flags & 0) != 0)
+// Fixed storage cannot grow. Neither argument is evaluated.
+#define STRB_GROW(sb, minimum_size) false
 #else
 #define STRB_DEFERRED_ALLOC(sb) \
     (((sb)->p.flags & (F_EXT_STATE | F_EXTERNAL | F_ALLOCATED)) == F_EXT_STATE)
+#define STRB_GROW(sb, minimum_size) strb_grow(sb, minimum_size)
 #endif
 int strb_set_error(strb_t *sb);
 void strb_empty(strb_t *sb);
