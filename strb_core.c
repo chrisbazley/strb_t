@@ -64,16 +64,24 @@ strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
     }
 
     {
-        const size_t len = strb_strnlen(buf, size);
-        strb_t *const sb = init_use(sbs, (strbsize_t)size, buf,
-                                   (strbsize_t)(len < size ? len : 0));
+        size_t len = strb_strnlen(buf, size);
+        const bool failed = len == size;
 
-        if (len == size) {
+        if (failed) {
             buf[0] = '\0';
-            sb->p.flags |= F_ERR;
+            len = 0;
         }
 
-        return sb;
+        {
+            strb_t *const sb = init_use(sbs, (strbsize_t)size, buf,
+                                       (strbsize_t)len);
+
+            if (failed) {
+                sb->p.flags |= F_ERR;
+            }
+
+            return sb;
+        }
     }
 }
 
@@ -277,8 +285,7 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
     {
         strbsize_t size = sb->p.size;
 
-        if ((sb->p.flags & F_EXT_STATE) &&
-            !(sb->p.flags & (F_EXTERNAL | F_ALLOCATED))) {
+        if (STRB_DEFERRED_ALLOC(sb)) {
             // Only the terminator exists; size is still an allocation hint.
             size = 1;
         }
@@ -292,7 +299,7 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
         }
     }
 
-    return strb_grow(sb, (strbsize_t)(top + n + 1u));
+    return STRB_GROW(sb, (strbsize_t)(top + n + 1u));
 }
 
 _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
