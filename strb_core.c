@@ -64,16 +64,24 @@ strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
     }
 
     {
-        const size_t len = strb_strnlen(buf, size);
-        strb_t *const sb = init_use(sbs, (strbsize_t)size, buf,
-                                   (strbsize_t)(len < size ? len : 0));
+        size_t len = strb_strnlen(buf, size);
+        const bool failed = len == size;
 
-        if (len == size) {
+        if (failed) {
             buf[0] = '\0';
-            sb->p.flags |= F_ERR;
+            len = 0;
         }
 
-        return sb;
+        {
+            strb_t *const sb = init_use(sbs, (strbsize_t)size, buf,
+                                       (strbsize_t)len);
+
+            if (failed) {
+                sb->p.flags |= F_ERR;
+            }
+
+            return sb;
+        }
     }
 }
 
