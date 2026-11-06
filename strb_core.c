@@ -130,11 +130,20 @@ char *strb_ptr(strb_t *STRB_CONST sb)
     return sb->p.buf;
 }
 
+#if defined(NDEBUG) && defined(__GNUC__) && defined(__ELF__)
+// With assertions disabled, both accessors have the same implementation.
+const char *strb_cptr(strb_t const *sb) __attribute__((alias("strb_ptr")));
+#else
 const char *strb_cptr(strb_t const *STRB_CONST sb)
 {
+#ifdef NDEBUG
+    return strb_ptr((strb_t *)sb);
+#else
     assert(sb);
     return sb->p.buf;
+#endif
 }
+#endif
 
 size_t strb_len(strb_t const *STRB_CONST sb)
 {
