@@ -111,11 +111,11 @@ set(DYNAMIC_SOURCES strb_constructors.c strb_format.c strb_dynamic.c)
 set(STATIC_SOURCES strb_constructors.c strb_format.c strb_static.c)
 add_strb_variant("" "" "${DYNAMIC_SOURCES}")
 add_strb_variant("static" "STRB_STATIC_ALLOC" "${STATIC_SOURCES}")
-add_strb_variant("freestanding" "STRB_FREESTANDING" "strb_fixed.c")
+add_strb_variant("freestanding" "STRB_FREESTANDING" "")
 # Exercise split strings without restoring their overwritten characters.
 add_strb_variant("no_restore" "STRB_RESTORE=0" "${DYNAMIC_SOURCES}")
 add_strb_variant("static_no_restore" "STRB_STATIC_ALLOC;STRB_RESTORE=0" "${STATIC_SOURCES}" TEST_ONLY)
-add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" "strb_fixed.c" TEST_ONLY)
+add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" "" TEST_ONLY)
 
 # Exercise optional interfaces independently and together, without changing
 # the full-interface library used by the documentation examples.
@@ -135,7 +135,7 @@ foreach(configuration no_ext_state no_unputc no_reuse_const minimal)
     # Without external state or allocation there is no way to construct a
     # string buffer; avoid counting an empty test program as coverage.
     if(NOT configuration STREQUAL "no_ext_state" AND NOT configuration STREQUAL "minimal")
-        add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "strb_fixed.c" TEST_ONLY)
+        add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "" TEST_ONLY)
     endif()
 endforeach()
 

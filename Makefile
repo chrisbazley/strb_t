@@ -9,7 +9,7 @@ LinkFlags = -o $@
 
 dynamic_objects = $(addprefix build-make/dynamic/,strb_core.o strb_constructors.o strb_format.o strb_dynamic.o test.o)
 static_objects = $(addprefix build-make/static/,strb_core.o strb_constructors.o strb_format.o strb_static.o test.o)
-freestanding_objects = $(addprefix build-make/freestanding/,strb_core.o strb_fixed.o test.o)
+freestanding_objects = $(addprefix build-make/freestanding/,strb_core.o test.o)
 
 .PHONY: all
 all: test statictest freestandingtest

@@ -20,7 +20,7 @@ release:
 | --- | --- | --- |
 | Dynamic allocation | `strb_constructors.c`, `strb_format.c`, `strb_dynamic.c` | None |
 | Static pool | `strb_constructors.c`, `strb_format.c`, `strb_static.c` | `STRB_STATIC_ALLOC` |
-| Freestanding | `strb_fixed.c` | `STRB_FREESTANDING` |
+| Freestanding | None | `STRB_FREESTANDING` |
 
 Apply the configuration definition to every translation unit, including code
 using the interface. CMake and Make select the corresponding sources and
@@ -84,4 +84,4 @@ A2: Incorporating safe string functions into the standard would:
 - Provide a better precedent to follow when users design their own interfaces.
 - Make it easier to write interoperable user-designed libraries.
   
-It's also the type of functionality (like malloc) that might be better optimised for different target platforms instead of each user providing their own implementation that might not be suitable. For example, [the freestanding 65C02 implementation](https://godbolt.org/z/nshq3Gn7G) compiles to 1,738 bytes of instructions with SDCC trunk (measured on 6 November 2026), with assertions, `STRB_UNPUTC` and `STRB_REUSE_CONST` disabled. This excludes RAM storage and the external `memcpy`, `memmove` and `memset` implementations. The example includes the current source files directly from GitHub via raw URLs.
+It's also the type of functionality (like malloc) that might be better optimised for different target platforms instead of each user providing their own implementation that might not be suitable. For example, [the freestanding 65C02 implementation](https://godbolt.org/z/7Ecz5Yqbx) compiles to 1,735 bytes of instructions with SDCC trunk (measured on 6 November 2026), with assertions, `STRB_UNPUTC` and `STRB_REUSE_CONST` disabled. This excludes RAM storage and the external `memcpy`, `memmove` and `memset` implementations. The example includes the current source files directly from GitHub via raw URLs.

@@ -37,7 +37,7 @@ jobs:
           case "$CONFIGURATION" in
             freestanding)
               definition=STRB_FREESTANDING=1
-              sources="strb_core.c strb_fixed.c"
+              sources="strb_core.c"
               ;;
             static)
               definition=STRB_STATIC_ALLOC=1
