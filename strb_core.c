@@ -277,8 +277,7 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
     {
         strbsize_t size = sb->p.size;
 
-        if ((sb->p.flags & F_EXT_STATE) &&
-            !(sb->p.flags & (F_EXTERNAL | F_ALLOCATED))) {
+        if (STRB_DEFERRED_ALLOC(sb)) {
             // Only the terminator exists; size is still an allocation hint.
             size = 1;
         }

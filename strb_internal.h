@@ -53,6 +53,13 @@ struct strb_t {
 
 // These helpers belong to the implementation, not to the public interface.
 bool strb_grow(strb_t *sb, strbsize_t minimum_size);
+#if STRB_FREESTANDING
+// A zero mask avoids unreachable-code diagnostics for fixed storage.
+#define STRB_DEFERRED_ALLOC(sb) (((sb)->p.flags & 0) != 0)
+#else
+#define STRB_DEFERRED_ALLOC(sb) \
+    (((sb)->p.flags & (F_EXT_STATE | F_EXTERNAL | F_ALLOCATED)) == F_EXT_STATE)
+#endif
 int strb_set_error(strb_t *sb);
 void strb_empty(strb_t *sb);
 
