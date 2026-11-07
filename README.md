@@ -1,7 +1,9 @@
 # strb_t
-A new type and functions to manage strings, as proposed in WG14 papers N3250, N3296 and N3306. Its goal is to eliminate a source of many common programmer errors. The new interface is designed to be as familiar and ergonomic as possible.
+A new type and functions to manage strings, as proposed in [WG14](https://www.open-std.org/jtc1/sc22/wg14/) papers N3250, N3296 and N3306. Its goal is to eliminate a source of many common programmer errors. The new interface is designed to be as familiar and ergonomic as possible.
 
-See https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3276.pdf (slides) and https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf (latest paper).
+See the [slides](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3276.pdf) presented
+to WG14 and the [latest paper](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf)
+submitted to WG14.
 
 `strb_core.c` implements the common interface subset: construction
 with supplied state and character storage, accessors, editing and error handling.
