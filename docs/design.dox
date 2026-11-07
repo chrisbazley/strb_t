@@ -69,7 +69,7 @@ A compound literal that provides no initialiser for a member of pointer type
 implicitly initialises that member to null. The
 <a href="https://github.com/chrisbazley/llvm-project">Clang fork with _Optional
 support</a> can diagnose this when the referenced type is not
-@c _Optional-qualified. Enable @c -Wimplicit-null-initialization for these
+<code>_Optional</code>-qualified. Enable @c -Wimplicit-null-initialization for these
 implicit initialisations; @c -Wnull-to-nonoptional diagnoses conversions of
 explicit null pointer constants. For the @c sb member above, the diagnostic is:
 
@@ -78,7 +78,7 @@ pointer '<anonymous>.sb' implicitly initialized to null; referenced type is not 
 @endverbatim
 
 The @c sbs member also contains a pointer whose referenced type is not
-@c _Optional-qualified, so the compound literal elicits a second warning.
+<code>_Optional</code>-qualified, so the compound literal elicits a second warning.
 A declaration without an initialiser does not elicit either warning:
 
 @code{.c}
@@ -93,7 +93,7 @@ In @c label2_t below, the anonymous member of union type can hold either the
 @c nil member or an anonymous structure containing @c sbs and @c sb. The compound
 literal initialises @c nil; the structure assignment copies its value to the
 label. The subsequent call to @ref strb_use assigns values to @c sbs, and its
-return value is assigned to @c sb. Neither pointer needs an @c _Optional-qualified
+return value is assigned to @c sb. Neither pointer needs an <code>_Optional</code>-qualified
 referenced type, and the member access syntax stays the same:
 
 @snippet design.c label_initialisation

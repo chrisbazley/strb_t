@@ -18,7 +18,7 @@ static int put_path_segment(strb_t *const sb, const char *const segment)
 }
 //! [producer]
 
-static bool editing_example(void)
+static bool test_editing(void)
 {
 //! [external]
     char text[64];
@@ -172,7 +172,7 @@ static bool put_character(strb_t *const sb, const char32_t character)
 }
 //! [short_write]
 
-static bool short_write_example(void)
+static bool test_short_write(void)
 {
     static const char original[] = "012345678901234567890123456789";
     static const int modes[] = {strb_insert, strb_overwrite};
@@ -250,30 +250,26 @@ static void init_label2(label2_t *label, int x, int y)
 }
 //! [label_initialisation]
 
-static bool label_initialisation_example(void)
+static bool test_label_initialisation(void)
 {
     label_t plain;
     init_label(&plain, 10, 20);
-    bool success = plain.x == 10 && plain.y == 20 &&
-                   strb_ptr(plain.sb) == plain.buffer &&
-                   strb_len(plain.sb) == 0 && !strcmp(plain.buffer, "");
-    strb_free(plain.sb);
-    if (!success)
+    if (plain.x != 10 || plain.y != 20 ||
+        strb_ptr(plain.sb) != plain.buffer ||
+        strb_len(plain.sb) != 0 || strcmp(plain.buffer, ""))
         return false;
 
     label2_t label;
     init_label2(&label, 10, 20);
-    success = label.x == 10 && label.y == 20 &&
-              strb_ptr(label.sb) == label.buffer &&
-              strb_len(label.sb) == 0 && !strcmp(label.buffer, "");
-    strb_free(label.sb);
-    return success;
+    return label.x == 10 && label.y == 20 &&
+           strb_ptr(label.sb) == label.buffer &&
+           strb_len(label.sb) == 0 && !strcmp(label.buffer, "");
 }
 
 int main(void)
 {
-    return label_initialisation_example() && editing_example() && fruit_sentence_example() && fruit_rows_example() &&
-                   fruit_local_example() && short_write_example()
+    return test_label_initialisation() && test_editing() && fruit_sentence_example() && fruit_rows_example() &&
+                   fruit_local_example() && test_short_write()
                ? EXIT_SUCCESS
                : EXIT_FAILURE;
 }
