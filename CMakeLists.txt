@@ -139,13 +139,11 @@ add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" ""
 
 # Exercise optional interfaces independently and together, without changing
 # the full-interface library used by the documentation examples.
-foreach(configuration no_unputc no_reuse_const minimal)
+foreach(configuration no_unputc minimal)
     if(configuration STREQUAL "no_unputc")
         set(definitions STRB_UNPUTC=0)
-    elseif(configuration STREQUAL "no_reuse_const")
-        set(definitions STRB_REUSE_CONST=0)
     else()
-        set(definitions STRB_UNPUTC=0 STRB_RESTORE=0 STRB_REUSE_CONST=0)
+        set(definitions STRB_UNPUTC=0 STRB_RESTORE=0)
     endif()
 
     add_strb_variant("${configuration}" "${definitions}" "${DYNAMIC_SOURCES}" TEST_ONLY)

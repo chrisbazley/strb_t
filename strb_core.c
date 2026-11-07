@@ -10,7 +10,6 @@
 char *strb_ptr(strb_t *STRB_CONST sb)
 {
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
     return sb->p.buf;
 }
 
@@ -38,7 +37,6 @@ size_t strb_len(strb_t const *STRB_CONST sb)
 void strb__empty(strb_t *STRB_CONST sb)
 {
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
     sb->p.len = sb->p.pos = 0;
     sb->p.buf[0] = '\0';
 #if STRB_UNPUTC || STRB_RESTORE

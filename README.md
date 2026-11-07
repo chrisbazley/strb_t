@@ -57,9 +57,9 @@ Storage selection and optional features serve different purposes:
   controls the public interface and shared state layout. CMake targets and Make
   recipes select this combination together; the two allocation backends are
   alternative implementations and must not be linked together.
-- **Optional features:** define `STRB_UNPUTC`, `STRB_RESTORE`
-  and `STRB_REUSE_CONST` consistently for every library and client translation
-  unit. Omitting a source file alone does not disable a feature: for example,
+- **Optional features:** define `STRB_UNPUTC` and `STRB_RESTORE` consistently
+  for every library and client translation unit. Omitting a source file alone
+  does not disable a feature: for example,
   `STRB_UNPUTC=0` also removes saved-character state and its maintenance in other
   functions. The CMake feature-off targets derive any source omissions from
   these definitions. Feature-specific and storage-specific translation units
@@ -82,8 +82,8 @@ ARM GCC trunk (17.0.0, 20261107). These sizes were obtained by assembling the
 compiler output. The example compiles the sources together as one translation
 unit; linking a static archive can include fewer functions.
 
-Both configurations disable assertions, `STRB_UNPUTC` and `STRB_REUSE_CONST`;
-GCC uses `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes
+Both saved configurations disable assertions and `STRB_UNPUTC`, and omit
+constant-string wrapping; GCC uses `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes
 literal pools and alignment padding. Both figures exclude RAM storage, debug
 information and the external `memcpy`, `memmove` and `memset` implementations.
 GCC also calls an external `strnlen`; the SDCC figure includes its 59-byte local
@@ -109,8 +109,8 @@ For example, use the following commands to build and test on Linux:
 I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 
 CMake builds and runs the existing suite with each optional interface disabled:
-`STRB_UNPUTC`, `STRB_RESTORE` and `STRB_REUSE_CONST`. It also
-tests a minimal configuration with all three disabled. These variants cover
+`STRB_UNPUTC` and `STRB_RESTORE`. It also
+tests a minimal configuration with both disabled. These variants cover
 dynamic allocation, the static pool, and freestanding storage where applicable.
 Caller-allocated buffer state is always supported, so all three storage configurations
 can run the minimal-feature tests.
@@ -118,7 +118,7 @@ can run the minimal-feature tests.
 The feature-off targets use their own interface definitions; the design examples
 continue to use the full-interface `strb` target. Definitions propagate from each
 library target to its consumers. The additional test-only archives are not
-installed. Run all 16 registered tests with:
+installed. Run all 13 registered tests with:
 
 ```
 cmake -S . -B build -DWARNINGS_AS_ERRORS=ON

@@ -11,7 +11,6 @@
 int strb_unputc(strb_t *STRB_CONST sb)
 {
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
 
     if (!(sb->p.flags & F_CAN_UNPUTC)) {
         return strb__seterr(sb);

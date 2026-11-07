@@ -37,7 +37,6 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
 _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
 {
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
     assert(sb->p.len < sb->p.size);
 #if STRB_STATIC_ALLOC && !STRB_FREESTANDING
     assert(sb->p.pos <= STRB_MAX_SIZE);
@@ -122,7 +121,6 @@ _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
 void strb_restore(strb_t *STRB_CONST sb)
 {
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
 
     if (sb->p.flags & F_CAN_RESTORE) {
         DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char,

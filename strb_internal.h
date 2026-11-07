@@ -41,11 +41,6 @@
 #define F_ALLOCATED (1 << 4)
 #define F_EXTERNAL (1 << 5)
 #define F_EXT_STATE (1 << 6)
-#if STRB_REUSE_CONST
-#define F_IS_CONST (1 << 7)
-#else
-#define F_IS_CONST 0
-#endif
 
 struct strb_t {
     strbprivate_t p;

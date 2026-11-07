@@ -7,7 +7,6 @@
 void strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
 {
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
     DEBUGF("Seek to %zu\n", pos);
     // STRB_MAX_SIZE fits in strbsize_t but is not a supported position.
     sb->p.pos = pos < STRB_MAX_SIZE ? (strbsize_t)pos : STRB_MAX_SIZE;

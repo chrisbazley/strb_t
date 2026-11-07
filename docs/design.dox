@@ -9,7 +9,7 @@ of type @ref strb_t combines a character array, a recorded length, an error
 indicator, an editing position and an editing mode.  The choice is who
 supplies storage for that state.
 
-With @ref strb_use, @ref strb_reuse or @ref strb_reuse_const, the caller supplies
+With @ref strb_use or @ref strb_reuse, the caller supplies
 both a character array and a @ref strbstate_t object. No allocation is needed,
 so initialisation cannot fail. Both objects must remain alive for as long as the
 buffer is used.  Because no storage is allocated by the library, these constructors
@@ -109,7 +109,7 @@ in Compiler Explorer</a>.
 
 @section design_reuse_contents Reusing an array
 
-With @ref strb_reuse or @ref strb_reuse_const, the library reuses the existing
+With @ref strb_reuse, the library reuses the existing
 content of the supplied character array as the initial string if it fits within
 the supported extent. For a character array populated through @ref strb_use,
 null termination and a supported length have already been established.
@@ -128,11 +128,20 @@ be used; @ref strb_error allows the user to check after construction or defer
 checking until after subsequent output. Successful output does not clear the
 construction error. The user must call @ref strb_clearerr explicitly to recover.
 
-With @ref strb_reuse_const, construction likewise returns a valid handle even
-when the initial contents cannot be reused. The error indicator is set and the
-buffer refers to an empty string, leaving the constant input unchanged. The
-created buffer remains immutable, so recovery requires constructing a new buffer
-with supported contents rather than clearing its error indicator.
+@section design_immutable Why not wrap a constant string in a buffer object?
+
+An immutable string needs no editing position, editing mode or capacity for
+future output. Requiring a caller-allocated @ref strbstate_t object just to wrap
+that string would make the caller provide mutable buffer state for text that
+cannot be edited. Library allocation of that state would introduce storage
+management for the same adaptation.
+
+A function that only reads text can instead accept a pointer to constant
+characters, or a pointer and length when it needs the extent explicitly. Such a
+function can consume both an ordinary string and text obtained from
+@ref strb_cptr without requiring a buffer object for every input string. The
+string buffer interface therefore provides no function for wrapping a constant
+string in an immutable buffer object.
 
 @section design_model Output controlled by position and mode
 
