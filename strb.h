@@ -153,43 +153,6 @@ typedef uint16_t strbsize_t;
  * study group mailing list</a>.
  */
 #ifdef USE_OPTIONAL
-
-#if !STRB_FREESTANDING
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-static inline void optional_free(_Optional void *const x)
-{
-    free((void *)x);
-}
-#undef free
-#define free(x) optional_free(x)
-
-static inline _Optional void *optional_malloc(const size_t n)
-{
-    return malloc(n);
-}
-#undef malloc
-#define malloc(n) optional_malloc(n)
-
-static inline _Optional void *optional_realloc(_Optional void *const p, const size_t n)
-{
-    return realloc((void *)p, n);
-}
-#undef realloc
-#define realloc(p, n) optional_realloc(p, n)
-
-static inline int optional_vsnprintf(_Optional char *const buffer, const size_t sz,
-                                     const char *const format, va_list vlist)
-{
-    return vsnprintf((char *)buffer, sz, format, vlist);
-}
-#undef vsnprintf
-#define vsnprintf(buffer, sz, format, vlist)                                   \
-    optional_vsnprintf(buffer, sz, format, vlist)
-#endif // !STRB_FREESTANDING
-
 #undef NULL
 #define NULL ((_Optional void *)0)
 
