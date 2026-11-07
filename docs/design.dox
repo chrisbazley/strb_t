@@ -23,7 +23,7 @@ Creation can fail if storage is unavailable.
 With @ref strb_init, the caller supplies a @ref strbstate_t object and the
 library manages the character storage. Initialisation cannot fail and allocates
 nothing; output obtains character storage when needed and may fail. This is
-useful for a temporary buffer or state embedded in an application object.
+useful for a temporary buffer or state embedded in a program object.
 
 The size hint has the same meaning as for @ref strb_alloc, but is used when
 character storage is first allocated. It does not make construction fallible.
@@ -46,16 +46,16 @@ A text producer therefore need not know how its caller created the buffer.
 
 @section design_embedded_state Why not allocate buffer state for an external array?
 
-An application structure can contain both a character array and a @ref strbstate_t
+A program's struct type can contain both a character array and a @ref strbstate_t
 member to manage that array. Passing their addresses to @ref strb_use or
 @ref strb_reuse allocates nothing and cannot fail. If the library instead allocated
-storage for the buffer state, separately from the application's structure,
+storage for the buffer state, separately from the program's structure,
 initialisation would need to obtain storage from the library's allocator and could
-fail when that storage was exhausted. The application would also have to release
-that storage. Library allocation of buffer state offers little benefit when the
-application already provides storage for the characters.
+fail when that storage was exhausted. The program would also have to release
+that storage. The examples below show why the order of initialisation matters
+and how to keep both the characters and buffer state in an object of that type.
 
-Suppose an application initialises a label's coordinates and character array by
+Suppose a program initialises a label's coordinates and character array by
 assigning a compound literal to a structure containing those members, a
 @ref strbstate_t member and a @ref strb_t pointer member. Calling @ref strb_use
 in the compound literal would assign values to the destination structure's
@@ -64,6 +64,17 @@ compound literal's implicitly initialised @c sbs member. Instead, first assign
 the compound literal to the label structure, then call @ref strb_use :
 
 @snippet design.c label_implicit_null
+
+This example demonstrates the implicit-null diagnostics, rather than the
+preferred initialisation pattern. Between the two statements, @c sb is null and
+the pointer inside @c sbs is also null, despite their referenced types lacking
+@c _Optional qualification. The call to @ref strb_use assigns values to the
+state before using it, and the returned address replaces the null @c sb value.
+The anonymous-union version below avoids those intermediate null values.
+
+Here the assignment to @c *label finishes before @ref strb_use is called.
+The function writes the terminating null to the destination label's @c buffer
+array after the assignment; no later structure assignment overwrites it.
 
 A compound literal that provides no initialiser for a member of pointer type
 implicitly initialises that member to null. The
@@ -88,6 +99,45 @@ strbstate_t state;
 Pass its address to @ref strb_use, @ref strb_reuse or @ref strb_init;
 these functions assign values to the buffer state before using it. Ordinary
 state declarations therefore need no union or preliminary zero-initialisation.
+
+Allocating the buffer state in the library would solve the state-overwrite problem:
+the label structure would have no @c sbs member, so assigning a compound literal
+to the label could not overwrite that state. A state-allocating function could
+be called in the @c sb initialiser for an initially empty @c buffer array. It
+would write a terminating null to the destination label's array before the
+structure assignment, which would then replace that array with the compound
+literal's zero-initialised array. Such a function would need the same permission
+as @ref strb_use to modify the array before the buffer object is first used,
+provided the first character remains null. That permission concerns only the
+character array; overwriting the buffer state still invalidates the object.
+
+Allocating the buffer state in the library would also avoid the implicit null initialisations shown above, because the
+compound literal would contain no buffer state and would explicitly initialise
+@c sb with the function's return value.
+
+However, allocation could return a null pointer, so the program would need
+to check that result before using @c sb and eventually release the allocated
+state. If @c sb stores the possibly null result, its referenced type must be
+<code>_Optional</code>-qualified. That type permits null even after successful
+initialisation, although every successfully initialised label is intended to
+refer to a valid buffer object. The member declaration would therefore no
+longer express that invariant, and code using the label could need further
+checks or assertions to establish it.
+
+The union below allows the referenced type to remain non-optional and avoids
+allocation failure and cleanup obligations, while keeping the buffer state
+inside the label structure.
+
+Allocating the buffer state in the library would not let a function adopt text supplied in the
+same compound literal's @c buffer initialiser. A function behaving like
+@ref strb_use writes a null character to the destination label's array before
+the structure assignment. A function behaving like @ref strb_reuse reads that
+array and may write a null character to it. Neither function can access the array embedded in an object created by a
+compound literal if called from within that compound literal's initialiser list. The subsequent assignment overwrites the destination
+array; if it supplies a nonempty string, the recorded length could no longer
+match the text. Allocating the buffer state in the library does not change that
+ordering. Calling the initialisation function after the assignment avoids
+these array-ordering problems.
 
 In @c label2_t below, the anonymous member of union type can hold either the
 @c nil member or an anonymous structure containing @c sbs and @c sb. The compound
