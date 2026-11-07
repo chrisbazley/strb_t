@@ -51,7 +51,7 @@ struct strb_t {
     strbprivate_t p;
 };
 
-// These helpers belong to the implementation, not to the public interface.
+// Private external functions use strb__; declarations stay in this header.
 #if STRB_FREESTANDING
 // A zero mask avoids unreachable-code diagnostics for fixed storage.
 #define STRB_DEFERRED_ALLOC(sb) (((sb)->p.flags & 0) != 0)
@@ -60,25 +60,25 @@ struct strb_t {
 #else
 #define STRB_DEFERRED_ALLOC(sb) \
     (((sb)->p.flags & (F_EXT_STATE | F_EXTERNAL | F_ALLOCATED)) == F_EXT_STATE)
-bool strb_grow(strb_t *sb, strbsize_t minimum_size);
-#define STRB_GROW(sb, minimum_size) strb_grow(sb, minimum_size)
+bool strb__grow(strb_t *sb, strbsize_t minimum_size);
+#define STRB_GROW(sb, minimum_size) strb__grow(sb, minimum_size)
 #endif
-int strb_set_error(strb_t *sb);
-void strb_empty(strb_t *sb);
+int strb__seterr(strb_t *sb);
+void strb__empty(strb_t *sb);
 
 #if defined(__CC65__) || \
     (!defined(_MSC_VER) && \
      (!defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200809L) && \
      (!defined(_POSIX_VERSION) || _POSIX_VERSION < 200809L))
-size_t strb_strnlen(const char *s, size_t n);
+size_t strb__strnlen(const char *s, size_t n);
 #else
-#define strb_strnlen strnlen
+#define strb__strnlen strnlen
 #endif
 
 #if !STRB_FREESTANDING
-_Optional strb_t *strb_alloc_metadata(strbsize_t size);
+_Optional strb_t *strb__allocmetadata(strbsize_t size);
 #if STRB_EXT_STATE
-strb_t *strb_init_empty(strbstate_t *sbs, strbsize_t hint);
+strb_t *strb__initempty(strbstate_t *sbs, strbsize_t hint);
 #endif
 #endif
 

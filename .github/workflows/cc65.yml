@@ -34,19 +34,24 @@ jobs:
           CONFIGURATION: ${{ matrix.configuration }}
         run: |
           mkdir -p build-cc65
+          sources=(
+            strb_core.c strb_external.c strb_strnlen.c
+            strb_mode.c strb_pos.c strb_error.c
+            strb_write.c strb_split.c strb_delto.c strb_unputc.c
+            strb_puts.c strb_putc.c
+          )
           case "$CONFIGURATION" in
             freestanding)
               definition=STRB_FREESTANDING=1
-              sources="strb_core.c"
               ;;
             static)
               definition=STRB_STATIC_ALLOC=1
-              sources="strb_core.c strb_constructors.c strb_format.c strb_static.c"
+              sources+=(strb_constructors.c strb_format.c strb_static.c)
               ;;
           esac
           # The position-bound assertions are constant for some field widths.
           # Keep assertions enabled while treating other warnings as errors.
-          for source in $sources; do
+          for source in "${sources[@]}"; do
             object="build-cc65/${source%.c}.o"
             cl65 -t sim6502 --standard cc65 -W error -W -const-comparison \
               -D"$definition" -I. -c -o "$object" "$source"

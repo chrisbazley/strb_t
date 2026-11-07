@@ -66,6 +66,19 @@ endif()
 
 set(PUBLIC_HEADERS strb.h)
 
+set(COMMON_SOURCES
+    strb_core.c
+    strb_external.c
+    strb_strnlen.c
+    strb_mode.c
+    strb_pos.c
+    strb_error.c
+    strb_write.c
+    strb_split.c
+    strb_delto.c
+    strb_puts.c
+    strb_putc.c)
+
 # Helper function to create library + corresponding test
 function(add_strb_variant suffix definitions sources)
     cmake_parse_arguments(VARIANT "TEST_ONLY" "" "" ${ARGN})
@@ -77,8 +90,18 @@ function(add_strb_variant suffix definitions sources)
         set(test_target "test_${suffix}")
     endif()
 
+    # Feature macros select the API and shared state layout. Omit operation
+    # units with no enabled definitions rather than compiling empty objects.
+    set(operation_sources ${COMMON_SOURCES})
+    if("STRB_EXT_STATE=0" IN_LIST definitions)
+        list(REMOVE_ITEM operation_sources strb_external.c)
+    endif()
+    if(NOT "STRB_UNPUTC=0" IN_LIST definitions)
+        list(APPEND operation_sources strb_unputc.c)
+    endif()
+
     # Create the Library
-    add_library(${lib_target} STATIC strb_core.c ${sources} ${PUBLIC_HEADERS})
+    add_library(${lib_target} STATIC ${operation_sources} ${sources} ${PUBLIC_HEADERS})
     # These definitions select the interface as well as the implementation.
     target_compile_definitions(${lib_target} PUBLIC ${definitions})
     target_include_directories(${lib_target} PUBLIC .)
