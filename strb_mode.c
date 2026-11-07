@@ -7,7 +7,6 @@
 int strb_setmode(strb_t *STRB_CONST sb, STRB_CONST int mode)
 {
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
 
     if (mode == strb_insert || mode == strb_overwrite) {
         sb->p.flags &= ~(F_CAN_UNPUTC | F_OVERWRITE);

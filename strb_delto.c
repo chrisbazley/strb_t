@@ -9,7 +9,6 @@ void strb_delto(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
     size_t hi, lo;
 
     assert(sb);
-    assert(!(sb->p.flags & F_IS_CONST));
     {
         const size_t old_pos = strb_tell(sb);
 

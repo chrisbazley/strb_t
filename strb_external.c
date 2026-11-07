@@ -69,39 +69,3 @@ strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
         }
     }
 }
-
-#if STRB_REUSE_CONST
-const strb_t *strb_reuse_const(strbstate_t *STRB_CONST restrict sbs,
-    const char *STRB_CONST restrict buf)
-{
-    assert(sbs);
-    assert(buf);
-    DEBUGF("Reuse const buffer %p\n", (void *)buf);
-
-    {
-        const size_t len = strb__strnlen(buf, STRB_MAX_SIZE);
-        const char *initial_buf = buf;
-        size_t initial_len = len;
-
-        if (len >= STRB_MAX_SIZE) {
-            initial_buf = "";
-            initial_len = 0;
-        }
-
-        {
-            strb_t *const sb =
-                init_use(sbs, (strbsize_t)(initial_len + 1u),
-                         (char *)initial_buf, (strbsize_t)initial_len);
-
-            if (len == STRB_MAX_SIZE) {
-                sb->p.flags |= F_ERR;
-            }
-
-#ifndef NDEBUG
-            sb->p.flags = (char)(sb->p.flags | F_IS_CONST);
-#endif
-            return sb;
-        }
-    }
-}
-#endif // STRB_REUSE_CONST

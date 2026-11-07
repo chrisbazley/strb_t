@@ -946,68 +946,6 @@ static void test_reuse_contents(void)
     }
 }
 
-#if STRB_REUSE_CONST
-static void test_reuse_const_contents(void)
-{
-    static struct {
-        char before, buf[STRB_MAX_SIZE + 1u], after;
-    } array;
-    static const char empty[] = "";
-    strbstate_t state;
-    const strb_t *sb;
-    size_t i;
-
-    // An empty constant string remains empty without an error.
-    sb = strb_reuse_const(&state, empty);
-    assert(sb);
-    assert(strb_cptr(&*sb) == empty);
-    assert(strb_len(&*sb) == 0);
-    assert(strb_tell(&*sb) == 0);
-    assert(!strb_error(&*sb));
-
-    array.before = 'b';
-    array.after = 'c';
-    memset(array.buf, 'a', sizeof array.buf);
-    array.buf[STRB_MAX_SIZE] = '\0';
-
-    // A terminator at the final supported position permits reuse.
-    array.buf[STRB_MAX_SIZE - 1u] = '\0';
-    sb = strb_reuse_const(&state, array.buf);
-    assert(sb);
-    assert(strb_cptr(&*sb) == array.buf);
-    assert(strb_len(&*sb) == STRB_MAX_SIZE - 1u);
-    assert(strb_tell(&*sb) == STRB_MAX_SIZE - 1u);
-    assert(!strb_error(&*sb));
-
-    // An unsupported string produces an empty view without changing its input.
-    array.buf[STRB_MAX_SIZE - 1u] = 'a';
-    sb = strb_reuse_const(&state, array.buf);
-    assert(sb);
-    assert(strb_len(&*sb) == 0);
-    assert(strb_tell(&*sb) == 0);
-    assert(strb_getmode(&*sb) == strb_insert);
-    assert(strb_error(&*sb));
-    assert(!strcmp(strb_cptr(&*sb), ""));
-
-    for (i = 0; i < STRB_MAX_SIZE; ++i) {
-        assert(array.buf[i] == 'a');
-    }
-
-    assert(array.buf[STRB_MAX_SIZE] == '\0');
-    assert(array.before == 'b');
-    assert(array.after == 'c');
-
-    // Constructing a new view of supported contents starts with a clear error.
-    array.buf[7] = '\0';
-    sb = strb_reuse_const(&state, array.buf);
-    assert(sb);
-    assert(strb_len(&*sb) == 7);
-    assert(strb_tell(&*sb) == 7);
-    assert(!strb_error(&*sb));
-    assert(strb_cptr(&*sb) == array.buf);
-}
-#endif
-
 #if !STRB_FREESTANDING
 // All constructors share the same editing operations. Repeated construction
 // and cleanup must release character storage without freeing embedded state.
@@ -1154,9 +1092,6 @@ int main(void)
     test_delto_large_target();
     test_seek();
 
-#if STRB_REUSE_CONST
-    test_reuse_const_contents();
-#endif
 
     s = strb_use(&state, sizeof array, array);
     if (!s) {
@@ -1221,40 +1156,6 @@ int main(void)
 
         puts(strb_ptr(&*s));
     }
-
-#if STRB_REUSE_CONST
-    {
-        const strb_t *cs = strb_reuse_const(&state, "Cyclist");
-        assert(strb_getmode(&*cs) == strb_insert);
-        assert(strb_tell(&*cs) == strlen("Cyclist"));
-        assert(strb_len(&*cs) == strlen("Cyclist"));
-        assert(!strcmp(strb_cptr(&*cs), "Cyclist"));
-        puts(strb_cptr(&*cs));
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
-        puts(strb_ptr(&*cs));
-#endif
-
-        cs = strb_reuse_const(
-            &state,
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
-            "Curabitur "
-            "lacinia mi mollis, tincidunt ipsum ut, commodo massa. Maecenas "
-            "sit "
-            "amet mattis augue. Fusce bibendum condimentum tortor accumsan "
-            "sodales. Curabitur accumsan, ante sit amet commodo massa nunc. ");
-#if STRB_MAX_SIZE <= UINT8_MAX
-        assert(cs);
-        assert(strb_error(&*cs));
-        assert(strb_len(&*cs) == 0);
-        assert(strb_tell(&*cs) == 0);
-        assert(!strcmp(strb_cptr(&*cs), ""));
-#else
-        assert(cs);
-        assert(!strb_error(&*cs));
-        puts(strb_cptr(&*cs));
-#endif
-    }
-#endif // STRB_REUSE_CONST
 
 #if !STRB_FREESTANDING
     s = strb_alloc(2700);
