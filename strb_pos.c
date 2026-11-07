@@ -1,0 +1,31 @@
+// Copyright 2024 Christopher Bazley
+// SPDX-License-Identifier: MIT
+
+#define _GNU_SOURCE
+#include "strb_internal.h"
+
+void strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
+{
+    assert(sb);
+    assert(!(sb->p.flags & F_IS_CONST));
+    DEBUGF("Seek to %zu\n", pos);
+    // STRB_MAX_SIZE fits in strbsize_t but is not a supported position.
+    sb->p.pos = pos < STRB_MAX_SIZE ? (strbsize_t)pos : STRB_MAX_SIZE;
+#if STRB_UNPUTC || STRB_RESTORE
+    sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+#endif
+}
+
+size_t strb_tell(strb_t const *STRB_CONST sb)
+{
+    assert(sb);
+    // Only static allocation has a position limit below the storage type
+    // maximum.
+#if STRB_STATIC_ALLOC && !STRB_FREESTANDING
+    assert(sb->p.pos <= STRB_MAX_SIZE);
+#endif
+    DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize
+           "\n",
+           sb->p.pos, sb->p.len, sb->p.size);
+    return sb->p.pos == STRB_MAX_SIZE ? SIZE_MAX : sb->p.pos;
+}

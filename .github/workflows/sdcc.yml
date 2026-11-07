@@ -44,11 +44,22 @@ jobs:
           mkdir -p build-sdcc
           # SDCC warns about constant assertion conditions; keep warnings non-fatal.
           flags=(-mz80 --std-c99 -DSTRB_FREESTANDING=1 -I.)
-          sdcc "${flags[@]}" -c strb_core.c -o build-sdcc/core.rel
+          sources=(
+            strb_core.c strb_external.c strb_strnlen.c
+            strb_mode.c strb_pos.c strb_error.c
+            strb_write.c strb_split.c strb_delto.c strb_unputc.c
+            strb_puts.c strb_putc.c
+          )
+          objects=()
+          for source in "${sources[@]}"; do
+            object="build-sdcc/${source%.c}.rel"
+            sdcc "${flags[@]}" -c "$source" -o "$object"
+            objects+=("$object")
+          done
           # Warning 110 reports optimizer changes to control flow in assertions.
           sdcc "${flags[@]}" --disable-warning 110 -Dmain=strb_test_main -c test.c -o build-sdcc/test.rel
           sdcc "${flags[@]}" -c tests/sdcc-runtime.c -o build-sdcc/runtime.rel
-          sdcc -mz80 build-sdcc/core.rel \
+          sdcc -mz80 "${objects[@]}" \
             build-sdcc/test.rel build-sdcc/runtime.rel -o build-sdcc/test.ihx
 
       - name: Run the tests in uCsim

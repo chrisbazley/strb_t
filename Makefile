@@ -7,9 +7,14 @@ Link = $(CC)
 CCFlags = -c -Wall -Wextra -Wsign-compare -pedantic -std=c11 -MMD -MP -g
 LinkFlags = -o $@
 
-dynamic_objects = $(addprefix build-make/dynamic/,strb_core.o strb_constructors.o strb_format.o strb_dynamic.o test.o)
-static_objects = $(addprefix build-make/static/,strb_core.o strb_constructors.o strb_format.o strb_static.o test.o)
-freestanding_objects = $(addprefix build-make/freestanding/,strb_core.o test.o)
+common_objects = strb_core.o strb_external.o strb_strnlen.o \
+                 strb_mode.o strb_pos.o strb_error.o \
+                 strb_write.o strb_split.o strb_delto.o strb_unputc.o \
+                 strb_puts.o strb_putc.o
+
+dynamic_objects = $(addprefix build-make/dynamic/,$(common_objects) strb_constructors.o strb_format.o strb_dynamic.o test.o)
+static_objects = $(addprefix build-make/static/,$(common_objects) strb_constructors.o strb_format.o strb_static.o test.o)
+freestanding_objects = $(addprefix build-make/freestanding/,$(common_objects) test.o)
 
 .PHONY: all
 all: test statictest freestandingtest

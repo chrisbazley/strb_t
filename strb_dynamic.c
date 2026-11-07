@@ -5,6 +5,10 @@
 
 #include "strb_internal.h"
 
+#if STRB_FREESTANDING || STRB_STATIC_ALLOC
+#error "Compile strb_dynamic.c only for dynamic allocation"
+#endif
+
 /** @cond */
 struct strb_allocation {
     strb_t state;
@@ -12,7 +16,7 @@ struct strb_allocation {
 };
 /** @endcond */
 
-_Optional strb_t *strb_alloc_metadata(STRB_CONST strbsize_t size)
+_Optional strb_t *strb__allocmetadata(STRB_CONST strbsize_t size)
 {
     assert(size <= STRB_MAX_INTERNAL_SIZE);
     {
@@ -50,7 +54,7 @@ static strbsize_t initial_size(size_t n)
 #if STRB_EXT_STATE
 strb_t *strb_init(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
 {
-    return strb_init_empty(sbs, initial_size(n));
+    return strb__initempty(sbs, initial_size(n));
 }
 #endif
 
@@ -59,7 +63,7 @@ _Optional strb_t *strb_alloc(STRB_CONST size_t n)
     const strbsize_t size = initial_size(n);
     // Keep only small character arrays in the metadata allocation.
     _Optional strb_t *const sb =
-        strb_alloc_metadata(size > STRB_MAX_INTERNAL_SIZE ? 0 : size);
+        strb__allocmetadata(size > STRB_MAX_INTERNAL_SIZE ? 0 : size);
     DEBUGF("Alloc buffer of size %zu\n", n);
 
     if (!sb) {
@@ -101,7 +105,7 @@ void strb_free(_Optional strb_t *STRB_CONST sb)
     }
 }
 
-bool strb_grow(strb_t *STRB_CONST sb, STRB_CONST strbsize_t minimum_size)
+bool strb__grow(strb_t *STRB_CONST sb, STRB_CONST strbsize_t minimum_size)
 {
     strbsize_t new_size;
     _Optional char *new_buf = NULL;

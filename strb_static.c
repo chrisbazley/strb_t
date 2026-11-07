@@ -3,6 +3,10 @@
 
 #include "strb_internal.h"
 
+#if STRB_FREESTANDING || !STRB_STATIC_ALLOC
+#error "Compile strb_static.c only for static-pool allocation"
+#endif
+
 /** @cond */
 struct strb_allocation {
     strb_t state;
@@ -13,7 +17,7 @@ struct strb_allocation {
 static struct strb_allocation bufs[STRB_MAX];
 static uint8_t nbufs, buf_map;
 
-_Optional strb_t *strb_alloc_metadata(STRB_CONST strbsize_t size)
+_Optional strb_t *strb__allocmetadata(STRB_CONST strbsize_t size)
 {
     int free_idx = 0;
     // Every pool slot has a full-sized character array.
@@ -50,13 +54,13 @@ static void free_metadata(strb_t *STRB_CONST sb)
 strb_t *strb_init(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
 {
     (void)n;
-    return strb_init_empty(sbs, STRB_MAX_SIZE);
+    return strb__initempty(sbs, STRB_MAX_SIZE);
 }
 #endif
 
 _Optional strb_t *strb_alloc(STRB_CONST size_t n)
 {
-    _Optional strb_t *const sb = strb_alloc_metadata(0);
+    _Optional strb_t *const sb = strb__allocmetadata(0);
     (void)n;
 
     if (!sb) {
@@ -88,7 +92,7 @@ void strb_free(_Optional strb_t *STRB_CONST sb)
     }
 }
 
-bool strb_grow(strb_t *STRB_CONST sb, STRB_CONST strbsize_t minimum_size)
+bool strb__grow(strb_t *STRB_CONST sb, STRB_CONST strbsize_t minimum_size)
 {
     _Optional strb_t *backing;
     assert(sb);
@@ -100,7 +104,7 @@ bool strb_grow(strb_t *STRB_CONST sb, STRB_CONST strbsize_t minimum_size)
         return false;
     }
 
-    backing = strb_alloc_metadata(0);
+    backing = strb__allocmetadata(0);
 
     if (!backing) {
         return false;

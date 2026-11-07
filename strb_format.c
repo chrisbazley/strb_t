@@ -4,6 +4,10 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
+#if STRB_FREESTANDING
+#error "Do not compile strb_format.c with STRB_FREESTANDING"
+#endif
+
 #define vnprintf(fmt, ap) vsnprintf(NULL, 0, fmt, ap)
 
 _Optional strb_t *strb_vaprintf(const char *STRB_CONST restrict format, va_list args)
@@ -76,7 +80,7 @@ int strb_vputf(strb_t *STRB_CONST restrict sb,
         }
     }
     va_end(args_copy);
-    return strb_set_error(sb);
+    return strb__seterr(sb);
 }
 
 int strb_putf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict format, ...)
@@ -93,7 +97,7 @@ int strb_putf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict fo
 int strb_vprintf(strb_t *STRB_CONST restrict sb,
     const char *STRB_CONST restrict format, va_list args)
 {
-    strb_empty(sb);
+    strb__empty(sb);
     return strb_vputf(sb, format, args);
 }
 
