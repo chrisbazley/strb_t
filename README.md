@@ -73,17 +73,17 @@ only `strb.h`. Private functions with external linkage use the `strb__` prefix;
 public functions use a single underscore after `strb`. `DEBUGOUT` enables
 messages to stderr, and `NDEBUG` disables assertions.
 
-The [freestanding implementation example](https://godbolt.org/z/PEMEjsMWs)
+The [freestanding implementation example](https://godbolt.org/z/doKfo3o7M)
 includes all applicable operation sources at commit
-[`62ff4e9`](https://github.com/chrisbazley/strb_t/commit/62ff4e9d3a95c655944a0ce0cd5b90aca1ed22e6).
+[`ea65eb5`](https://github.com/chrisbazley/strb_t/commit/ea65eb5a6b40f1f58ddb685b524bd694e5383379).
 Measured on 7 November 2026, it produces 1,725 bytes in the `CODE` area for the
 65C02 with SDCC 4.6.4 r17148, or a 636-byte `.text` section for Cortex-M0 with
 ARM GCC trunk (17.0.0, 20261107). These sizes were obtained by assembling the
 compiler output. The example compiles the sources together as one translation
 unit; linking a static archive can include fewer functions.
 
-Both saved configurations disable assertions and `STRB_UNPUTC`, and omit
-constant-string wrapping; GCC uses `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes
+Both configurations disable assertions and `STRB_UNPUTC`; GCC uses
+`-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes
 literal pools and alignment padding. Both figures exclude RAM storage, debug
 information and the external `memcpy`, `memmove` and `memset` implementations.
 GCC also calls an external `strnlen`; the SDCC figure includes its 59-byte local
