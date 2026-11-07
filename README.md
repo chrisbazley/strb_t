@@ -28,9 +28,11 @@ definitions. The private header `strb_internal.h` shares implementation state;
 users include only `strb.h`. `DEBUGOUT` enables messages to stderr, and `NDEBUG`
 disables assertions.
 
-I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
+The [freestanding implementation](https://godbolt.org/z/vYWa1PrTc) produces 1,725 bytes of instructions for the 65C02 with SDCC trunk, or a 636-byte `.text` section for Cortex-M0 with ARM GCC trunk (measured on 6 November 2026). Both configurations disable assertions, `STRB_UNPUTC` and `STRB_REUSE_CONST`; GCC uses `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes literal pools and alignment padding. These figures exclude RAM storage, debug information and the external `memcpy`, `memmove` and `memset` implementations. GCC also calls an external `strnlen`; the SDCC figure includes its 59-byte local fallback.
 
 ## Configuration tests
+
+I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 
 CMake builds and runs the existing suite with each optional interface disabled:
 `STRB_EXT_STATE`, `STRB_UNPUTC`, `STRB_RESTORE` and `STRB_REUSE_CONST`. It also
@@ -79,11 +81,8 @@ A1: Calling it strb was also an in-joke, because that's what it does.
 Q2: Could it be a library or does it have to be part of the language?
 
 A2: Incorporating safe string functions into the standard would:
-- Standardize existing best practice.
+- Standardise existing best practice.
 - Reduce the level of experience needed to write correct programs.
 - Provide a better precedent to follow when users design their own interfaces.
 - Make it easier to write interoperable user-designed libraries.
-  
-It's also the type of functionality (like malloc) that might be better optimised for different target platforms instead of each user providing their own implementation that might not be suitable. For example, [the freestanding implementation](https://godbolt.org/z/Gr9Pre4xq) produces 1,725 bytes of instructions for the 65C02 with SDCC trunk, or a 636-byte `.text` section for Cortex-M0 with ARM GCC trunk (measured on 6 November 2026). Both configurations disable assertions, `STRB_UNPUTC` and `STRB_REUSE_CONST`; GCC uses `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes literal pools and alignment padding.
-
-These figures exclude RAM storage, debug information and the external `memcpy`, `memmove` and `memset` implementations. GCC also calls an external `strnlen`; the SDCC figure includes its 59-byte local fallback. The example includes the current source files directly from GitHub via raw URLs.
+- Ensure that the implementation is optimised for the target platform.
