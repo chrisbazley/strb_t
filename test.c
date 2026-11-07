@@ -989,7 +989,58 @@ static void test_reuse_contents(void)
     }
 }
 
+#ifndef __CC65__
+static void test_array_macros(void)
+{
+    char empty[64] = "discard";
+    char existing[64] = "preserve";
+    size_t size = sizeof empty;
+    char *next = empty;
+    strb_t *const first = STRB_USE(size++, next++);
+    strb_t *const second = STRB_REUSE(sizeof existing, existing);
+
+    assert(size == sizeof empty + 1);
+    assert(next == empty + 1);
+    assert(empty[0] == '\0');
+    assert(!strcmp(strb_cptr(second), "preserve"));
+    assert(!strb_puts(first, "new"));
+    assert(!strb_puts(second, " text"));
+    assert(!strcmp(empty, "new"));
+    assert(!strcmp(existing, "preserve text"));
 #if !STRB_FREESTANDING
+    strb_free(first);
+    strb_free(second);
+#endif
+}
+#endif
+
+#if !STRB_FREESTANDING
+#ifndef __CC65__
+// cc65 does not support compound literals.
+static void test_init_macro(void)
+{
+    size_t hint = 0;
+    strb_t *const first = STRB_INIT(hint++);
+    strb_t *const second = STRB_INIT(0);
+    unsigned i;
+
+    assert(hint == 1);
+    assert(!strb_puts(first, "first"));
+    assert(!strb_puts(second, "second"));
+    assert(!strcmp(strb_cptr(first), "first"));
+    assert(!strcmp(strb_cptr(second), "second"));
+    strb_free(first);
+    strb_free(second);
+
+    for (i = 0; i < 3; ++i) {
+        strb_t *const sb = STRB_INIT(0);
+        // Exercise the handle after its declaration's full expression ends.
+        test(sb);
+        strb_free(sb);
+    }
+}
+#endif
+
 // All constructors share the same editing operations. Repeated construction
 // and cleanup must release character storage without freeing embedded state.
 static void test_external_state(void)
@@ -998,7 +1049,7 @@ static void test_external_state(void)
         unsigned before;
         strbstate_t state;
         unsigned after;
-    } owner;
+    } owner = {0};
     static const size_t hints[] = {0, 5, 5000, SIZE_MAX};
     size_t i;
     owner.before = 123;
@@ -1125,8 +1176,14 @@ int main(void)
 
 #if !STRB_FREESTANDING
     test_external_state();
+#ifndef __CC65__
+    test_init_macro();
+#endif
 #endif
     test_reuse_contents();
+#ifndef __CC65__
+    test_array_macros();
+#endif
     test_output_equivalence();
 #if STRB_UNPUTC
     test_write_zero();

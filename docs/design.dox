@@ -25,6 +25,13 @@ library manages the character storage. Initialisation cannot fail and allocates
 nothing; output obtains character storage when needed and may fail. This is
 useful for a temporary buffer or state embedded in a program object.
 
+The macros @ref STRB_INIT, @ref STRB_USE and @ref STRB_REUSE call their
+corresponding functions with unnamed state that lasts until the enclosing block
+ends, avoiding a separate state declaration. Each argument is evaluated once.
+A handle must not outlive its state or character array; release any library-owned
+character storage with @ref strb_free before leaving the block or re-evaluating
+the same invocation of the macro, which reuses its state.
+
 The size hint has the same meaning as for @ref strb_alloc, but is used when
 character storage is first allocated. It does not make construction fallible.
 The existing capacity field records the hint until storage is obtained, so
@@ -66,8 +73,7 @@ the compound literal to the label structure, then call @ref strb_use :
 @snippet design.c label_implicit_null
 
 This example demonstrates the implicit-null diagnostics, rather than the
-preferred initialisation pattern. Between the two statements, @c sb is null and
-the pointer inside @c sbs is also null, despite their referenced types lacking
+preferred initialisation pattern. Between the two statements, @c sb is null despite its referenced type lacking
 @c _Optional qualification. The call to @ref strb_use initialises @c label->sbs
 with state describing an empty string in @c label->buffer; its returned address
 is assigned to @c label->sb.
@@ -87,14 +93,6 @@ explicit null pointer constants. For the @c sb member above, the diagnostic is:
 pointer '<anonymous>.sb' implicitly initialized to null; referenced type is not '_Optional'-qualified
 @endverbatim
 
-The @c sbs member also contains a pointer whose referenced type is not
-<code>_Optional</code>-qualified, so the compound literal elicits a second warning.
-A declaration without an initialiser does not elicit either warning:
-
-@code{.c}
-strbstate_t state;
-@endcode
-
 Allocating the buffer state in the library would solve the state-overwrite problem:
 the label structure would have no @c sbs member, so assigning a compound literal
 to the label could not overwrite that state. A state-allocating function could
@@ -105,7 +103,8 @@ literal's zero-initialised array. (Such a function would need the same permissio
 as @ref strb_use to modify the array before the buffer object is first used,
 provided the first character remains null.)
 
-Allocating the buffer state in the library would also avoid the implicit null initialisations shown above, because the
+Allocating the buffer state in the library would also avoid implicitly initialising
+@c sb to null, because the
 compound literal would contain no buffer state and would explicitly initialise
 @c sb with the function's return value; however, allocation could return a null
 pointer, so the program would need to check the result before using @c sb.

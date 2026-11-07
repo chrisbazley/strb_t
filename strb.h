@@ -198,10 +198,9 @@ typedef struct {
  * derived from it. The effect on any derived strb_t object of modifying the
  * originating strbstate_t object is undefined.
  */
-typedef struct {
-    /**
-     * @private
-     */
+typedef union {
+    /** @privatesection */
+    char nil;
     strbprivate_t p;
 } strbstate_t;
 
@@ -250,6 +249,16 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
                  char buf[STRB_SIZE_HINT(size)]);
 
 /**
+ * @brief Call @ref strb_use with unnamed state local to the enclosing block.
+ *
+ * The state lasts until the enclosing block ends. Re-evaluating the same
+ * invocation of this macro reuses its state.
+ * @see @ref design_state
+ */
+#define STRB_USE(size, buf) \
+    strb_use(&(strbstate_t){.nil = 0}, (size), (buf))
+
+/**
  * @brief Create a string buffer object by reusing an external character array
  *
  * Initialises a string buffer object and returns its address. The caller must
@@ -295,6 +304,16 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
 strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
                              char buf[STRB_SIZE_HINT(size)]);
 
+/**
+ * @brief Call @ref strb_reuse with unnamed state local to the enclosing block.
+ *
+ * The state lasts until the enclosing block ends. Re-evaluating the same
+ * invocation of this macro reuses its state.
+ * @see @ref design_state
+ */
+#define STRB_REUSE(size, buf) \
+    strb_reuse(&(strbstate_t){.nil = 0}, (size), (buf))
+
 #if !STRB_FREESTANDING
 /**
  * @brief Create a string buffer object with internal storage
@@ -331,6 +350,16 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * @post A call to @ref strb_error will return false until an error occurs.
  */
 strb_t *strb_init(strbstate_t *sbs, size_t n);
+
+/**
+ * @brief Call @ref strb_init with unnamed state local to the enclosing block.
+ *
+ * The state lasts until the enclosing block ends. Re-evaluating the same
+ * invocation of this macro reuses its state.
+ * @see @ref design_state
+ */
+#define STRB_INIT(n) \
+    strb_init(&(strbstate_t){.nil = 0}, (n))
 
 #endif // !STRB_FREESTANDING
 

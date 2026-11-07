@@ -218,7 +218,7 @@ typedef struct {
 
 static void init_label(label_t *label, int x, int y)
 {
-    // Implicitly initialises the pointers in sbs and sb to null.
+    // Implicitly initialises sb to null.
     *label = (label_t){.x = x, .y = y};
     label->sb = strb_use(&label->sbs, sizeof label->buffer, label->buffer);
 }
