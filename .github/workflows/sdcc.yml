@@ -65,8 +65,13 @@ jobs:
       - name: Run the tests in uCsim
         shell: bash
         run: |
+          status=0
           printf 'run\nquit\n' | timeout 60 ucsim_z80 -t Z80 -q -c - \
             -I "if=rom[0xff00],out=build-sdcc/test-output.log" \
-            build-sdcc/test.ihx > build-sdcc/simulator.log 2>&1
+            build-sdcc/test.ihx > build-sdcc/simulator.log 2>&1 || status=$?
           cat build-sdcc/test-output.log
+          if test "$status" -ne 0; then
+            cat build-sdcc/simulator.log
+            exit "$status"
+          fi
           grep -Fx 'STRB TEST PASS' build-sdcc/test-output.log
