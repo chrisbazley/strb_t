@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(strb_t C)
-enable_testing()
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    enable_testing()
+endif()
 
 option(USE_OPTIONAL "Enable the _Optional qualifier" OFF)
 option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
@@ -110,7 +112,8 @@ function(add_strb_variant suffix definitions sources)
     )
 
     # Create the Test Executable
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test.c")
+    if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR AND
+       EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test.c")
         add_executable(${test_target} test.c)
         target_link_libraries(${test_target} PRIVATE ${lib_target})
 
@@ -132,33 +135,37 @@ set(STATIC_SOURCES strb_constructors.c strb_format.c strb_static.c)
 add_strb_variant("" "" "${DYNAMIC_SOURCES}")
 add_strb_variant("static" "STRB_STATIC_ALLOC" "${STATIC_SOURCES}")
 add_strb_variant("freestanding" "STRB_FREESTANDING" "")
-# Exercise split strings without restoring their overwritten characters.
-add_strb_variant("no_restore" "STRB_RESTORE=0" "${DYNAMIC_SOURCES}")
-add_strb_variant("static_no_restore" "STRB_STATIC_ALLOC;STRB_RESTORE=0" "${STATIC_SOURCES}" TEST_ONLY)
-add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" "" TEST_ONLY)
+# Consumers build the installed libraries without the standalone test matrix.
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    # Exercise split strings without restoring their overwritten characters.
+    add_strb_variant("no_restore" "STRB_RESTORE=0" "${DYNAMIC_SOURCES}")
+    add_strb_variant("static_no_restore" "STRB_STATIC_ALLOC;STRB_RESTORE=0" "${STATIC_SOURCES}" TEST_ONLY)
+    add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" "" TEST_ONLY)
 
-# Exercise optional interfaces independently and together, without changing
-# the full-interface library used by the documentation examples.
-foreach(configuration no_unputc minimal)
-    if(configuration STREQUAL "no_unputc")
-        set(definitions STRB_UNPUTC=0)
-    else()
-        set(definitions STRB_UNPUTC=0 STRB_RESTORE=0)
-    endif()
+    # Exercise optional interfaces independently and together, without changing
+    # the full-interface library used by the documentation examples.
+    foreach(configuration no_unputc minimal)
+        if(configuration STREQUAL "no_unputc")
+            set(definitions STRB_UNPUTC=0)
+        else()
+            set(definitions STRB_UNPUTC=0 STRB_RESTORE=0)
+        endif()
 
-    add_strb_variant("${configuration}" "${definitions}" "${DYNAMIC_SOURCES}" TEST_ONLY)
-    add_strb_variant("static_${configuration}" "STRB_STATIC_ALLOC;${definitions}" "${STATIC_SOURCES}" TEST_ONLY)
-    add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "" TEST_ONLY)
-endforeach()
+        add_strb_variant("${configuration}" "${definitions}" "${DYNAMIC_SOURCES}" TEST_ONLY)
+        add_strb_variant("static_${configuration}" "STRB_STATIC_ALLOC;${definitions}" "${STATIC_SOURCES}" TEST_ONLY)
+        add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "" TEST_ONLY)
+    endforeach()
 
-# Compile and run the examples used by the interface design page.
-add_executable(design_examples examples/design.c)
-target_link_libraries(design_examples PRIVATE strb)
-set_target_properties(design_examples PROPERTIES
-    C_STANDARD 11
-    C_STANDARD_REQUIRED YES
-)
-add_test(NAME check_design_examples COMMAND design_examples)
+    # Compile and run the examples used by the interface design page.
+    add_executable(design_examples examples/design.c)
+    target_link_libraries(design_examples PRIVATE strb)
+    set_target_properties(design_examples PROPERTIES
+        C_STANDARD 11
+        C_STANDARD_REQUIRED YES
+    )
+    add_test(NAME check_design_examples COMMAND design_examples)
+
+endif()
 
 # Optimization and Debug settings
 add_compile_definitions(
