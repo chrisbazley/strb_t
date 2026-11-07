@@ -77,9 +77,7 @@ size_t strb__strnlen(const char *s, size_t n);
 
 #if !STRB_FREESTANDING
 _Optional strb_t *strb__allocmetadata(strbsize_t size);
-#if STRB_EXT_STATE
 strb_t *strb__initempty(strbstate_t *sbs, strbsize_t hint);
-#endif
 #endif
 
 #endif

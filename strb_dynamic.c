@@ -51,12 +51,10 @@ static strbsize_t initial_size(size_t n)
     return (strbsize_t)n;
 }
 
-#if STRB_EXT_STATE
 strb_t *strb_init(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
 {
     return strb__initempty(sbs, initial_size(n));
 }
-#endif
 
 _Optional strb_t *strb_alloc(STRB_CONST size_t n)
 {

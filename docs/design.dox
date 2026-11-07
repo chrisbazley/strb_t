@@ -44,6 +44,69 @@ configurations. Its freestanding configuration provides
 The output and editing functions use the same interface in all these cases.
 A text producer therefore need not know how its caller created the buffer.
 
+@section design_embedded_state Why not allocate buffer state for an external array?
+
+An application structure can contain both a character array and a @ref strbstate_t
+member to manage that array. Passing their addresses to @ref strb_use or
+@ref strb_reuse allocates nothing and cannot fail. If the library instead allocated
+storage for the buffer state, separately from the application's structure,
+initialisation would need to obtain storage from the library's allocator and could
+fail when that storage was exhausted. The application would also have to release
+that storage. Library allocation of buffer state offers little benefit when the
+application already provides storage for the characters.
+
+Suppose an application initialises a label's coordinates and character array by
+assigning a compound literal to a structure containing those members, a
+@ref strbstate_t member and a @ref strb_t pointer member. Calling @ref strb_use
+in the compound literal would assign values to the destination structure's
+@c sbs member before the structure assignment overwrote that member with the
+compound literal's implicitly initialised @c sbs member. Instead, first assign
+the compound literal to the label structure, then call @ref strb_use :
+
+@snippet design.c label_implicit_null
+
+A compound literal that provides no initialiser for a member of pointer type
+implicitly initialises that member to null. The
+<a href="https://github.com/chrisbazley/llvm-project">Clang fork with _Optional
+support</a> can diagnose this when the referenced type is not
+@c _Optional-qualified. Enable @c -Wimplicit-null-initialization for these
+implicit initialisations; @c -Wnull-to-nonoptional diagnoses conversions of
+explicit null pointer constants. For the @c sb member above, the diagnostic is:
+
+@verbatim
+pointer '<anonymous>.sb' implicitly initialized to null; referenced type is not '_Optional'-qualified
+@endverbatim
+
+The @c sbs member also contains a pointer whose referenced type is not
+@c _Optional-qualified, so the compound literal elicits a second warning.
+A declaration without an initialiser does not elicit either warning:
+
+@code{.c}
+strbstate_t state;
+@endcode
+
+Pass its address to @ref strb_use, @ref strb_reuse or @ref strb_init;
+these functions assign values to the buffer state before using it. Ordinary
+state declarations therefore need no union or preliminary zero-initialisation.
+
+In @c label2_t below, the anonymous member of union type can hold either the
+@c nil member or an anonymous structure containing @c sbs and @c sb. The compound
+literal initialises @c nil; the structure assignment copies its value to the
+label. The subsequent call to @ref strb_use assigns values to @c sbs, and its
+return value is assigned to @c sb. Neither pointer needs an @c _Optional-qualified
+referenced type, and the member access syntax stays the same:
+
+@snippet design.c label_initialisation
+
+The @c label2_t definition requires C11 for anonymous structures and unions;
+compound literals and designated initialisers require C99. The @c _Optional
+qualifier is a compiler extension. Naming the union and its structure member
+would allow the same deferred initialisation pattern in C99, with longer member
+access paths.
+
+<a href="https://godbolt.org/z/Kcq19P9h4">Compare the examples and their diagnostics
+in Compiler Explorer</a>.
+
 @section design_reuse_contents Reusing an array
 
 With @ref strb_reuse or @ref strb_reuse_const, the library reuses the existing

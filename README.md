@@ -1,9 +1,14 @@
 # strb_t
+
+## Overview
+
 A new type and functions to manage strings, as proposed in [WG14](https://www.open-std.org/jtc1/sc22/wg14/) papers N3250, N3296 and N3306. Its goal is to eliminate a source of many common programmer errors. The new interface is designed to be as familiar and ergonomic as possible.
 
 See the [slides](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3276.pdf) presented
 to WG14 and the [latest paper](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf)
 submitted to WG14.
+
+## Configuration
 
 The common sources are split so that linking a static archive pulls in only the
 required groups of operations:
@@ -24,15 +29,15 @@ required groups of operations:
 | `strb_putc.c` | Single and repeated character output |
 
 These are the shared operation sources. CMake omits `strb_unputc.c` when
-`STRB_UNPUTC=0`, and `strb_external.c` when `STRB_EXT_STATE=0`, because those
-units then have no enabled function definitions. Editing mode and current
+`STRB_UNPUTC=0`, because that unit then has no enabled function definitions.
+Editing mode and current
 position each have their setter and getter in the same translation unit. Error
 indicator operations are grouped together. The core retains buffer access,
 length and private initialisation helpers.
 
 Additional functions are grouped by responsibility. `strb_constructors.c`
-provides shared allocating construction and duplication functions;
-`strb_format.c` provides formatted construction and output. Their availability
+provides duplication functions; `strb_format.c` provides formatted construction
+and output. Their availability
 in this prototype is a configuration choice, not a restriction on what
 freestanding implementations may provide.
 
@@ -52,7 +57,7 @@ Storage selection and optional features serve different purposes:
   controls the public interface and shared state layout. CMake targets and Make
   recipes select this combination together; the two allocation backends are
   alternative implementations and must not be linked together.
-- **Optional features:** define `STRB_UNPUTC`, `STRB_RESTORE`, `STRB_EXT_STATE`
+- **Optional features:** define `STRB_UNPUTC`, `STRB_RESTORE`
   and `STRB_REUSE_CONST` consistently for every library and client translation
   unit. Omitting a source file alone does not disable a feature: for example,
   `STRB_UNPUTC=0` also removes saved-character state and its maintenance in other
@@ -86,21 +91,34 @@ fallback. In the saved SDCC pane, **Unused labels** and **Library functions** ar
 unchecked so that function labels and the downloaded implementation remain
 visible. **Library functions** is also unchecked for ARM GCC.
 
-## Configuration tests
+## Building
+
+If you have CMake, a build system generator, then you can use it to
+build the library and its tests with minimal manual intervention.
+
+For example, use the following commands to build and test on Linux:
+```
+  cmake -G 'Unix Makefiles' -S . -B build
+  cd build
+  make
+  ctest
+```
+
+## Testing
 
 I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 
 CMake builds and runs the existing suite with each optional interface disabled:
-`STRB_EXT_STATE`, `STRB_UNPUTC`, `STRB_RESTORE` and `STRB_REUSE_CONST`. It also
-tests a minimal configuration with all four disabled. These variants cover
+`STRB_UNPUTC`, `STRB_RESTORE` and `STRB_REUSE_CONST`. It also
+tests a minimal configuration with all three disabled. These variants cover
 dynamic allocation, the static pool, and freestanding storage where applicable.
-Freestanding configurations without external state are omitted because they
-provide no constructors and would run no string-buffer tests.
+Caller-allocated buffer state is always supported, so all three storage configurations
+can run the minimal-feature tests.
 
 The feature-off targets use their own interface definitions; the design examples
 continue to use the full-interface `strb` target. Definitions propagate from each
 library target to its consumers. The additional test-only archives are not
-installed. Run all 17 registered tests with:
+installed. Run all 16 registered tests with:
 
 ```
 cmake -S . -B build -DWARNINGS_AS_ERRORS=ON
@@ -114,19 +132,6 @@ ctest --test-dir build --output-on-failure
 
 [Interface design and usage](https://chrisbazley.github.io/strb_t/interface_design.html) explains the positional output model, why there are no separate append/prepend/insert functions, and how to use the same text producer in different editing contexts.
 
-
-## Building
-
-  If you have CMake, a build system generator, then you can use it to
-build the library and its tests with minimal manual intervention.
-
-For example, use the following commands to build and test on Linux:
-```
-  cmake -G 'Unix Makefiles' -S . -B build
-  cd build
-  make
-  ctest
-```
 
 ## FAQ
 

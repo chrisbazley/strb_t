@@ -19,13 +19,6 @@
 #include <stdint.h>
 
 /**
- * Whether the interface has user-allocated string buffer state objects.
- */
-#ifndef STRB_EXT_STATE
-#define STRB_EXT_STATE 1
-#endif
-
-/**
  * Whether the interface provides the @ref strb_unputc function.
  */
 #ifndef STRB_UNPUTC
@@ -236,8 +229,6 @@ typedef struct {
     char *buf;
 } strbprivate_t;
 
-#if STRB_EXT_STATE
-
 /**
  * @brief String buffer state
  *
@@ -420,81 +411,6 @@ const strb_t *strb_reuse_const(strbstate_t *restrict sbs,
 strb_t *strb_init(strbstate_t *sbs, size_t n);
 
 #endif // !STRB_FREESTANDING
-
-#elif !STRB_FREESTANDING
-
-/**
- * @brief Create a string buffer object for managing an external character array
- *
- * Allocates storage for a string buffer object, initialises it, and returns its
- * address. If storage allocation fails, a null pointer is returned.
- *
- * A null character is written as the first character of @p buf.
- * The initial string length is 0.
- *
- * The effects of strb_... functions on an external array are always immediately
- * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the whole of the external array but never allocate any
- * extra storage.
- *
- * @param      size  Number of elements in the array to be used instead of an
- *                   internal buffer, including space for the terminating null
- *                   character. Must not be 0.
- * @param[out] buf   The array to be used instead of an internal buffer.
- *
- * @return Address of the created string buffer object, or a null pointer on
- * failure.
- * @post The user is responsible for calling @ref strb_free to free the string
- * buffer object.
- * @post If successful, @ref strb_tell and @ref strb_len return 0.
- * @post If successful, a call to @ref strb_restore will have no effect until
- *       @ref strb_write has been called.
- * @post If successful, a call to @ref strb_unputc will fail until a character
- * has been put into the buffer.
- * @post If successful, a call to @ref strb_error will return false until an
- * error occurs.
- */
-_Optional strb_t *strb_use(size_t size, char buf[STRB_SIZE_HINT(size)]);
-
-/**
- * @brief Create a string buffer object by reusing an external character array
- *
- * Allocates storage for a string buffer object, initialises it, and returns its
- * address. If storage allocation fails, a null pointer is returned.
- *
- * The @p buf array should contain at least one null character within the first
- * @p size characters, whose position is the initial string length. Any
- * following characters are ignored. If no null character is found within the
- * first @p size characters (or the maximum supported size, if less), a null
- * character is written as the first character of @p buf. The initial string
- * length is then 0 and the error indicator is set.
- *
- * The effects of strb_... functions on an external array are always immediately
- * visible and the string therein is always null terminated. Operations on the
- * string buffer can use the supported extent of the external array but never
- * allocate any extra storage.
- *
- * @param         size  Number of elements in the array to be used instead of an
- *                      internal buffer, including space for the terminating null
- *                      character. Must not be 0.
- * @param[in,out] buf   The array to be used instead of an internal buffer.
- *
- * @return Address of the created string buffer object, or a null pointer on
- * failure.
- * @post The user is responsible for calling @ref strb_free to free the string
- * buffer object.
- * @post If successful, @ref strb_tell and @ref strb_len return the reused
- * string length.
- * @post If successful, a call to @ref strb_restore will have no effect until
- *       @ref strb_write has been called.
- * @post If successful, the last character of the reused string (if any) can be
- *       removed by @ref strb_unputc.
- * @post If successful, @ref strb_error initially returns true if no null
- * character was found within the supported extent, otherwise false.
- */
-_Optional strb_t *strb_reuse(size_t size, char buf[STRB_SIZE_HINT(size)]);
-
-#endif
 
 #if !STRB_FREESTANDING
 /**
