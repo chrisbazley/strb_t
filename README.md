@@ -184,7 +184,7 @@ ctest --test-dir build --output-on-failure
    No. A stored error indicator permits deferred checking with `strb_error`
    after a sequence of operations. It remains set until explicitly cleared with
    `strb_clearerr`. The buffer remains null-terminated even on failure, but the
-   application must still check for errors before relying on the resulting text.
+   program must still check for errors before relying on the resulting text.
    See [N3306, “Errors”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=46)
    and [“Error handling”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=68).
 

@@ -265,6 +265,10 @@ typedef struct {
  *
  * @return Address of the created string buffer object.
  * @post The given @p buf contains an empty string.
+ * @post Before the created string buffer object is first used, the caller may
+ *       modify elements of the array designated by @p buf, provided its first
+ *       character remains a null character. Such modifications do not
+ *       invalidate the created object.
  * @post The user may call @ref strb_free to free the string buffer object, but
  *       it is not required and has no effect.
  * @post The created string buffer object becomes invalid if the storage for
