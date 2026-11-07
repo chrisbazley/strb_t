@@ -97,7 +97,7 @@ int strb_putf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict fo
 int strb_vprintf(strb_t *STRB_CONST restrict sb,
     const char *STRB_CONST restrict format, va_list args)
 {
-    strb__empty(sb);
+    strb_empty(sb);
     return strb_vputf(sb, format, args);
 }
 

@@ -1115,6 +1115,24 @@ void strb_restore(strb_t *sb);
 void strb_delto(strb_t *sb, size_t pos);
 
 /**
+ * @brief Empty a string buffer, retaining its storage.
+ *
+ * Sets the string length and editing position to zero and writes a terminating
+ * null character. No storage is allocated or released, and the capacity,
+ * editing mode and error indicator are unchanged. This function cannot fail.
+ *
+ * @param[in,out] sb  String buffer.
+ * @pre The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
+ *      @ref strb_init, @ref strb_alloc, @ref strb_dup, @ref strb_ndup,
+ *      @ref strb_aprintf or @ref strb_vaprintf.
+ * @post @ref strb_len and @ref strb_tell return zero.
+ * @post @ref strb_cptr returns a pointer to an empty string.
+ * @post A call to @ref strb_restore has no effect until @ref strb_write is called.
+ * @post A call to @ref strb_unputc fails until a character is output.
+ */
+void strb_empty(strb_t *sb);
+
+/**
  * @brief Copy a string into a string buffer.
  *
  * Replaces the string in a buffer by copying a string.

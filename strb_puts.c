@@ -29,7 +29,7 @@ int strb_puts(strb_t *STRB_CONST restrict sb,
 int strb_ncpy(strb_t *STRB_CONST restrict sb,
     const char *STRB_CONST restrict str, STRB_CONST size_t n)
 {
-    strb__empty(sb);
+    strb_empty(sb);
     return strb_nputs(sb, str, n);
 }
 

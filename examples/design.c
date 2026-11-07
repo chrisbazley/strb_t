@@ -126,7 +126,7 @@ static bool fruit_rows_example(void)
     bool success = true;
     for (size_t row = 0; row < ARRAY_SIZE(rows); ++row) {
         // Replace the previous result; retain the allocated storage.
-        strb_cpy(&*sb, "");
+        strb_empty(&*sb);
         put_fruit_list(&*sb, ARRAY_SIZE(rows[row]), rows[row]);
         if (strb_error(&*sb) || puts(strb_ptr(&*sb)) == EOF) {
             success = false;

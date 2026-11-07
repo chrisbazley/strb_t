@@ -171,6 +171,17 @@ functions replace the whole string, regardless of the current position and
 mode. On success, they set the position to the end of the replacement text.
 Their individual contracts describe these whole-string operations.
 
+@section design_empty Emptying a buffer for reuse
+
+@ref strb_empty replaces the contents with an empty string and sets the editing
+position to zero. It cannot fail and retains the character storage and capacity,
+so the same buffer can be used for successive results without releasing and
+reallocating its storage. The editing mode is unchanged. Any saved character
+for undo or boundary restoration is discarded.
+
+The error indicator is unchanged, so emptying a buffer does not hide an earlier
+output failure. Call @ref strb_clearerr separately when recovering from an error.
+
 @section design_missing Why are there no append, prepend or insert functions?
 
 The output functions let a helper produce text without deciding where that
@@ -345,8 +356,8 @@ Fruit: apple,banana,orange.
 
 This consumer obtains an allocated buffer and uses the same producer to build
 two standalone lists. It prints each result before resetting the buffer for the
-next one, retaining the allocated storage. Replacement by @ref strb_cpy replaces
-the whole string and sets the position to the end of the new text; the producer
+next one, retaining the allocated storage. The call to @ref strb_empty sets
+the string length and position to zero; the producer
 then writes at that position. The consumer also releases the buffer when done:
 
 @snippet design.c fruit_caller
