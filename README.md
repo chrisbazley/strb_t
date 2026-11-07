@@ -15,7 +15,7 @@ required groups of operations:
 
 | Source | Responsibility |
 | --- | --- |
-| `strb_core.c` | Buffer access, length and private initialisation helpers |
+| `strb_core.c` | Buffer access, length, emptying and private initialisation helpers |
 | `strb_external.c` | Construction with caller-supplied state and character storage |
 | `strb_strnlen.c` | Private bounded-length fallback, where the platform needs it |
 | `strb_mode.c` | Setting and getting the editing mode |

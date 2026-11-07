@@ -59,7 +59,6 @@ bool strb__grow(strb_t *sb, strbsize_t minimum_size);
 #define STRB_GROW(sb, minimum_size) strb__grow(sb, minimum_size)
 #endif
 int strb__seterr(strb_t *sb);
-void strb__empty(strb_t *sb);
 
 #if defined(__CC65__) || \
     (!defined(_MSC_VER) && \

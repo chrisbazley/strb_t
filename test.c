@@ -617,6 +617,49 @@ static void test_seek(void)
     }
 }
 
+// Emptying preserves storage, mode and errors while discarding saved characters.
+static void test_empty(strb_t *const sb)
+{
+    char *storage;
+    assert(!strb_cpy(sb, "abc"));
+    storage = strb_ptr(sb);
+    assert(!strb_setmode(sb, strb_overwrite));
+    assert(strb_setmode(sb, -1) == EOF);
+
+    strb_empty(sb);
+    assert(strb_len(sb) == 0);
+    assert(strb_tell(sb) == 0);
+    assert(!strcmp(strb_cptr(sb), ""));
+    assert(strb_ptr(sb) == storage);
+    assert(strb_getmode(sb) == strb_overwrite);
+    assert(strb_error(sb));
+    strb_clearerr(sb);
+
+#if STRB_RESTORE
+    assert(!strb_puts(sb, "abc"));
+    strb_seek(sb, 1);
+    assert(!strb_split(sb));
+    strb_empty(sb);
+    strb_restore(sb);
+    assert(!strcmp(strb_cptr(sb), ""));
+#endif
+#if STRB_UNPUTC
+    assert(strb_putc(sb, 'a') == 'a');
+    strb_empty(sb);
+    assert(strb_unputc(sb) == EOF);
+    strb_clearerr(sb);
+#endif
+
+    // Repeat on an already empty buffer, then reuse its retained storage.
+    strb_empty(sb);
+    assert(!strb_error(sb));
+    assert(!strb_puts(sb, "abc"));
+    assert(strb_ptr(sb) == storage);
+    assert(!strcmp(strb_cptr(sb), "abc"));
+    strb_empty(sb);
+    assert(!strb_setmode(sb, strb_insert));
+}
+
 static void test(strb_t *const s)
 {
     char *c;
@@ -969,6 +1012,7 @@ static void test_external_state(void)
         assert(strb_getmode(sb) == strb_insert);
         assert(!strcmp(strb_cptr(sb), ""));
         assert(strb_ptr(sb)[0] == '\0');
+        strb_empty(sb);
         assert(strb_write(sb, 0));
         assert(strb_len(sb) == 0);
         assert(strb_tell(sb) == 0);
@@ -982,6 +1026,7 @@ static void test_external_state(void)
 
     for (i = 0; i < ARRAY_SIZE(hints); ++i) {
         strb_t *const sb = strb_init(&owner.state, hints[i]);
+        strb_empty(sb);
         assert(sb);
         assert(!strb_error(&*sb));
         assert(strb_len(&*sb) == 0);
@@ -1044,6 +1089,7 @@ static void test_external_state(void)
         }
 
         buffers[STRB_MAX] = strb_init(&states[STRB_MAX], SIZE_MAX);
+        strb_empty(buffers[STRB_MAX]);
         assert(!strb_error(buffers[STRB_MAX]));
         assert(strb_puts(buffers[STRB_MAX], "pool") == EOF);
         assert(strb_error(buffers[STRB_MAX]));
@@ -1102,6 +1148,7 @@ int main(void)
     assert(strb_unputc(&*s) == EOF);
 #endif
 
+    test_empty(&*s);
     test(&*s);
     // Reuse stops at the first null, including an unrestored split.
     c = array[strlen(array) - 1];
@@ -1164,6 +1211,7 @@ int main(void)
     assert(strb_unputc(&*s) == EOF);
 #endif
 
+    test_empty(&*s);
     test(&*s);
     strb_free(s);
 

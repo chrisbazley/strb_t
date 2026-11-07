@@ -34,7 +34,7 @@ size_t strb_len(strb_t const *STRB_CONST sb)
     return sb->p.len;
 }
 
-void strb__empty(strb_t *STRB_CONST sb)
+void strb_empty(strb_t *STRB_CONST sb)
 {
     assert(sb);
     sb->p.len = sb->p.pos = 0;
