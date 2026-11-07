@@ -68,7 +68,23 @@ only `strb.h`. Private functions with external linkage use the `strb__` prefix;
 public functions use a single underscore after `strb`. `DEBUGOUT` enables
 messages to stderr, and `NDEBUG` disables assertions.
 
-The [freestanding implementation](https://godbolt.org/z/vYWa1PrTc) produces 1,725 bytes of instructions for the 65C02 with SDCC trunk, or a 636-byte `.text` section for Cortex-M0 with ARM GCC trunk (measured on 6 November 2026). Both configurations disable assertions, `STRB_UNPUTC` and `STRB_REUSE_CONST`; GCC uses `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes literal pools and alignment padding. These figures exclude RAM storage, debug information and the external `memcpy`, `memmove` and `memset` implementations. GCC also calls an external `strnlen`; the SDCC figure includes its 59-byte local fallback.
+The [freestanding implementation example](https://godbolt.org/z/PEMEjsMWs)
+includes all applicable operation sources at commit
+[`62ff4e9`](https://github.com/chrisbazley/strb_t/commit/62ff4e9d3a95c655944a0ce0cd5b90aca1ed22e6).
+Measured on 7 November 2026, it produces 1,725 bytes in the `CODE` area for the
+65C02 with SDCC 4.6.4 r17148, or a 636-byte `.text` section for Cortex-M0 with
+ARM GCC trunk (17.0.0, 20261107). These sizes were obtained by assembling the
+compiler output. The example compiles the sources together as one translation
+unit; linking a static archive can include fewer functions.
+
+Both configurations disable assertions, `STRB_UNPUTC` and `STRB_REUSE_CONST`;
+GCC uses `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes
+literal pools and alignment padding. Both figures exclude RAM storage, debug
+information and the external `memcpy`, `memmove` and `memset` implementations.
+GCC also calls an external `strnlen`; the SDCC figure includes its 59-byte local
+fallback. In the saved SDCC pane, **Unused labels** and **Library functions** are
+unchecked so that function labels and the downloaded implementation remain
+visible. **Library functions** is also unchecked for ARM GCC.
 
 ## Configuration tests
 
@@ -114,15 +130,67 @@ For example, use the following commands to build and test on Linux:
 
 ## FAQ
 
-Q1: Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?
+1. **Why does `strb_t` store a current editing position?**
 
-A1: Calling it strb was also an in-joke, because that's what it does.
+   It lets a text-producing function write without deciding where its output
+   belongs. The caller can use the same producer to append, prepend, insert or
+   overwrite by choosing the position and mode. This abstracts those decisions
+   instead of requiring a different producer for each operation.
+   See [N3306, “Positioning” and “Editing”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=43).
 
-Q2: Could it be a library or does it have to be part of the language?
+2. **Why does `strb_t` have an editing mode?**
 
-A2: Incorporating safe string functions into the standard would:
-- Standardise existing best practice.
-- Reduce the level of experience needed to write correct programs.
-- Provide a better precedent to follow when users design their own interfaces.
-- Make it easier to write interoperable user-designed libraries.
-- Ensure that the implementation is optimised for the target platform.
+   A stored mode avoids providing insertion and overwrite variants of every
+   output function. Insertion makes room for new characters; overwriting replaces
+   existing characters without shifting the following text. The default is
+   insertion, starting at the end of the string, so successive output calls
+   naturally append.
+   See [N3306, “Insertion and overwriting”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=43).
+
+3. **Why not use slices instead?**
+
+   This interface does not propose a replacement for C's string representation.
+   Its purpose is to let functions produce ordinary C strings without committing
+   to a particular allocation strategy, editing operation or output position.
+   Changing how substrings are represented is a separate issue.
+   See [the author's reply in the original proposal discussion](https://www.reddit.com/r/C_Programming/comments/1ctoh24/)
+   and [N3306, “String representation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
+
+4. **Why put this interface in the standard library?**
+
+   Standardisation would let independently written libraries agree on a string
+   buffer interface, rather than each inventing its own. The proposal also aims
+   to standardise existing best practice, reduce the experience needed to write
+   correct programs, and provide a better precedent for other interfaces. It does
+   not seek to replace every use of character arrays or user-designed libraries.
+   See [N3306, “Rationale”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=3).
+
+5. **Does `strb_t` require dynamic memory allocation?**
+
+   No. `strb_use` and `strb_reuse` can manage caller-supplied character storage
+   using caller-supplied state. The same output functions also work with buffers
+   whose storage the library allocates. A text producer need not know which
+   strategy its caller chose. Freestanding implementations need not provide
+   dynamic allocation.
+   See [N3306, “External buffers” and “Internal buffers”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=42).
+
+6. **Must every output call be checked immediately?**
+
+   No. A stored error indicator permits deferred checking with `strb_error`
+   after a sequence of operations. It remains set until explicitly cleared with
+   `strb_clearerr`. The buffer remains null-terminated even on failure, but the
+   application must still check for errors before relying on the resulting text.
+   See [N3306, “Errors”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=46)
+   and [“Error handling”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=68).
+
+7. **Does `strb_t` require changes to the C language?**
+
+   No. It is a library interface, with a prototype implementation in this
+   repository. The `_Optional` qualifier used in the proposal clarifies pointer
+   declarations; it can be defined as an empty macro without substantially
+   changing the meaning of the code.
+   See [N3306, “Pointer notation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
+
+8. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
+
+   Calling it strb was also an in-joke, because that's what it does.
