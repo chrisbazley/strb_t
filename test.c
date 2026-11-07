@@ -12,7 +12,6 @@
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
-#if STRB_EXT_STATE || !STRB_FREESTANDING
 // Reference output operations prepare space with strb_write, then fill it
 // independently of the library's character, string and formatting wrappers.
 static int ref_nputc(strb_t *const s, const int c, const size_t n)
@@ -273,19 +272,12 @@ static void test_output_equivalence(void)
                          state_index < ARRAY_SIZE(initial_states); ++state_index) {
                         const unsigned flags = initial_states[state_index];
                         static char actual_array[128], reference_array[128];
-#if STRB_EXT_STATE
                         strbstate_t actual_state, reference_state;
                         strb_t *const actual = strb_use(&actual_state, sizeof actual_array,
                                                   actual_array);
                         strb_t *const reference = strb_use(&reference_state,
                                                      sizeof reference_array,
                                                      reference_array);
-#else
-                        _Optional strb_t *const actual = strb_use(sizeof actual_array,
-                                                            actual_array);
-                        _Optional strb_t *const reference = strb_use(sizeof reference_array,
-                                                               reference_array);
-#endif
                         assert(actual);
                         assert(reference);
                         prepare_output(&*actual, initial, pos, modes[m],
@@ -337,12 +329,8 @@ static void test_output_equivalence(void)
 static void test_write_zero(void)
 {
     char array[128];
-#if STRB_EXT_STATE
     strbstate_t state;
     strb_t *const s = strb_use(&state, sizeof array, array);
-#else
-    _Optional strb_t *const s = strb_use(sizeof array, array);
-#endif
     assert(s);
     prepare_output(&*s, "abc", 0, strb_overwrite, true, false);
     assert(strb_write(&*s, 0));
@@ -429,19 +417,12 @@ static void test_output_failure(void)
             size_t m;
             for (m = 0; m < ARRAY_SIZE(modes); ++m) {
                 char actual_array[capacity], reference_array[capacity];
-#if STRB_EXT_STATE
                 strbstate_t actual_state, reference_state;
                 strb_t *const actual = strb_use(&actual_state, sizeof actual_array,
                                           actual_array);
                 strb_t *const reference = strb_use(&reference_state,
                                              sizeof reference_array,
                                              reference_array);
-#else
-                _Optional strb_t *const actual = strb_use(sizeof actual_array,
-                                                    actual_array);
-                _Optional strb_t *const reference = strb_use(sizeof reference_array,
-                                                       reference_array);
-#endif
                 assert(actual);
                 assert(reference);
                 prepare_output(&*actual, "abcdef", pos, modes[m], true, false);
@@ -464,9 +445,6 @@ static void test_output_failure(void)
     }
 }
 
-#endif // STRB_EXT_STATE || !STRB_FREESTANDING
-
-#if STRB_EXT_STATE || !STRB_FREESTANDING
 static void test_delto_large_target(void)
 {
     size_t t;
@@ -481,12 +459,8 @@ static void test_delto_large_target(void)
             size_t m;
             for (m = 0; m < ARRAY_SIZE(modes); ++m) {
                 char array[128];
-#if STRB_EXT_STATE
                 strbstate_t state;
                 strb_t *const s = strb_use(&state, sizeof array, array);
-#else
-                _Optional strb_t *const s = strb_use(sizeof array, array);
-#endif
                 assert(s);
                 assert(!strb_puts(&*s, "abcdef"));
                 assert(!strb_setmode(&*s, modes[m]));
@@ -509,9 +483,7 @@ static void test_delto_large_target(void)
         }
     }
 }
-#endif
 
-#if STRB_EXT_STATE || !STRB_FREESTANDING
 static void test_seek(void)
 {
     size_t i, m;
@@ -519,12 +491,8 @@ static void test_seek(void)
     static const size_t unsupported[] = {STRB_MAX_SIZE, (size_t)STRB_MAX_SIZE + 1, SIZE_MAX};
     static const int modes[] = {strb_insert, strb_overwrite};
     char array[64];
-#if STRB_EXT_STATE
     strbstate_t state;
     strb_t *const s = strb_use(&state, sizeof array, array);
-#else
-    _Optional strb_t *const s = strb_use(sizeof array, array);
-#endif
     assert(s);
     for (m = 0; m < ARRAY_SIZE(modes); ++m) {
         size_t pos, u;
@@ -648,7 +616,6 @@ static void test_seek(void)
 #endif
     }
 }
-#endif
 
 static void test(strb_t *const s)
 {
@@ -916,7 +883,6 @@ static void test(strb_t *const s)
     puts("========");
 }
 
-#if STRB_EXT_STATE || !STRB_FREESTANDING
 static void test_reuse_contents(void)
 {
     static const struct {
@@ -935,17 +901,11 @@ static void test_reuse_contents(void)
         struct {
             char before, buf[64], after;
         } array;
-#if STRB_EXT_STATE
         strb_t *sb;
-#else
-        _Optional strb_t *sb;
-#endif
         const size_t size = cases[i].size, terminator = cases[i].terminator;
         const size_t len = terminator < size ? terminator : 0;
         size_t j;
-#if STRB_EXT_STATE
         strbstate_t state;
-#endif
 
         array.before = 'b';
         array.after = 'c';
@@ -955,17 +915,12 @@ static void test_reuse_contents(void)
         }
 
         // Preserve supported strings, or construct an empty buffer with an error.
-#if STRB_EXT_STATE
         sb = strb_reuse(&state, size, array.buf);
-#else
-        sb = strb_reuse(size, array.buf);
-#endif
-        assert(sb);
-        assert(strb_len(&*sb) == len);
-        assert(strb_tell(&*sb) == len);
-        assert(strb_getmode(&*sb) == strb_insert);
-        assert(strb_error(&*sb) == (terminator >= size));
-        assert(strlen(strb_cptr(&*sb)) == len);
+        assert(strb_len(sb) == len);
+        assert(strb_tell(sb) == len);
+        assert(strb_getmode(sb) == strb_insert);
+        assert(strb_error(sb) == (terminator >= size));
+        assert(strlen(strb_cptr(sb)) == len);
 
         // Neither the unused suffix nor characters outside the extent change.
         for (j = 0; j < sizeof array.buf; ++j) {
@@ -975,44 +930,23 @@ static void test_reuse_contents(void)
         assert(array.before == 'b');
         assert(array.after == 'c');
 #if STRB_UNPUTC
-        assert(strb_unputc(&*sb) == (len ? 'a' : EOF));
+        assert(strb_unputc(sb) == (len ? 'a' : EOF));
 #endif
         if (terminator >= size) {
             // Successful output does not clear the construction error.
-            assert(!strb_puts(&*sb, size > 1 ? "b" : ""));
-            assert(strb_error(&*sb));
-            strb_clearerr(&*sb);
-            assert(!strb_error(&*sb));
+            assert(!strb_puts(sb, size > 1 ? "b" : ""));
+            assert(strb_error(sb));
+            strb_clearerr(sb);
+            assert(!strb_error(sb));
         }
 
 #if !STRB_FREESTANDING
-        strb_free(&*sb);
+        strb_free(sb);
 #endif
     }
-
-#if STRB_STATIC_ALLOC && !STRB_EXT_STATE
-    {
-        _Optional strb_t *allocated[STRB_MAX];
-        char buffers[STRB_MAX][1], buf[1] = {'a'};
-
-        // Allocation failure must leave the external array unchanged.
-        for (i = 0; i < ARRAY_SIZE(allocated); ++i) {
-            allocated[i] = strb_use(sizeof buffers[i], buffers[i]);
-            assert(allocated[i]);
-        }
-
-        assert(!strb_reuse(sizeof buf, buf));
-        assert(buf[0] == 'a');
-
-        for (i = 0; i < ARRAY_SIZE(allocated); ++i) {
-            strb_free(allocated[i]);
-        }
-    }
-#endif
 }
-#endif
 
-#if STRB_EXT_STATE && STRB_REUSE_CONST
+#if STRB_REUSE_CONST
 static void test_reuse_const_contents(void)
 {
     static struct {
@@ -1074,7 +1008,7 @@ static void test_reuse_const_contents(void)
 }
 #endif
 
-#if STRB_EXT_STATE && !STRB_FREESTANDING
+#if !STRB_FREESTANDING
 // All constructors share the same editing operations. Repeated construction
 // and cleanup must release character storage without freeing embedded state.
 static void test_external_state(void)
@@ -1196,21 +1130,18 @@ static void test_external_state(void)
 int main(void)
 {
     static char array[1000];
-#if STRB_FREESTANDING && STRB_EXT_STATE
+#if STRB_FREESTANDING
     strb_t *s;
 #else
     _Optional strb_t *s;
 #endif
     int c;
 
-#if STRB_EXT_STATE
     strbstate_t state;
-#endif
 
-#if STRB_EXT_STATE && !STRB_FREESTANDING
+#if !STRB_FREESTANDING
     test_external_state();
 #endif
-#if STRB_EXT_STATE || !STRB_FREESTANDING
     test_reuse_contents();
     test_output_equivalence();
 #if STRB_UNPUTC
@@ -1222,13 +1153,11 @@ int main(void)
     test_output_failure();
     test_delto_large_target();
     test_seek();
-#endif
 
-#if STRB_EXT_STATE && STRB_REUSE_CONST
+#if STRB_REUSE_CONST
     test_reuse_const_contents();
 #endif
 
-#if STRB_EXT_STATE
     s = strb_use(&state, sizeof array, array);
     if (!s) {
         assert(s);
@@ -1326,45 +1255,6 @@ int main(void)
 #endif
     }
 #endif // STRB_REUSE_CONST
-
-#elif !STRB_FREESTANDING
-    s = strb_use(sizeof array, array);
-    assert(s);
-#if STRB_UNPUTC
-    assert(strb_unputc(&*s) == EOF);
-#endif
-
-    test(&*s);
-    // Reuse stops at the first null, including an unrestored split.
-    c = array[strlen(array) - 1];
-    strb_free(s);
-
-    s = strb_reuse(sizeof array, array);
-    assert(s);
-#if STRB_UNPUTC
-    assert(strb_unputc(&*s) == c);
-#else
-    (void)c;
-#endif
-
-    test(&*s);
-    strb_free(s);
-
-    memset(array, 'a', sizeof array);
-    s = strb_reuse(sizeof array, array);
-    assert(s);
-    assert(strb_len(&*s) == 0);
-    assert(strb_tell(&*s) == 0);
-    assert(strb_error(&*s));
-    assert(array[0] == '\0');
-    assert(array[1] == 'a');
-    strb_free(&*s);
-#else
-    (void)s;
-    (void)array;
-    (void)test;
-    (void)c;
-#endif // !STRB_FREESTANDING
 
 #if !STRB_FREESTANDING
     s = strb_alloc(2700);

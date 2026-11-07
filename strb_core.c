@@ -46,7 +46,7 @@ void strb__empty(strb_t *STRB_CONST sb)
 #endif
 }
 
-#if !STRB_FREESTANDING && STRB_EXT_STATE
+#if !STRB_FREESTANDING
 strb_t *strb__initempty(strbstate_t *STRB_CONST sbs, STRB_CONST strbsize_t hint)
 {
     assert(sbs);

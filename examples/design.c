@@ -201,9 +201,78 @@ static bool short_write_example(void)
     return true;
 }
 
+// This example deliberately demonstrates the implicit-null diagnostic.
+#if defined(__clang__)
+#if __has_warning("-Wimplicit-null-initialization")
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-null-initialization"
+#endif
+#endif
+//! [label_implicit_null]
+typedef struct {
+    int x, y;
+    char buffer[32];
+    strbstate_t sbs;
+    strb_t *sb;
+} label_t;
+
+static void init_label(label_t *label, int x, int y)
+{
+    // Implicitly initialises the pointers in sbs and sb to null.
+    *label = (label_t){.x = x, .y = y};
+    label->sb = strb_use(&label->sbs, sizeof label->buffer, label->buffer);
+}
+//! [label_implicit_null]
+#if defined(__clang__)
+#if __has_warning("-Wimplicit-null-initialization")
+#pragma clang diagnostic pop
+#endif
+#endif
+
+//! [label_initialisation]
+typedef struct {
+    int x, y;
+    char buffer[32];
+    union {
+        char nil;
+        struct {
+            strbstate_t sbs;
+            strb_t *sb;
+        };
+    };
+} label2_t;
+
+static void init_label2(label2_t *label, int x, int y)
+{
+    // The compound literal initialises nil; the assignment copies it.
+    *label = (label2_t){.x = x, .y = y};
+    label->sb = strb_use(&label->sbs, sizeof label->buffer, label->buffer);
+}
+//! [label_initialisation]
+
+static bool label_initialisation_example(void)
+{
+    label_t plain;
+    init_label(&plain, 10, 20);
+    bool success = plain.x == 10 && plain.y == 20 &&
+                   strb_ptr(plain.sb) == plain.buffer &&
+                   strb_len(plain.sb) == 0 && !strcmp(plain.buffer, "");
+    strb_free(plain.sb);
+    if (!success)
+        return false;
+
+    label2_t label;
+    init_label2(&label, 10, 20);
+    success = label.x == 10 && label.y == 20 &&
+              strb_ptr(label.sb) == label.buffer &&
+              strb_len(label.sb) == 0 && !strcmp(label.buffer, "");
+    strb_free(label.sb);
+    return success;
+}
+
 int main(void)
 {
-    return editing_example() && fruit_sentence_example() && fruit_rows_example() &&
+    return label_initialisation_example() && editing_example() && fruit_sentence_example() && fruit_rows_example() &&
                    fruit_local_example() && short_write_example()
                ? EXIT_SUCCESS
                : EXIT_FAILURE;

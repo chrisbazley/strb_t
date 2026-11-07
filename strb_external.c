@@ -4,10 +4,6 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-#if !STRB_EXT_STATE
-#error "Compile strb_external.c only when STRB_EXT_STATE is enabled"
-#endif
-
 static strb_t *init_use(strbstate_t *const restrict sbs, const strbsize_t size,
     char buf[STRB_SIZE_HINT(size)], const strbsize_t len)
 {

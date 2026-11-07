@@ -50,13 +50,11 @@ static void free_metadata(strb_t *STRB_CONST sb)
     --nbufs;
 }
 
-#if STRB_EXT_STATE
 strb_t *strb_init(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
 {
     (void)n;
     return strb__initempty(sbs, STRB_MAX_SIZE);
 }
-#endif
 
 _Optional strb_t *strb_alloc(STRB_CONST size_t n)
 {

@@ -93,9 +93,6 @@ function(add_strb_variant suffix definitions sources)
     # Feature macros select the API and shared state layout. Omit operation
     # units with no enabled definitions rather than compiling empty objects.
     set(operation_sources ${COMMON_SOURCES})
-    if("STRB_EXT_STATE=0" IN_LIST definitions)
-        list(REMOVE_ITEM operation_sources strb_external.c)
-    endif()
     if(NOT "STRB_UNPUTC=0" IN_LIST definitions)
         list(APPEND operation_sources strb_unputc.c)
     endif()
@@ -142,24 +139,18 @@ add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" ""
 
 # Exercise optional interfaces independently and together, without changing
 # the full-interface library used by the documentation examples.
-foreach(configuration no_ext_state no_unputc no_reuse_const minimal)
-    if(configuration STREQUAL "no_ext_state")
-        set(definitions STRB_EXT_STATE=0)
-    elseif(configuration STREQUAL "no_unputc")
+foreach(configuration no_unputc no_reuse_const minimal)
+    if(configuration STREQUAL "no_unputc")
         set(definitions STRB_UNPUTC=0)
     elseif(configuration STREQUAL "no_reuse_const")
         set(definitions STRB_REUSE_CONST=0)
     else()
-        set(definitions STRB_EXT_STATE=0 STRB_UNPUTC=0 STRB_RESTORE=0 STRB_REUSE_CONST=0)
+        set(definitions STRB_UNPUTC=0 STRB_RESTORE=0 STRB_REUSE_CONST=0)
     endif()
 
     add_strb_variant("${configuration}" "${definitions}" "${DYNAMIC_SOURCES}" TEST_ONLY)
     add_strb_variant("static_${configuration}" "STRB_STATIC_ALLOC;${definitions}" "${STATIC_SOURCES}" TEST_ONLY)
-    # Without external state or allocation there is no way to construct a
-    # string buffer; avoid counting an empty test program as coverage.
-    if(NOT configuration STREQUAL "no_ext_state" AND NOT configuration STREQUAL "minimal")
-        add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "" TEST_ONLY)
-    endif()
+    add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "" TEST_ONLY)
 endforeach()
 
 # Compile and run the examples used by the interface design page.
