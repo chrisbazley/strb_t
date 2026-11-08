@@ -200,6 +200,7 @@ typedef struct {
  * An object of type strbstate_t can only be used to construct strb_t objects.
  * The effect on any derived strb_t object of modifying the originating
  * strbstate_t object is undefined.
+ *
  * @warning A derived @ref strb_t handle must not be used after the state
  * object's lifetime ends.
  */
@@ -224,6 +225,10 @@ typedef union {
  * string buffer can use the whole of the external array but never allocate any
  * extra storage.
  *
+ * @note For a whole array, @ref STRB_USE derives its extent.
+ * @ref STRB_TMP_USE also supplies state that lasts until the enclosing block ends.
+ * To declare both the state and a fixed-capacity array, use @ref STRB_DECL_FIXED.
+ *
  * @param[out] sbs   String buffer state.
  * @param      size  Number of elements in the array to be used instead of an
  *                   internal buffer, including space for the terminating null
@@ -238,31 +243,47 @@ typedef union {
  *       invalidate the created object.
  * @post The user may call @ref strb_free to free the string buffer object, but
  *       it is not required and has no effect.
- * @warning The created string buffer object becomes invalid if the storage for
- *       @p sbs or @p buf is deallocated.
- * @warning The created string buffer object becomes invalid if the @p sbs object
- *       is modified (other than as a side-effect of calling a strb_... function which
- *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return 0.
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post A call to @ref strb_unputc will fail until a character has been put
  *       into the buffer.
  * @post A call to @ref strb_error will return false until an error occurs.
+ *
+ * @warning The created string buffer object becomes invalid if the storage for
+ *       @p sbs or @p buf is deallocated.
+ * @warning The created string buffer object becomes invalid if the @p sbs object
+ *       is modified (other than as a side-effect of calling a strb_... function which
+ *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  */
 strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
                  char buf[STRB_SIZE_HINT(size)]);
 
 /**
+ * @brief Call @ref strb_use with the extent of a character array.
+ *
+ * @param sbs Pointer to the state object supplied to @ref strb_use.
+ * @param buf Modifiable character array to adopt, not a pointer. Its extent
+ *            is obtained with @c sizeof.
+ * @see @ref strb_use
+ */
+#define STRB_USE(sbs, buf) \
+    strb_use((sbs), sizeof(buf), (buf))
+
+/**
  * @brief Call @ref strb_use with unnamed state local to the enclosing block.
  *
+ * @param buf Modifiable character array to adopt, not a pointer. Its extent
+ *            is obtained with @c sizeof.
+ *
  * Re-evaluating the same invocation of this macro reuses its state.
+ * @see @ref design_state
+ *
  * @warning The returned handle becomes invalid when the enclosing block ends.
  * Do not return it to a caller or retain it for use beyond that block.
- * @see @ref design_state
  */
-#define STRB_TMP_USE(size, buf) \
-    strb_use(&(strbstate_t){.nil = 0}, (size), (buf))
+#define STRB_TMP_USE(buf) \
+    STRB_USE((&(strbstate_t){.nil = 0}), (buf))
 
 /**
  * @brief Declare an empty fixed-capacity string buffer local to the enclosing
@@ -279,9 +300,10 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  *
  * Construction cannot fail. The buffer cannot grow beyond @p n characters and
  * requires no call to @ref strb_free.
+ * @see @ref design_state
+ *
  * @warning The handle becomes invalid when the enclosing block ends.
  * Do not return it to a caller or retain it for use beyond that block.
- * @see @ref design_state
  */
 #define STRB_DECL_FIXED(name, n) \
     char strb__##name##_buf[(n) + 1]; \
@@ -308,6 +330,9 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * string buffer can use the supported extent of the external array but never
  * allocate any extra storage.
  *
+ * @note For a whole array, @ref STRB_REUSE derives its extent.
+ * @ref STRB_TMP_REUSE also supplies state that lasts until the enclosing block ends.
+ *
  * @param[out]    sbs   String buffer state.
  * @param         size  Number of elements in the array to be used instead of an
  *                      internal buffer, including space for the terminating null
@@ -319,11 +344,6 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  *       within the supported extent; otherwise, its contents are unchanged.
  * @post The user may call @ref strb_free to free the string buffer object, but
  *       it is not required and has no effect.
- * @warning The created string buffer object becomes invalid if the storage for
- *       @p sbs or @p buf is deallocated.
- * @warning The created string buffer object becomes invalid if the @p sbs object
- *       is modified (other than as a side-effect of calling a strb_... function which
- *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return the reused string length.
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
@@ -331,20 +351,41 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  *       removed by @ref strb_unputc.
  * @post Initially, @ref strb_error returns true if no null character was found
  *       within the supported extent, otherwise false.
+ *
+ * @warning The created string buffer object becomes invalid if the storage for
+ *       @p sbs or @p buf is deallocated.
+ * @warning The created string buffer object becomes invalid if the @p sbs object
+ *       is modified (other than as a side-effect of calling a strb_... function which
+ *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  */
 strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
                              char buf[STRB_SIZE_HINT(size)]);
 
 /**
+ * @brief Call @ref strb_reuse with the extent of a character array.
+ *
+ * @param sbs Pointer to the state object supplied to @ref strb_reuse.
+ * @param buf Modifiable character array to adopt, not a pointer. Its extent
+ *            is obtained with @c sizeof.
+ * @see @ref strb_reuse
+ */
+#define STRB_REUSE(sbs, buf) \
+    strb_reuse((sbs), sizeof(buf), (buf))
+
+/**
  * @brief Call @ref strb_reuse with unnamed state local to the enclosing block.
  *
+ * @param buf Modifiable character array to adopt, not a pointer. Its extent
+ *            is obtained with @c sizeof.
+ *
  * Re-evaluating the same invocation of this macro reuses its state.
+ * @see @ref design_state
+ *
  * @warning The returned handle becomes invalid when the enclosing block ends.
  * Do not return it to a caller or retain it for use beyond that block.
- * @see @ref design_state
  */
-#define STRB_TMP_REUSE(size, buf) \
-    strb_reuse(&(strbstate_t){.nil = 0}, (size), (buf))
+#define STRB_TMP_REUSE(buf) \
+    STRB_REUSE((&(strbstate_t){.nil = 0}), (buf))
 
 #if !STRB_FREESTANDING
 /**
@@ -358,6 +399,9 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * This function does not allocate storage. Subsequent operations on the string
  * buffer may allocate or free extra storage, if supported by the implementation.
  *
+ * @note If the state need only last until the enclosing block ends,
+ * @ref STRB_DECL_ALLOC supplies it and declares the buffer handle.
+ *
  * @param[out] sbs   String buffer state.
  * @param n  A hint about the number of elements to allocate for an internal
  *           character array, excluding the terminating null character
@@ -368,18 +412,19 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * @post The user is responsible for calling @ref strb_free to release any
  * library-owned character storage before the storage for @p sbs is deallocated
  * or reused. Calling @ref strb_free unconditionally is valid.
- * @warning The created string buffer object becomes invalid if the storage for @p
- * sbs is deallocated.
- * @warning The created string buffer object becomes invalid if the @p sbs object
- * is modified (other than as a side-effect of calling a strb_... function which
- * is not
- *       @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return 0.
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  * @post A call to @ref strb_unputc will fail until a character has been put
  *       into the buffer.
  * @post A call to @ref strb_error will return false until an error occurs.
+ *
+ * @warning The created string buffer object becomes invalid if the storage for @p
+ * sbs is deallocated.
+ * @warning The created string buffer object becomes invalid if the @p sbs object
+ * is modified (other than as a side-effect of calling a strb_... function which
+ * is not
+ *       @ref strb_make, @ref strb_reuse or @ref strb_use).
  */
 strb_t *strb_make(strbstate_t *sbs, size_t n);
 
@@ -396,9 +441,10 @@ strb_t *strb_make(strbstate_t *sbs, size_t n);
  *             reassigned.
  * @param n Initial size hint, with the same meaning as for @ref strb_make.
  *
+ * @see @ref design_state
+ *
  * @warning The handle becomes invalid when the enclosing block ends.
  * Do not return it to a caller or retain it for use beyond that block.
- * @see @ref design_state
  */
 #define STRB_DECL_ALLOC(name, n) \
     strbstate_t strb__##name##_state; \
@@ -417,6 +463,10 @@ strb_t *strb_make(strbstate_t *sbs, size_t n);
  * storage for a string immediately, providing that all other functions operate
  * as if it had been allocated. Subsequent operations on the string buffer may
  * allocate or free extra storage, if supported by the implementation.
+ *
+ * @note If the buffer need not outlive the enclosing block,
+ * @ref STRB_DECL_ALLOC avoids allocating state and cannot fail during
+ * construction. Its character storage must still be released with @ref strb_free.
  *
  * @param n  A hint about the number of elements to allocate for an internal
  *           character array, excluding the terminating null character

@@ -211,7 +211,7 @@ static void init_label(label_t *label, int x, int y)
 {
     // Implicitly initialises sb to null.
     *label = (label_t){.x = x, .y = y};
-    label->sb = strb_use(&label->sbs, sizeof label->buffer, label->buffer);
+    label->sb = STRB_USE(&label->sbs, label->buffer);
 }
 //! [label_implicit_null]
 #if defined(__clang__)
@@ -235,7 +235,7 @@ static void init_label2(label2_t *label, int x, int y)
 {
     // The compound literal initialises nil; the assignment copies it.
     *label = (label2_t){.x = x, .y = y};
-    label->sb = strb_use(&label->sbs, sizeof label->buffer, label->buffer);
+    label->sb = STRB_USE(&label->sbs, label->buffer);
 }
 //! [label_initialisation]
 

@@ -32,8 +32,9 @@ remembering it requires no additional state. The hint is not a guarantee of
 initial capacity.
 
 The macros @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their corresponding
-functions with unnamed state that lasts until the enclosing block ends. Each
-argument is evaluated once. @ref STRB_DECL_FIXED declares a constant handle,
+functions with unnamed state that lasts until the enclosing block ends. The
+array extent is obtained with @c sizeof, so the argument must be an array rather
+than a pointer. @ref STRB_DECL_FIXED declares a constant handle,
 state and an uninitialised character array of fixed capacity; it requires no
 cleanup. @ref STRB_DECL_ALLOC declares a constant handle and state, with character
 storage supplied by the library. Release that storage with @ref strb_free before
@@ -137,7 +138,7 @@ qualifier is a compiler extension. Naming the union
 would allow the same deferred initialisation pattern in C99, with longer member
 access paths.
 
-<a href="https://godbolt.org/z/3PzK6dWaW">Compare the examples and their diagnostics
+<a href="https://godbolt.org/z/oq13j1xen">Compare the examples and their diagnostics
 in Compiler Explorer</a>.
 
 @section design_reuse_contents Reusing an array
