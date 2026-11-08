@@ -25,14 +25,14 @@ library manages the character storage. Initialisation cannot fail and allocates
 nothing; output obtains character storage when needed and may fail. This is
 useful for a temporary buffer or state embedded in a program object.
 
-The macros @ref STRB_TMP_MAKE, @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their
-corresponding functions with unnamed state that lasts until the enclosing block
-ends, avoiding a separate state declaration. Each argument is evaluated once.
-@ref STRB_TMP also provides a character array for a constant maximum string
-length; it cannot grow and requires no cleanup.
-A handle must not outlive its state or character array; release any library-owned
-character storage with @ref strb_free before leaving the block or re-evaluating
-the same invocation of the macro, which reuses its state.
+The macros @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their corresponding
+functions with unnamed state that lasts until the enclosing block ends. Each
+argument is evaluated once. @ref STRB_DECL_FIXED declares a constant handle,
+state and an uninitialised character array of fixed capacity; it requires no
+cleanup. @ref STRB_DECL_ALLOC declares a constant handle and state, with character
+storage supplied by the library. Release that storage with @ref strb_free before
+leaving the block, including after output failure. A handle must not outlive its
+state or character array.
 
 The size hint has the same meaning as for @ref strb_alloc, but is used when
 character storage is first allocated. It does not make construction fallible.
@@ -121,22 +121,23 @@ The example below shows how to keep the buffer state inside the label structure
 and retain a pointer to a non-optional object, without allocation failure or
 cleanup obligations.
 
-In @c label2_t below, the anonymous member of union type can hold either the
-@c nil member or an anonymous structure containing @c sbs and @c sb. The compound
-literal initialises @c nil; the structure assignment copies its value to the
-label. The subsequent call to @ref strb_use assigns values to @c sbs, and its
-return value is assigned to @c sb. Neither pointer needs an <code>_Optional</code>-qualified
-referenced type, and the member access syntax stays the same:
+In @c label2_t below, the anonymous union can hold either @c nil or @c sb.
+The @c sbs member is separate: @ref strbstate_t is already a union whose implicit
+initialisation does not initialise any pointers. The compound literal initialises
+@c nil; the structure assignment copies its value to the label. The subsequent
+call to @ref strb_use assigns values to @c sbs, and its return value is assigned
+to @c sb. The pointer needs no <code>_Optional</code>-qualified referenced type,
+and the member access syntax stays the same:
 
 @snippet design.c label_initialisation
 
-The @c label2_t definition requires C11 for anonymous structures and unions;
+The @c label2_t definition requires C11 for the anonymous union;
 compound literals and designated initialisers require C99. The @c _Optional
-qualifier is a compiler extension. Naming the union and its structure member
+qualifier is a compiler extension. Naming the union
 would allow the same deferred initialisation pattern in C99, with longer member
 access paths.
 
-<a href="https://godbolt.org/z/Kcq19P9h4">Compare the examples and their diagnostics
+<a href="https://godbolt.org/z/3PzK6dWaW">Compare the examples and their diagnostics
 in Compiler Explorer</a>.
 
 @section design_reuse_contents Reusing an array
@@ -294,13 +295,13 @@ explains the choice of an endpoint-based interface in more detail.
 
 The following snippets build a relative URI, add a scheme and authority, then
 edit its path. They are successive parts of one example in @c examples/design.c.
-The caller supplies both the character array and the buffer state:
+The caller uses @ref STRB_DECL_FIXED for a fixed-capacity temporary buffer:
 
 @snippet design.c external
 
-Passing the array size once associates it with the buffer object. Later output
+Specifying the capacity once associates it with the buffer object. Later output
 calls need no destination-size argument. The buffer cannot grow beyond that
-array. The examples check individual return values for immediate failure, or
+capacity. The examples check individual return values for immediate failure, or
 use @ref strb_error after a sequence of calls.
 
 @subsection design_sequential Ordinary sequential output
@@ -370,12 +371,12 @@ leading comma:
 
 @snippet design.c fruit_producer
 
-@subsection design_fruit_sentence Inserting into a caller-supplied array
+@subsection design_fruit_sentence Inserting into a temporary buffer
 
-This consumer supplies both storage and buffer state. It writes the prefix and
-records the position with @ref strb_tell, then adds the full stop. Seeking back to the
+This consumer uses @ref STRB_DECL_FIXED for a fixed-capacity temporary buffer. It writes
+the prefix and records the position with @ref strb_tell, then adds the full stop. Seeking back to the
 recorded position lets the producer insert its list before the punctuation. The
-consumer passes the completed array directly to @c puts:
+consumer passes the completed string to @c puts:
 
 @snippet design.c fruit_sentence
 
@@ -386,7 +387,7 @@ Fruit: apple,banana,orange.
 
 @subsection design_fruit_rows Producing successive results in allocated storage
 
-This consumer obtains an allocated buffer and uses the same producer to build
+This consumer uses @ref STRB_DECL_ALLOC and the same producer to build
 two standalone lists. It prints each result before resetting the buffer for the
 next one, retaining the allocated storage. The call to @ref strb_empty sets
 the string length and position to zero; the producer
@@ -409,7 +410,8 @@ indicator after generation and calls @ref strb_free on both success and failure:
 @snippet design.c fruit_local
 
 To supply an initial size hint, pass it as the second argument to
-@ref strb_make. Construction remains infallible.
+@ref STRB_DECL_ALLOC. Construction remains
+infallible.
 
 @section design_errors Deferred errors and operation boundaries
 

@@ -10,7 +10,7 @@ void strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
     DEBUGF("Seek to %zu\n", pos);
     // STRB_MAX_SIZE fits in strbsize_t but is not a supported position.
     sb->p.pos = pos < STRB_MAX_SIZE ? (strbsize_t)pos : STRB_MAX_SIZE;
-#if STRB_UNPUTC || STRB_RESTORE
+#if STRB_HAS_UNPUTC || STRB_HAS_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif
 }

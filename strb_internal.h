@@ -61,7 +61,7 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 #define STRB_CONST const
 #endif
 
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
 #define F_CAN_UNPUTC (1 << 0)
 #else
 #define F_CAN_UNPUTC 0
@@ -69,7 +69,7 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 
 #define F_ERR (1 << 1)
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
 #define F_CAN_RESTORE (1 << 2)
 #else
 #define F_CAN_RESTORE 0

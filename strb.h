@@ -18,18 +18,22 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(STRB_UNPUTC) || defined(STRB_RESTORE)
+#error Use STRB_HAS_UNPUTC and STRB_HAS_RESTORE instead
+#endif
+
 /**
  * Whether the interface provides the @ref strb_unputc function.
  */
-#ifndef STRB_UNPUTC
-#define STRB_UNPUTC 1
+#ifndef STRB_HAS_UNPUTC
+#define STRB_HAS_UNPUTC 1
 #endif
 
 /**
  * Whether the interface provides the @ref strb_restore function.
  */
-#ifndef STRB_RESTORE
-#define STRB_RESTORE 1
+#ifndef STRB_HAS_RESTORE
+#define STRB_HAS_RESTORE 1
 #endif
 
 /**
@@ -174,10 +178,10 @@ typedef struct strb_t strb_t;
  * @private
  */
 typedef struct {
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     char unputc_char;
 #endif
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     char restore_char;
 #endif
     char flags;
@@ -194,9 +198,10 @@ typedef struct {
  * it can be used for storage allocation, but its members are unspecified.
  *
  * An object of type strbstate_t can only be used to construct strb_t objects.
- * Its storage duration must exceed the program's usage of any strb_t pointers
- * derived from it. The effect on any derived strb_t object of modifying the
- * originating strbstate_t object is undefined.
+ * The effect on any derived strb_t object of modifying the originating
+ * strbstate_t object is undefined.
+ * @warning A derived @ref strb_t handle must not be used after the state
+ * object's lifetime ends.
  */
 typedef union {
     /** @privatesection */
@@ -251,31 +256,38 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
 /**
  * @brief Call @ref strb_use with unnamed state local to the enclosing block.
  *
- * The state lasts until the enclosing block ends. Re-evaluating the same
- * invocation of this macro reuses its state.
+ * Re-evaluating the same invocation of this macro reuses its state.
+ * @warning The returned handle becomes invalid when the enclosing block ends.
+ * Do not return it to a caller or retain it for use beyond that block.
  * @see @ref design_state
  */
 #define STRB_TMP_USE(size, buf) \
     strb_use(&(strbstate_t){.nil = 0}, (size), (buf))
 
 /**
- * @brief Create an empty string buffer with state and characters local to the
- * enclosing block.
+ * @brief Declare an empty fixed-capacity string buffer local to the enclosing
+ * block.
  *
- * Calls @ref strb_use with unnamed state and an unnamed character array of
- * @p n + 1 elements.
+ * Declares @p name as a constant pointer to a buffer constructed by @ref
+ * strb_use, with local state and a character array declared without an
+ * initialiser. This macro expands to declarations, not an expression.
  *
+ * @param name Identifier to declare as a @c strb_t pointer that cannot be
+ *             reassigned.
  * @param n Maximum string length, excluding the terminating null character.
  *          Must be an integer constant expression from 0 to STRB_MAX_SIZE - 1.
  *
- * The state and character array last until the enclosing block ends.
- * Re-evaluating the same invocation of this macro reuses both objects.
  * Construction cannot fail. The buffer cannot grow beyond @p n characters and
  * requires no call to @ref strb_free.
+ * @warning The handle becomes invalid when the enclosing block ends.
+ * Do not return it to a caller or retain it for use beyond that block.
  * @see @ref design_state
  */
-#define STRB_TMP(n) \
-    STRB_TMP_USE((n) + 1, ((char[(n) + 1]){0}))
+#define STRB_DECL_FIXED(name, n) \
+    char strb__##name##_buf[(n) + 1]; \
+    strbstate_t strb__##name##_state; \
+    strb_t *const name = strb_use(&strb__##name##_state, \
+        sizeof strb__##name##_buf, strb__##name##_buf)
 
 /**
  * @brief Create a string buffer object by reusing an external character array
@@ -326,8 +338,9 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
 /**
  * @brief Call @ref strb_reuse with unnamed state local to the enclosing block.
  *
- * The state lasts until the enclosing block ends. Re-evaluating the same
- * invocation of this macro reuses its state.
+ * Re-evaluating the same invocation of this macro reuses its state.
+ * @warning The returned handle becomes invalid when the enclosing block ends.
+ * Do not return it to a caller or retain it for use beyond that block.
  * @see @ref design_state
  */
 #define STRB_TMP_REUSE(size, buf) \
@@ -371,14 +384,25 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
 strb_t *strb_make(strbstate_t *sbs, size_t n);
 
 /**
- * @brief Call @ref strb_make with unnamed state local to the enclosing block.
+ * @brief Declare a string buffer with local state and library-allocated
+ * character storage.
  *
- * The state lasts until the enclosing block ends. Re-evaluating the same
- * invocation of this macro reuses its state.
+ * Declares @p name as a constant pointer to a buffer constructed by @ref
+ * strb_make. Construction cannot fail and allocates nothing; subsequent output
+ * may allocate character storage. Call @ref strb_free on @p name before leaving
+ * the block, including after output failure.
+ *
+ * @param name Identifier to declare as a @c strb_t pointer that cannot be
+ *             reassigned.
+ * @param n Initial size hint, with the same meaning as for @ref strb_make.
+ *
+ * @warning The handle becomes invalid when the enclosing block ends.
+ * Do not return it to a caller or retain it for use beyond that block.
  * @see @ref design_state
  */
-#define STRB_TMP_MAKE(n) \
-    strb_make(&(strbstate_t){.nil = 0}, (n))
+#define STRB_DECL_ALLOC(name, n) \
+    strbstate_t strb__##name##_state; \
+    strb_t *const name = strb_make(&strb__##name##_state, (n))
 
 #endif // !STRB_FREESTANDING
 
@@ -784,7 +808,7 @@ int strb_putc(strb_t *sb, int c);
  */
 int strb_nputc(strb_t *sb, int c, size_t n);
 
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
 /**
  * @brief Undo the last put character operation.
  *
@@ -985,7 +1009,7 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * @ref strb_restore can
  * restore the character overwritten by that null.
  *
- * If @ref STRB_UNPUTC is enabled, a zero count preserves the character previously
+ * If @ref STRB_HAS_UNPUTC is enabled, a zero count preserves the character previously
  * available to @ref strb_unputc; a nonzero count makes the last prepared character
  * available to it. This is independent of boundary repair by @ref strb_restore.
  *

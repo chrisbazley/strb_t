@@ -95,7 +95,7 @@ function(add_strb_variant suffix definitions sources)
     # Feature macros select the API and shared state layout. Omit operation
     # units with no enabled definitions rather than compiling empty objects.
     set(operation_sources ${COMMON_SOURCES})
-    if(NOT "STRB_UNPUTC=0" IN_LIST definitions)
+    if(NOT "STRB_HAS_UNPUTC=0" IN_LIST definitions)
         list(APPEND operation_sources strb_unputc.c)
     endif()
 
@@ -138,17 +138,17 @@ add_strb_variant("freestanding" "STRB_FREESTANDING" "")
 # Consumers build the installed libraries without the standalone test matrix.
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     # Exercise split strings without restoring their overwritten characters.
-    add_strb_variant("no_restore" "STRB_RESTORE=0" "${DYNAMIC_SOURCES}")
-    add_strb_variant("static_no_restore" "STRB_STATIC_ALLOC;STRB_RESTORE=0" "${STATIC_SOURCES}" TEST_ONLY)
-    add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_RESTORE=0" "" TEST_ONLY)
+    add_strb_variant("no_restore" "STRB_HAS_RESTORE=0" "${DYNAMIC_SOURCES}")
+    add_strb_variant("static_no_restore" "STRB_STATIC_ALLOC;STRB_HAS_RESTORE=0" "${STATIC_SOURCES}" TEST_ONLY)
+    add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_HAS_RESTORE=0" "" TEST_ONLY)
 
     # Exercise optional interfaces independently and together, without changing
     # the full-interface library used by the documentation examples.
     foreach(configuration no_unputc minimal)
         if(configuration STREQUAL "no_unputc")
-            set(definitions STRB_UNPUTC=0)
+            set(definitions STRB_HAS_UNPUTC=0)
         else()
-            set(definitions STRB_UNPUTC=0 STRB_RESTORE=0)
+            set(definitions STRB_HAS_UNPUTC=0 STRB_HAS_RESTORE=0)
         endif()
 
         add_strb_variant("${configuration}" "${definitions}" "${DYNAMIC_SOURCES}" TEST_ONLY)
