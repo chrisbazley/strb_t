@@ -209,7 +209,7 @@ static void prepare_output(strb_t *const s, const char *const initial, const siz
                            const int mode, const bool pending_undo, const bool error)
 {
     assert(!ref_puts(s, initial));
-    assert(!strb_setmode(s, mode));
+    assert(strb_setmode(s, mode) != EOF);
     strb_seek(s, pos);
     if (pending_undo)
         assert(strb_putc(s, 'q') == 'q');
@@ -463,7 +463,7 @@ static void test_delto_large_target(void)
                 strb_t *const s = strb_use(&state, sizeof array, array);
                 assert(s);
                 assert(!strb_puts(&*s, "abcdef"));
-                assert(!strb_setmode(&*s, modes[m]));
+                assert(strb_setmode(&*s, modes[m]) != EOF);
                 strb_seek(&*s, positions[p]);
                 strb_delto(&*s, targets[t]);
                 {
@@ -484,6 +484,47 @@ static void test_delto_large_target(void)
     }
 }
 
+// Setters return values that can restore the previous mode and position.
+static void test_setter_restore(void)
+{
+    char array[16];
+    strbstate_t state;
+    strb_t *const sb = strb_use(&state, sizeof array, array);
+    int old_mode, result;
+    size_t old_pos, previous;
+
+    old_mode = strb_setmode(sb, strb_overwrite);
+    assert(old_mode == strb_insert);
+    result = strb_setmode(sb, strb_overwrite);
+    assert(result == strb_overwrite);
+    result = strb_setmode(sb, old_mode);
+    assert(result == strb_overwrite);
+    assert(strb_getmode(sb) == strb_insert);
+
+    result = strb_setmode(sb, -1);
+    assert(result == EOF);
+    assert(strb_getmode(sb) == strb_insert);
+    assert(strb_error(sb));
+    strb_clearerr(sb);
+
+    old_pos = strb_seek(sb, 3);
+    assert(old_pos == 0);
+    previous = strb_seek(sb, old_pos);
+    assert(previous == 3);
+    assert(strb_tell(sb) == 0);
+    previous = strb_seek(sb, SIZE_MAX);
+    assert(previous == 0);
+    old_pos = strb_seek(sb, 2);
+    assert(old_pos == SIZE_MAX);
+    previous = strb_seek(sb, old_pos);
+    assert(previous == 2);
+    assert(strb_tell(sb) == SIZE_MAX);
+    assert(!strb_error(sb));
+#if !STRB_FREESTANDING
+    strb_free(sb);
+#endif
+}
+
 static void test_seek(void)
 {
     size_t i, m;
@@ -497,7 +538,7 @@ static void test_seek(void)
     for (m = 0; m < ARRAY_SIZE(modes); ++m) {
         size_t pos, u;
         assert(!strb_cpy(&*s, initial));
-        assert(!strb_setmode(&*s, modes[m]));
+        assert(strb_setmode(&*s, modes[m]) != EOF);
         for (pos = 0; pos <= strb_len(&*s); ++pos) {
             strb_seek(&*s, pos);
             assert(strb_tell(&*s) == pos);
@@ -623,7 +664,7 @@ static void test_empty(strb_t *const sb)
     char *storage;
     assert(!strb_cpy(sb, "abc"));
     storage = strb_ptr(sb);
-    assert(!strb_setmode(sb, strb_overwrite));
+    assert(strb_setmode(sb, strb_overwrite) != EOF);
     assert(strb_setmode(sb, -1) == EOF);
 
     strb_empty(sb);
@@ -657,7 +698,7 @@ static void test_empty(strb_t *const sb)
     assert(strb_ptr(sb) == storage);
     assert(!strcmp(strb_cptr(sb), "abc"));
     strb_empty(sb);
-    assert(!strb_setmode(sb, strb_insert));
+    assert(strb_setmode(sb, strb_insert) != EOF);
 }
 
 static void test(strb_t *const s)
@@ -693,7 +734,7 @@ static void test(strb_t *const s)
 
     puts(strb_ptr(s));
 
-    assert(!strb_setmode(s, strb_overwrite));
+    assert(strb_setmode(s, strb_overwrite) != EOF);
     assert(strb_getmode(s) == strb_overwrite);
 
     assert(!strb_puts(s, "OVERWRITE"));
@@ -705,7 +746,7 @@ static void test(strb_t *const s)
     assert(strb_ptr(s)[strb_len(s)] == '\0');
     puts(strb_ptr(s));
 
-    assert(!strb_setmode(s, strb_insert));
+    assert(strb_setmode(s, strb_insert) != EOF);
     assert(strb_getmode(s) == strb_insert);
 
     found = strstr(strb_ptr(s), "fmt4");
@@ -1226,6 +1267,7 @@ int main(void)
 #endif
     test_output_failure();
     test_delto_large_target();
+    test_setter_restore();
     test_seek();
 
 

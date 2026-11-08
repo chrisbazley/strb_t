@@ -250,9 +250,14 @@ preserve the previous mode and position. Preserving the numeric position and
 preserving its relationship to the original text are different choices after
 characters have been inserted before it. The existing primitives leave these
 choices with the caller. A caller that temporarily changes editing state can
-save it with @ref strb_getmode and @ref strb_tell, then restore the state it
-needs. In configurations that enable @ref strb_unputc, setting position or
-mode also discards the character available to that operation.
+save the previous values returned by @ref strb_setmode and @ref strb_seek,
+then pass them back to restore the mode and position it needs. The position
+returned by @ref strb_seek is the value that @ref strb_tell would have returned
+before the call, including @c SIZE_MAX for an unsupported position; it does not
+report whether the new position is supported. An unsupported mode still
+returns @c EOF and leaves the current mode unchanged. In configurations that
+enable @ref strb_unputc, setting position or mode also discards the character
+available to that operation.
 
 There is no inherent efficiency advantage to naming an operation `prepend`.
 The implementation already knows when insertion is happening at position zero.

@@ -4,8 +4,9 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-void strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
+size_t strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
 {
+    const size_t old_pos = strb_tell(sb);
     assert(sb);
     DEBUGF("Seek to %zu\n", pos);
     // STRB_MAX_SIZE fits in strbsize_t but is not a supported position.
@@ -13,6 +14,7 @@ void strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
 #if STRB_HAS_UNPUTC || STRB_HAS_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif
+    return old_pos;
 }
 
 size_t strb_tell(strb_t const *STRB_CONST sb)
