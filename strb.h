@@ -238,9 +238,9 @@ typedef union {
  *       invalidate the created object.
  * @post The user may call @ref strb_free to free the string buffer object, but
  *       it is not required and has no effect.
- * @post The created string buffer object becomes invalid if the storage for
+ * @warning The created string buffer object becomes invalid if the storage for
  *       @p sbs or @p buf is deallocated.
- * @post The created string buffer object becomes invalid if the @p sbs object
+ * @warning The created string buffer object becomes invalid if the @p sbs object
  *       is modified (other than as a side-effect of calling a strb_... function which
  *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return 0.
@@ -319,9 +319,9 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  *       within the supported extent; otherwise, its contents are unchanged.
  * @post The user may call @ref strb_free to free the string buffer object, but
  *       it is not required and has no effect.
- * @post The created string buffer object becomes invalid if the storage for
+ * @warning The created string buffer object becomes invalid if the storage for
  *       @p sbs or @p buf is deallocated.
- * @post The created string buffer object becomes invalid if the @p sbs object
+ * @warning The created string buffer object becomes invalid if the @p sbs object
  *       is modified (other than as a side-effect of calling a strb_... function which
  *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return the reused string length.
@@ -368,9 +368,9 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * @post The user is responsible for calling @ref strb_free to release any
  * library-owned character storage before the storage for @p sbs is deallocated
  * or reused. Calling @ref strb_free unconditionally is valid.
- * @post The created string buffer object becomes invalid if the storage for @p
+ * @warning The created string buffer object becomes invalid if the storage for @p
  * sbs is deallocated.
- * @post The created string buffer object becomes invalid if the @p sbs object
+ * @warning The created string buffer object becomes invalid if the @p sbs object
  * is modified (other than as a side-effect of calling a strb_... function which
  * is not
  *       @ref strb_make, @ref strb_reuse or @ref strb_use).
