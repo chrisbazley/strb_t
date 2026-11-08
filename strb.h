@@ -262,6 +262,9 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * @brief Create an empty string buffer with state and characters local to the
  * enclosing block.
  *
+ * Calls @ref strb_use with unnamed state and an unnamed character array of
+ * @p n + 1 elements.
+ *
  * @param n Maximum string length, excluding the terminating null character.
  *          Must be an integer constant expression from 0 to STRB_MAX_SIZE - 1.
  *
