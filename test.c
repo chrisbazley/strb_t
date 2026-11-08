@@ -990,14 +990,33 @@ static void test_reuse_contents(void)
 }
 
 #ifndef __CC65__
+// Fixed character storage must not fall back to library allocation.
+static void test_alloc_macro(void)
+{
+    strb_t *const first = STRB_TMP_ALLOC(3);
+    strb_t *const second = STRB_TMP_ALLOC(3);
+    strb_t *const empty = STRB_TMP_ALLOC(0);
+
+    assert(strb_len(first) == 0);
+    assert(!strb_puts(first, "abc"));
+    assert(strb_putc(first, 'd') == EOF);
+    assert(!strcmp(strb_cptr(first), "abc"));
+    assert(strb_len(second) == 0);
+    assert(!strb_puts(second, "xy"));
+    assert(!strcmp(strb_cptr(first), "abc"));
+    assert(!strcmp(strb_cptr(second), "xy"));
+    assert(strb_putc(empty, 'a') == EOF);
+    assert(!strcmp(strb_cptr(empty), ""));
+}
+
 static void test_array_macros(void)
 {
     char empty[64] = "discard";
     char existing[64] = "preserve";
     size_t size = sizeof empty;
     char *next = empty;
-    strb_t *const first = STRB_USE(size++, next++);
-    strb_t *const second = STRB_REUSE(sizeof existing, existing);
+    strb_t *const first = STRB_TMP_USE(size++, next++);
+    strb_t *const second = STRB_TMP_REUSE(sizeof existing, existing);
 
     assert(size == sizeof empty + 1);
     assert(next == empty + 1);
@@ -1020,8 +1039,8 @@ static void test_array_macros(void)
 static void test_init_macro(void)
 {
     size_t hint = 0;
-    strb_t *const first = STRB_INIT(hint++);
-    strb_t *const second = STRB_INIT(0);
+    strb_t *const first = STRB_TMP_INIT(hint++);
+    strb_t *const second = STRB_TMP_INIT(0);
     unsigned i;
 
     assert(hint == 1);
@@ -1033,7 +1052,7 @@ static void test_init_macro(void)
     strb_free(second);
 
     for (i = 0; i < 3; ++i) {
-        strb_t *const sb = STRB_INIT(0);
+        strb_t *const sb = STRB_TMP_INIT(0);
         // Exercise the handle after its declaration's full expression ends.
         test(sb);
         strb_free(sb);
@@ -1182,6 +1201,7 @@ int main(void)
 #endif
     test_reuse_contents();
 #ifndef __CC65__
+    test_alloc_macro();
     test_array_macros();
 #endif
     test_output_equivalence();

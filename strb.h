@@ -255,8 +255,24 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * invocation of this macro reuses its state.
  * @see @ref design_state
  */
-#define STRB_USE(size, buf) \
+#define STRB_TMP_USE(size, buf) \
     strb_use(&(strbstate_t){.nil = 0}, (size), (buf))
+
+/**
+ * @brief Create an empty string buffer with state and characters local to the
+ * enclosing block.
+ *
+ * @param n Maximum string length, excluding the terminating null character.
+ *          Must be an integer constant expression from 0 to STRB_MAX_SIZE - 1.
+ *
+ * The state and character array last until the enclosing block ends.
+ * Re-evaluating the same invocation of this macro reuses both objects.
+ * Construction cannot fail. The buffer cannot grow beyond @p n characters and
+ * requires no call to @ref strb_free.
+ * @see @ref design_state
+ */
+#define STRB_TMP_ALLOC(n) \
+    STRB_TMP_USE((n) + 1, ((char[(n) + 1]){0}))
 
 /**
  * @brief Create a string buffer object by reusing an external character array
@@ -311,7 +327,7 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * invocation of this macro reuses its state.
  * @see @ref design_state
  */
-#define STRB_REUSE(size, buf) \
+#define STRB_TMP_REUSE(size, buf) \
     strb_reuse(&(strbstate_t){.nil = 0}, (size), (buf))
 
 #if !STRB_FREESTANDING
@@ -358,7 +374,7 @@ strb_t *strb_init(strbstate_t *sbs, size_t n);
  * invocation of this macro reuses its state.
  * @see @ref design_state
  */
-#define STRB_INIT(n) \
+#define STRB_TMP_INIT(n) \
     strb_init(&(strbstate_t){.nil = 0}, (n))
 
 #endif // !STRB_FREESTANDING
