@@ -1008,20 +1008,38 @@ static void test_decl_macro(void)
     assert(!strcmp(strb_cptr(empty), ""));
 }
 
+// Explicit state wrappers derive the whole array extent and evaluate state once.
+static void test_array_state_macros(void)
+{
+    char empty[16] = "discard", existing[16] = "preserve";
+    strbstate_t states[2], *next = states;
+    strb_t *const first = STRB_USE(next++, empty),
+           *const second = STRB_REUSE(next++, existing);
+
+    assert(next == states + 2);
+    assert(empty[0] == '\0');
+    assert(!strb_puts(first, "123456789012345"));
+    assert(strb_putc(first, '6') == EOF);
+    assert(!strcmp(empty, "123456789012345"));
+    assert(!strb_puts(second, " text"));
+    assert(!strcmp(existing, "preserve text"));
+}
+
 #ifndef __CC65__
 static void test_array_macros(void)
 {
     char empty[64] = "discard";
     char existing[64] = "preserve";
-    size_t size = sizeof empty;
-    char *next = empty;
-    strb_t *const first = STRB_TMP_USE(size++, next++);
-    strb_t *const second = STRB_TMP_REUSE(sizeof existing, existing);
+    char (*next)[sizeof empty] = &empty,
+         (*reuse_next)[sizeof existing] = &existing;
+    strb_t *const first = STRB_TMP_USE(*next++),
+           *const second = STRB_TMP_REUSE(*reuse_next++);
 
-    assert(size == sizeof empty + 1);
-    assert(next == empty + 1);
+    assert(next == &empty + 1);
+    assert(reuse_next == &existing + 1);
     assert(empty[0] == '\0');
     assert(!strcmp(strb_cptr(second), "preserve"));
+    assert(strb_putc(STRB_TMP_USE((char[1]){0}), 'a') == EOF);
     assert(!strb_puts(first, "new"));
     assert(!strb_puts(second, " text"));
     assert(!strcmp(empty, "new"));
@@ -1196,6 +1214,7 @@ int main(void)
 #endif
     test_reuse_contents();
     test_decl_macro();
+    test_array_state_macros();
 #ifndef __CC65__
     test_array_macros();
 #endif
