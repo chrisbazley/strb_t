@@ -21,9 +21,7 @@ static int put_path_segment(strb_t *const sb, const char *const segment)
 static bool test_editing(void)
 {
 //! [external]
-    char text[64];
-    strbstate_t state;
-    strb_t *const sb = strb_use(&state, sizeof text, text);
+    STRB_DECL(sb, 63);
 //! [external]
 
 //! [sequential]
@@ -100,9 +98,7 @@ static void put_fruit_list(strb_t *const sb, const size_t count,
 static bool fruit_sentence_example(void)
 {
     static const unsigned indices[] = {0, 2, 1};
-    char text[64];
-    strbstate_t state;
-    strb_t *const sb = strb_use(&state, sizeof text, text);
+    STRB_DECL(sb, 63);
 
     strb_puts(sb, "Fruit: ");
     const size_t list_position = strb_tell(sb);
@@ -111,7 +107,7 @@ static bool fruit_sentence_example(void)
     put_fruit_list(sb, ARRAY_SIZE(indices), indices);
     if (strb_error(sb))
         return false;
-    return puts(text) != EOF;
+    return puts(strb_cptr(sb)) != EOF;
 }
 //! [fruit_sentence]
 
@@ -119,16 +115,14 @@ static bool fruit_sentence_example(void)
 static bool fruit_rows_example(void)
 {
     static const unsigned rows[][3] = {{0, 2, 1}, {3, 1, 0}};
-    _Optional strb_t *const sb = strb_alloc(0);
-    if (!sb)
-        return false;
+    strb_t *const sb = STRB_TMP_MAKE(0);
 
     bool success = true;
     for (size_t row = 0; row < ARRAY_SIZE(rows); ++row) {
         // Replace the previous result; retain the allocated storage.
-        strb_empty(&*sb);
-        put_fruit_list(&*sb, ARRAY_SIZE(rows[row]), rows[row]);
-        if (strb_error(&*sb) || puts(strb_ptr(&*sb)) == EOF) {
+        strb_empty(sb);
+        put_fruit_list(sb, ARRAY_SIZE(rows[row]), rows[row]);
+        if (strb_error(sb) || puts(strb_ptr(sb)) == EOF) {
             success = false;
             break;
         }
@@ -142,8 +136,7 @@ static bool fruit_rows_example(void)
 static bool fruit_local_example(void)
 {
     static const unsigned indices[] = {0, 2, 1};
-    strbstate_t state;
-    strb_t *const sb = strb_make(&state, 0);
+    strb_t *const sb = STRB_TMP_MAKE(0);
 
     put_fruit_list(sb, ARRAY_SIZE(indices), indices);
     const bool success = !strb_error(sb) && puts(strb_cptr(sb)) != EOF;
@@ -176,9 +169,7 @@ static bool test_short_write(void)
 {
     static const char original[] = "012345678901234567890123456789";
     static const int modes[] = {strb_insert, strb_overwrite};
-    char text[64];
-    strbstate_t state;
-    strb_t *const sb = strb_use(&state, sizeof text, text);
+    STRB_DECL(sb, 63);
 
     for (size_t i = 0; i < ARRAY_SIZE(modes); ++i) {
         if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]))
@@ -233,12 +224,10 @@ static void init_label(label_t *label, int x, int y)
 typedef struct {
     int x, y;
     char buffer[32];
+    strbstate_t sbs;
     union {
         char nil;
-        struct {
-            strbstate_t sbs;
-            strb_t *sb;
-        };
+        strb_t *sb;
     };
 } label2_t;
 

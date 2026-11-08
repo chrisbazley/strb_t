@@ -989,13 +989,12 @@ static void test_reuse_contents(void)
     }
 }
 
-#ifndef __CC65__
 // Fixed character storage must not fall back to library allocation.
-static void test_buf_macro(void)
+static void test_decl_macro(void)
 {
-    strb_t *const first = STRB_TMP(3);
-    strb_t *const second = STRB_TMP(3);
-    strb_t *const empty = STRB_TMP(0);
+    STRB_DECL(first, 3);
+    STRB_DECL(second, 3);
+    STRB_DECL(empty, 0);
 
     assert(strb_len(first) == 0);
     assert(!strb_puts(first, "abc"));
@@ -1009,6 +1008,7 @@ static void test_buf_macro(void)
     assert(!strcmp(strb_cptr(empty), ""));
 }
 
+#ifndef __CC65__
 static void test_array_macros(void)
 {
     char empty[64] = "discard";
@@ -1200,8 +1200,8 @@ int main(void)
 #endif
 #endif
     test_reuse_contents();
+    test_decl_macro();
 #ifndef __CC65__
-    test_buf_macro();
     test_array_macros();
 #endif
     test_output_equivalence();
