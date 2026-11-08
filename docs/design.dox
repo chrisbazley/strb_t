@@ -25,6 +25,12 @@ library manages the character storage. Initialisation cannot fail and allocates
 nothing; output obtains character storage when needed and may fail. This is
 useful for a temporary buffer or state embedded in a program object.
 
+The size hint passed to @ref strb_make has the same meaning as for
+@ref strb_alloc, but is used when character storage is first allocated. It does not make construction fallible.
+The existing capacity field records the hint until storage is obtained, so
+remembering it requires no additional state. The hint is not a guarantee of
+initial capacity.
+
 The macros @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their corresponding
 functions with unnamed state that lasts until the enclosing block ends. Each
 argument is evaluated once. @ref STRB_DECL_FIXED declares a constant handle,
@@ -33,12 +39,6 @@ cleanup. @ref STRB_DECL_ALLOC declares a constant handle and state, with charact
 storage supplied by the library. Release that storage with @ref strb_free before
 leaving the block, including after output failure. A handle must not outlive its
 state or character array.
-
-The size hint has the same meaning as for @ref strb_alloc, but is used when
-character storage is first allocated. It does not make construction fallible.
-The existing capacity field records the hint until storage is obtained, so
-remembering it requires no additional state. The hint is not a guarantee of
-initial capacity.
 
 Any library-owned character storage must be released with @ref strb_free before
 the supplied state storage ceases to exist or is reused. Calling @ref strb_free
