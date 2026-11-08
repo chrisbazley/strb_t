@@ -62,7 +62,7 @@ static int ref_vputf(strb_t *const s, const char *const format, va_list args)
             return EOF;
         for (i = 0; i < len; ++i)
             destination[i] = output[i];
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
         // Exercise the direct writer's terminating null and boundary repair.
         destination[len] = '\0';
         strb_restore(s);
@@ -226,7 +226,7 @@ static void check_output(strb_t *const actual, strb_t *const reference,
     assert(expected != EOF);
     assert(put_library_output(actual, testcase) == expected);
     compare_output(actual, reference, testcase);
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     // Output functions promise that restore has no effect.
     {
         const size_t pos = strb_tell(actual);
@@ -237,7 +237,7 @@ static void check_output(strb_t *const actual, strb_t *const reference,
         compare_output(actual, reference, testcase);
     }
 #endif
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     // Only one undo is guaranteed, even after a multi-character write.
     assert(strb_unputc(actual) == strb_unputc(reference));
     compare_output(actual, reference, testcase);
@@ -251,7 +251,7 @@ static void test_output_equivalence(void)
            HAS_PENDING_RESTORE = 1u << 2 };
     static const unsigned initial_states[] = {
         0, HAS_PENDING_UNDO, HAS_ERROR, HAS_PENDING_UNDO | HAS_ERROR,
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
         HAS_PENDING_RESTORE, HAS_PENDING_RESTORE | HAS_PENDING_UNDO,
         HAS_PENDING_RESTORE | HAS_ERROR,
         HAS_PENDING_RESTORE | HAS_PENDING_UNDO | HAS_ERROR,
@@ -284,7 +284,7 @@ static void test_output_equivalence(void)
                                        flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
                         prepare_output(&*reference, initial, pos, modes[m],
                                        flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
                         if (flags & HAS_PENDING_RESTORE) {
                             assert(!strb_split(&*actual));
                             assert(!strb_split(&*reference));
@@ -306,7 +306,7 @@ static void test_output_equivalence(void)
                                            flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
                             prepare_output(&*owned_reference, initial, pos, modes[m],
                                            flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
                             if (flags & HAS_PENDING_RESTORE) {
                                 assert(!strb_split(&*owned_actual));
                                 assert(!strb_split(&*owned_reference));
@@ -325,7 +325,7 @@ static void test_output_equivalence(void)
     }
 }
 
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
 static void test_write_zero(void)
 {
     char array[128];
@@ -431,7 +431,7 @@ static void test_output_failure(void)
                 assert(strb_error(&*actual));
                 strb_clearerr(&*actual);
                 compare_output(&*actual, &*reference, testcase);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
                 // Failure must preserve the previously available undo.
                 assert(strb_unputc(&*actual) == strb_unputc(&*reference));
                 compare_output(&*actual, &*reference, testcase);
@@ -539,7 +539,7 @@ static void test_seek(void)
             }
 
             strb_seek(&*s, unsupported[u]);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
             assert(strb_unputc(&*s) == EOF);
             assert(strb_error(&*s));
             strb_clearerr(&*s);
@@ -558,7 +558,7 @@ static void test_seek(void)
             assert(strb_tell(&*s) == SIZE_MAX);
             assert(strb_len(&*s) == sizeof initial - 1);
             assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
             strb_restore(&*s);
             assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
 #endif
@@ -635,7 +635,7 @@ static void test_empty(strb_t *const sb)
     assert(strb_error(sb));
     strb_clearerr(sb);
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     assert(!strb_puts(sb, "abc"));
     strb_seek(sb, 1);
     assert(!strb_split(sb));
@@ -643,7 +643,7 @@ static void test_empty(strb_t *const sb)
     strb_restore(sb);
     assert(!strcmp(strb_cptr(sb), ""));
 #endif
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_putc(sb, 'a') == 'a');
     strb_empty(sb);
     assert(strb_unputc(sb) == EOF);
@@ -674,16 +674,16 @@ static void test(strb_t *const s)
 #if !STRB_FREESTANDING
         assert(!strb_putf(s, "fmt%dx", i));
         assert(strb_ptr(s)[strb_len(s)] == '\0');
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
         assert(strb_unputc(s) == 'x');
 #endif
 #else
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
         assert(strb_unputc(s) == 'a' + i);
 #endif
 #endif // !STRB_FREESTANDING
         assert(strb_ptr(s)[strb_len(s)] == '\0');
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
         assert(strb_unputc(s) == EOF);
 #endif
         assert(strb_ptr(s)[strb_len(s)] == '\0');
@@ -843,7 +843,7 @@ static void test(strb_t *const s)
     assert(strb_tell(s) == 2);
     puts(strb_ptr(s));
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     strb_restore(s);
     assert(!strcmp(strb_ptr(s), "R2D2"));
     assert(strb_len(s) == 4);
@@ -859,7 +859,7 @@ static void test(strb_t *const s)
     }
     assert(strb_ptr(s)[strb_len(s)] == 'q');
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     strb_restore(s);
     assert(strb_ptr(s)[strb_len(s)] == '\0');
 #endif
@@ -878,7 +878,7 @@ static void test(strb_t *const s)
     assert(strb_tell(s) == 2);
     puts(strb_ptr(s));
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     strb_restore(s);
     assert(!strcmp(strb_ptr(s), "C3P0"));
     assert(strb_len(s) == 4);
@@ -890,7 +890,7 @@ static void test(strb_t *const s)
     assert(!strb_split(s));
     assert(strb_ptr(s)[strb_len(s)] == '\0');
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     strb_restore(s);
     assert(strb_ptr(s)[strb_len(s)] == '\0');
 #endif
@@ -972,7 +972,7 @@ static void test_reuse_contents(void)
 
         assert(array.before == 'b');
         assert(array.after == 'c');
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
         assert(strb_unputc(sb) == (len ? 'a' : EOF));
 #endif
         if (terminator >= size) {
@@ -1087,7 +1087,7 @@ static void test_external_state(void)
         assert(strb_len(sb) == 0);
         assert(strb_tell(sb) == 0);
         assert(!strb_error(sb));
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
         strb_restore(sb);
 #endif
         // Cleanup is also valid before any character storage is allocated.
@@ -1105,7 +1105,7 @@ static void test_external_state(void)
         assert(!strcmp(strb_cptr(&*sb), ""));
         // Neither an empty write nor a failed write consumes the hint.
         assert(strb_write(&*sb, 0));
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
         strb_restore(&*sb);
 #endif
         assert(!strb_write(&*sb, STRB_MAX_SIZE));
@@ -1205,7 +1205,7 @@ int main(void)
     test_array_macros();
 #endif
     test_output_equivalence();
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     test_write_zero();
 #endif
 #if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
@@ -1221,7 +1221,7 @@ int main(void)
         assert(s);
         return 1;
     }
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
@@ -1235,7 +1235,7 @@ int main(void)
         assert(s);
         return 1;
     }
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == c);
 #else
     (void)c;
@@ -1284,7 +1284,7 @@ int main(void)
 #if !STRB_FREESTANDING
     s = strb_alloc(2700);
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
@@ -1294,7 +1294,7 @@ int main(void)
 
     s = strb_alloc(5);
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
@@ -1303,12 +1303,12 @@ int main(void)
 
     s = strb_alloc(5000);
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
     strb_write(&*s, 0);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
@@ -1317,24 +1317,24 @@ int main(void)
 
     s = strb_ndup("", 0);
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
     strb_free(s);
 
     s = strb_dup("");
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
     assert(!strb_cpy(&*s, ""));
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
     assert(!strb_ncpy(&*s, "", 0));
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
@@ -1342,11 +1342,11 @@ int main(void)
 
     s = strb_aprintf("");
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
     assert(!strb_printf(&*s, ""));
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
 
@@ -1354,7 +1354,7 @@ int main(void)
 
     s = strb_dup("DUPLICATE");
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == 'E');
     assert(strb_unputc(&*s) == EOF);
 #endif
@@ -1363,7 +1363,7 @@ int main(void)
 
     s = strb_ndup("DUPLICATE", 3);
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == 'P');
     assert(strb_unputc(&*s) == EOF);
 #endif
@@ -1373,7 +1373,7 @@ int main(void)
 
     s = strb_aprintf("Hello %d", 99);
     assert(s);
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == '9');
     assert(strb_unputc(&*s) == EOF);
 #endif

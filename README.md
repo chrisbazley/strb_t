@@ -29,7 +29,7 @@ required groups of operations:
 | `strb_putc.c` | Single and repeated character output |
 
 These are the shared operation sources. CMake omits `strb_unputc.c` when
-`STRB_UNPUTC=0`, because that unit then has no enabled function definitions.
+`STRB_HAS_UNPUTC=0`, because that unit then has no enabled function definitions.
 Editing mode and current
 position each have their setter and getter in the same translation unit. Error
 indicator operations are grouped together. The core retains buffer access,
@@ -57,10 +57,10 @@ Storage selection and optional features serve different purposes:
   controls the public interface and shared state layout. CMake targets and Make
   recipes select this combination together; the two allocation backends are
   alternative implementations and must not be linked together.
-- **Optional features:** define `STRB_UNPUTC` and `STRB_RESTORE` consistently
+- **Optional features:** define `STRB_HAS_UNPUTC` and `STRB_HAS_RESTORE` consistently
   for every library and client translation unit. Omitting a source file alone
   does not disable a feature: for example,
-  `STRB_UNPUTC=0` also removes saved-character state and its maintenance in other
+  `STRB_HAS_UNPUTC=0` also removes saved-character state and its maintenance in other
   functions. The CMake feature-off targets derive any source omissions from
   these definitions. Feature-specific and storage-specific translation units
   use `#error` to reject incompatible macro settings.
@@ -82,7 +82,7 @@ ARM GCC trunk (17.0.0, 20261107). These sizes were obtained by assembling the
 compiler output. The example compiles the sources together as one translation
 unit; linking a static archive can include fewer functions.
 
-Both configurations disable assertions and `STRB_UNPUTC`; GCC uses
+Both configurations disable assertions and `STRB_HAS_UNPUTC`; GCC uses
 `-Oz -mcpu=cortex-m0 -mthumb -mfloat-abi=soft`. The Arm figure includes
 literal pools and alignment padding. Both figures exclude RAM storage, debug
 information and the external `memcpy`, `memmove` and `memset` implementations.
@@ -109,7 +109,7 @@ For example, use the following commands to build and test on Linux:
 I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
 
 CMake builds and runs the existing suite with each optional interface disabled:
-`STRB_UNPUTC` and `STRB_RESTORE`. It also
+`STRB_HAS_UNPUTC` and `STRB_HAS_RESTORE`. It also
 tests a minimal configuration with both disabled. These variants cover
 dynamic allocation, the static pool, and freestanding storage where applicable.
 Caller-allocated buffer state is always supported, so all three storage configurations

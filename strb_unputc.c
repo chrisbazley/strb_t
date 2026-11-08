@@ -4,8 +4,8 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-#if !STRB_UNPUTC
-#error "Compile strb_unputc.c only when STRB_UNPUTC is enabled"
+#if !STRB_HAS_UNPUTC
+#error "Compile strb_unputc.c only when STRB_HAS_UNPUTC is enabled"
 #endif
 
 int strb_unputc(strb_t *STRB_CONST sb)
