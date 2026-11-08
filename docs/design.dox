@@ -25,9 +25,11 @@ library manages the character storage. Initialisation cannot fail and allocates
 nothing; output obtains character storage when needed and may fail. This is
 useful for a temporary buffer or state embedded in a program object.
 
-The macros @ref STRB_INIT, @ref STRB_USE and @ref STRB_REUSE call their
+The macros @ref STRB_TMP_INIT, @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their
 corresponding functions with unnamed state that lasts until the enclosing block
 ends, avoiding a separate state declaration. Each argument is evaluated once.
+@ref STRB_TMP_ALLOC also provides a character array for a constant maximum string
+length; it cannot grow and requires no cleanup.
 A handle must not outlive its state or character array; release any library-owned
 character storage with @ref strb_free before leaving the block or re-evaluating
 the same invocation of the macro, which reuses its state.
