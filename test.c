@@ -992,9 +992,9 @@ static void test_reuse_contents(void)
 // Fixed character storage must not fall back to library allocation.
 static void test_decl_macro(void)
 {
-    STRB_DECL(first, 3);
-    STRB_DECL(second, 3);
-    STRB_DECL(empty, 0);
+    STRB_DECL_FIXED(first, 3);
+    STRB_DECL_FIXED(second, 3);
+    STRB_DECL_FIXED(empty, 0);
 
     assert(strb_len(first) == 0);
     assert(!strb_puts(first, "abc"));
@@ -1034,13 +1034,11 @@ static void test_array_macros(void)
 #endif
 
 #if !STRB_FREESTANDING
-#ifndef __CC65__
-// cc65 does not support compound literals.
-static void test_make_macro(void)
+static void test_alloc_macro(void)
 {
     size_t hint = 0;
-    strb_t *const first = STRB_TMP_MAKE(hint++);
-    strb_t *const second = STRB_TMP_MAKE(0);
+    STRB_DECL_ALLOC(first, hint++);
+    STRB_DECL_ALLOC(second, 0);
     unsigned i;
 
     assert(hint == 1);
@@ -1052,13 +1050,12 @@ static void test_make_macro(void)
     strb_free(second);
 
     for (i = 0; i < 3; ++i) {
-        strb_t *const sb = STRB_TMP_MAKE(0);
+        STRB_DECL_ALLOC(sb, 0);
         // Exercise the handle after its declaration's full expression ends.
         test(sb);
         strb_free(sb);
     }
 }
-#endif
 
 // All constructors share the same editing operations. Repeated construction
 // and cleanup must release character storage without freeing embedded state.
@@ -1195,9 +1192,7 @@ int main(void)
 
 #if !STRB_FREESTANDING
     test_external_state();
-#ifndef __CC65__
-    test_make_macro();
-#endif
+    test_alloc_macro();
 #endif
     test_reuse_contents();
     test_decl_macro();

@@ -283,7 +283,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * Do not return it to a caller or retain it for use beyond that block.
  * @see @ref design_state
  */
-#define STRB_DECL(name, n) \
+#define STRB_DECL_FIXED(name, n) \
     char strb__##name##_buf[(n) + 1]; \
     strbstate_t strb__##name##_state; \
     strb_t *const name = strb_use(&strb__##name##_state, \
@@ -384,15 +384,25 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
 strb_t *strb_make(strbstate_t *sbs, size_t n);
 
 /**
- * @brief Call @ref strb_make with unnamed state local to the enclosing block.
+ * @brief Declare a string buffer with local state and library-allocated
+ * character storage.
  *
- * Re-evaluating the same invocation of this macro reuses its state.
- * @warning The returned handle becomes invalid when the enclosing block ends.
+ * Declares @p name as a constant pointer to a buffer constructed by @ref
+ * strb_make. Construction cannot fail and allocates nothing; subsequent output
+ * may allocate character storage. Call @ref strb_free on @p name before leaving
+ * the block, including after output failure.
+ *
+ * @param name Identifier to declare as a @c strb_t pointer that cannot be
+ *             reassigned.
+ * @param n Initial size hint, with the same meaning as for @ref strb_make.
+ *
+ * @warning The handle becomes invalid when the enclosing block ends.
  * Do not return it to a caller or retain it for use beyond that block.
  * @see @ref design_state
  */
-#define STRB_TMP_MAKE(n) \
-    strb_make(&(strbstate_t){.nil = 0}, (n))
+#define STRB_DECL_ALLOC(name, n) \
+    strbstate_t strb__##name##_state; \
+    strb_t *const name = strb_make(&strb__##name##_state, (n))
 
 #endif // !STRB_FREESTANDING
 

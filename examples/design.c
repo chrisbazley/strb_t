@@ -21,7 +21,7 @@ static int put_path_segment(strb_t *const sb, const char *const segment)
 static bool test_editing(void)
 {
 //! [external]
-    STRB_DECL(sb, 63);
+    STRB_DECL_FIXED(sb, 63);
 //! [external]
 
 //! [sequential]
@@ -98,7 +98,7 @@ static void put_fruit_list(strb_t *const sb, const size_t count,
 static bool fruit_sentence_example(void)
 {
     static const unsigned indices[] = {0, 2, 1};
-    STRB_DECL(sb, 63);
+    STRB_DECL_FIXED(sb, 63);
 
     strb_puts(sb, "Fruit: ");
     const size_t list_position = strb_tell(sb);
@@ -115,7 +115,7 @@ static bool fruit_sentence_example(void)
 static bool fruit_rows_example(void)
 {
     static const unsigned rows[][3] = {{0, 2, 1}, {3, 1, 0}};
-    strb_t *const sb = STRB_TMP_MAKE(0);
+    STRB_DECL_ALLOC(sb, 0);
 
     bool success = true;
     for (size_t row = 0; row < ARRAY_SIZE(rows); ++row) {
@@ -136,7 +136,7 @@ static bool fruit_rows_example(void)
 static bool fruit_local_example(void)
 {
     static const unsigned indices[] = {0, 2, 1};
-    strb_t *const sb = STRB_TMP_MAKE(0);
+    STRB_DECL_ALLOC(sb, 0);
 
     put_fruit_list(sb, ARRAY_SIZE(indices), indices);
     const bool success = !strb_error(sb) && puts(strb_cptr(sb)) != EOF;
@@ -169,7 +169,7 @@ static bool test_short_write(void)
 {
     static const char original[] = "012345678901234567890123456789";
     static const int modes[] = {strb_insert, strb_overwrite};
-    STRB_DECL(sb, 63);
+    STRB_DECL_FIXED(sb, 63);
 
     for (size_t i = 0; i < ARRAY_SIZE(modes); ++i) {
         if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]))
