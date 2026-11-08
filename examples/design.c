@@ -143,7 +143,7 @@ static bool fruit_local_example(void)
 {
     static const unsigned indices[] = {0, 2, 1};
     strbstate_t state;
-    strb_t *const sb = strb_init(&state, 0);
+    strb_t *const sb = strb_make(&state, 0);
 
     put_fruit_list(sb, ARRAY_SIZE(indices), indices);
     const bool success = !strb_error(sb) && puts(strb_cptr(sb)) != EOF;
