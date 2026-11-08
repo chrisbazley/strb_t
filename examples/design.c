@@ -63,7 +63,7 @@ static bool test_editing(void)
         return false;
 
 //! [overwrite]
-    strb_setmode(sb, strb_overwrite);
+    const int old_mode = strb_setmode(sb, strb_overwrite);
     strb_seek(sb, path_start);
     if (put_path_segment(sb, "help"))
         return false;
@@ -73,7 +73,7 @@ static bool test_editing(void)
         return false;
 
 //! [delete]
-    strb_setmode(sb, strb_insert);
+    strb_setmode(sb, old_mode);
     strb_delto(sb, path_start);
     // "https://example.org/manual/guide.html#details"; position before the path.
 //! [delete]
@@ -172,7 +172,7 @@ static bool test_short_write(void)
     STRB_DECL_FIXED(sb, 63);
 
     for (size_t i = 0; i < ARRAY_SIZE(modes); ++i) {
-        if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]))
+        if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]) == EOF)
             return false;
         strb_seek(sb, 0);
         if (!put_character(sb, U'A'))

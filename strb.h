@@ -726,7 +726,8 @@ enum {
  *
  * @param[in,out] sb  String buffer.
  * @param         mode New mode.
- * @return Zero if successful, otherwise @c EOF.
+ * @return Previous editing mode if successful, otherwise @c EOF.
+ *         The previous mode may be passed back to restore it.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
@@ -776,6 +777,10 @@ int strb_getmode(const strb_t *sb);
  *
  * @param[in,out] sb   String buffer.
  * @param         pos  New position, in characters.
+ * @return Previous editing position, as returned by @ref strb_tell before
+ *         the call, or @c SIZE_MAX if it was unsupported. The returned value
+ *         may be passed back to restore that position. This is not an error
+ *         indication for the new position.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
  *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
@@ -788,7 +793,7 @@ int strb_getmode(const strb_t *sb);
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
  */
-void strb_seek(strb_t *sb, size_t pos);
+size_t strb_seek(strb_t *sb, size_t pos);
 
 /**
  * @brief Get the editing position of a string buffer.
