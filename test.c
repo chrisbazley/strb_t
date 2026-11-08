@@ -1028,22 +1028,21 @@ static void test_array_state_macros(void)
 #ifndef __CC65__
 static void test_array_macros(void)
 {
-    char empty[64] = "discard";
-    char existing[64] = "preserve";
-    char (*next)[sizeof empty] = &empty,
-         (*reuse_next)[sizeof existing] = &existing;
-    strb_t *const first = STRB_TMP_USE(*next++),
-           *const second = STRB_TMP_REUSE(*reuse_next++);
+    // SDCC Z80 r17140 miscompiles *p++ when p points to an array.
+    char empty[1][64] = {"discard"}, existing[1][64] = {"preserve"};
+    size_t next = 0, reuse_next = 0;
+    strb_t *const first = STRB_TMP_USE(empty[next++]),
+           *const second = STRB_TMP_REUSE(existing[reuse_next++]);
 
-    assert(next == &empty + 1);
-    assert(reuse_next == &existing + 1);
-    assert(empty[0] == '\0');
+    assert(next == 1);
+    assert(reuse_next == 1);
+    assert(empty[0][0] == '\0');
     assert(!strcmp(strb_cptr(second), "preserve"));
     assert(strb_putc(STRB_TMP_USE((char[1]){0}), 'a') == EOF);
     assert(!strb_puts(first, "new"));
     assert(!strb_puts(second, " text"));
-    assert(!strcmp(empty, "new"));
-    assert(!strcmp(existing, "preserve text"));
+    assert(!strcmp(empty[0], "new"));
+    assert(!strcmp(existing[0], "preserve text"));
 #if !STRB_FREESTANDING
     strb_free(first);
     strb_free(second);
