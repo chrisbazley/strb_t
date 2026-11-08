@@ -18,18 +18,22 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(STRB_UNPUTC) || defined(STRB_RESTORE)
+#error Use STRB_HAS_UNPUTC and STRB_HAS_RESTORE instead
+#endif
+
 /**
  * Whether the interface provides the @ref strb_unputc function.
  */
-#ifndef STRB_UNPUTC
-#define STRB_UNPUTC 1
+#ifndef STRB_HAS_UNPUTC
+#define STRB_HAS_UNPUTC 1
 #endif
 
 /**
  * Whether the interface provides the @ref strb_restore function.
  */
-#ifndef STRB_RESTORE
-#define STRB_RESTORE 1
+#ifndef STRB_HAS_RESTORE
+#define STRB_HAS_RESTORE 1
 #endif
 
 /**
@@ -174,10 +178,10 @@ typedef struct strb_t strb_t;
  * @private
  */
 typedef struct {
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     char unputc_char;
 #endif
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     char restore_char;
 #endif
     char flags;
@@ -794,7 +798,7 @@ int strb_putc(strb_t *sb, int c);
  */
 int strb_nputc(strb_t *sb, int c, size_t n);
 
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
 /**
  * @brief Undo the last put character operation.
  *
@@ -995,7 +999,7 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * @ref strb_restore can
  * restore the character overwritten by that null.
  *
- * If @ref STRB_UNPUTC is enabled, a zero count preserves the character previously
+ * If @ref STRB_HAS_UNPUTC is enabled, a zero count preserves the character previously
  * available to @ref strb_unputc; a nonzero count makes the last prepared character
  * available to it. This is independent of boundary repair by @ref strb_restore.
  *

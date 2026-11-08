@@ -39,7 +39,7 @@ void strb_empty(strb_t *STRB_CONST sb)
     assert(sb);
     sb->p.len = sb->p.pos = 0;
     sb->p.buf[0] = '\0';
-#if STRB_UNPUTC || STRB_RESTORE
+#if STRB_HAS_UNPUTC || STRB_HAS_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif
 }
@@ -53,9 +53,9 @@ strb_t *strb__initempty(strbstate_t *STRB_CONST sbs, STRB_CONST strbsize_t hint)
     // Reuse a saved-character byte for the initial writable terminator.
     // Zero-length writes can only save/restore null while this buffer is used;
     // strb_ensure obtains character storage before a nonempty write uses it.
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
     sbs->p.buf = &sbs->p.restore_char;
-#elif STRB_UNPUTC
+#elif STRB_HAS_UNPUTC
     sbs->p.buf = &sbs->p.unputc_char;
 #else
     // The unsigned length is zero until character storage is acquired. Its

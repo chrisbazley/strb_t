@@ -33,7 +33,7 @@ _Optional strb_t *strb_vaprintf(const char *STRB_CONST restrict format, va_list 
         vsprintf(sb->p.buf, format, args_copy);
 
         sb->p.len = sb->p.pos = (strbsize_t)len;
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set unputc_char
 
         if (len) {

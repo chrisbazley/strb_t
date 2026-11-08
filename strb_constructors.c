@@ -26,7 +26,7 @@ _Optional strb_t *strb_ndup(const char *STRB_CONST str, STRB_CONST size_t n)
         memcpy(sb->p.buf, str, len); // more efficient than strncpy
         sb->p.buf[len] = '\0';
         sb->p.len = sb->p.pos = (strbsize_t)len;
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
         assert(!(sb->p.flags & F_OVERWRITE)); // needn't set unputc_char
 
         if (len) {

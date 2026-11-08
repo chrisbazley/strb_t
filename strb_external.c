@@ -12,7 +12,7 @@ static strb_t *init_use(strbstate_t *const restrict sbs, const strbsize_t size,
     sbs->p.buf = buf;
     sbs->p.flags = F_EXTERNAL | F_EXT_STATE;
 
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
     if (len) {
         sbs->p.flags |= F_CAN_UNPUTC;
     }

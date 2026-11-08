@@ -78,7 +78,7 @@ _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
                 memmove(buf + n, buf, sb->p.len + 1u - old_pos);
                 sb->p.len = (strbsize_t)(sb->p.len + n);
             } else {
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
                 // Preserve the final overwritten character only when a new
                 // character is prepared. Beyond the old end it is null.
                 if (n) {
@@ -100,14 +100,14 @@ _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
                 buf[n] = '\0';
             }
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
             sb->p.restore_char = buf[n];
             sb->p.flags |= F_CAN_RESTORE;
             DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char,
                    sb->p.restore_char, sb->p.pos);
 #endif
 
-#if STRB_UNPUTC
+#if STRB_HAS_UNPUTC
             if (n) {
                 sb->p.flags |= F_CAN_UNPUTC;
             }
@@ -117,7 +117,7 @@ _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
     }
 }
 
-#if STRB_RESTORE
+#if STRB_HAS_RESTORE
 void strb_restore(strb_t *STRB_CONST sb)
 {
     assert(sb);
