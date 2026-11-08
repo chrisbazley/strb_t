@@ -991,11 +991,11 @@ static void test_reuse_contents(void)
 
 #ifndef __CC65__
 // Fixed character storage must not fall back to library allocation.
-static void test_alloc_macro(void)
+static void test_buf_macro(void)
 {
-    strb_t *const first = STRB_TMP_ALLOC(3);
-    strb_t *const second = STRB_TMP_ALLOC(3);
-    strb_t *const empty = STRB_TMP_ALLOC(0);
+    strb_t *const first = STRB_TMP(3);
+    strb_t *const second = STRB_TMP(3);
+    strb_t *const empty = STRB_TMP(0);
 
     assert(strb_len(first) == 0);
     assert(!strb_puts(first, "abc"));
@@ -1036,11 +1036,11 @@ static void test_array_macros(void)
 #if !STRB_FREESTANDING
 #ifndef __CC65__
 // cc65 does not support compound literals.
-static void test_init_macro(void)
+static void test_make_macro(void)
 {
     size_t hint = 0;
-    strb_t *const first = STRB_TMP_INIT(hint++);
-    strb_t *const second = STRB_TMP_INIT(0);
+    strb_t *const first = STRB_TMP_MAKE(hint++);
+    strb_t *const second = STRB_TMP_MAKE(0);
     unsigned i;
 
     assert(hint == 1);
@@ -1052,7 +1052,7 @@ static void test_init_macro(void)
     strb_free(second);
 
     for (i = 0; i < 3; ++i) {
-        strb_t *const sb = STRB_TMP_INIT(0);
+        strb_t *const sb = STRB_TMP_MAKE(0);
         // Exercise the handle after its declaration's full expression ends.
         test(sb);
         strb_free(sb);
@@ -1075,7 +1075,7 @@ static void test_external_state(void)
     owner.after = 456;
 
     {
-        strb_t *const sb = strb_init(&owner.state, 0);
+        strb_t *const sb = strb_make(&owner.state, 0);
         assert(!strb_len(sb));
         assert(!strb_tell(sb));
         assert(!strb_error(sb));
@@ -1095,7 +1095,7 @@ static void test_external_state(void)
     }
 
     for (i = 0; i < ARRAY_SIZE(hints); ++i) {
-        strb_t *const sb = strb_init(&owner.state, hints[i]);
+        strb_t *const sb = strb_make(&owner.state, hints[i]);
         strb_empty(sb);
         assert(sb);
         assert(!strb_error(&*sb));
@@ -1121,7 +1121,7 @@ static void test_external_state(void)
     }
 
     {
-        strb_t *const sb = strb_init(&owner.state, 64);
+        strb_t *const sb = strb_make(&owner.state, 64);
         // A zero-length write away from the origin still needs real storage.
         strb_seek(sb, 3);
         assert(strb_write(sb, 0));
@@ -1134,7 +1134,7 @@ static void test_external_state(void)
 
 #if !STRB_STATIC_ALLOC
     {
-        strb_t *const sb = strb_init(&owner.state, 0);
+        strb_t *const sb = strb_make(&owner.state, 0);
         // Force first allocation, then reallocation, preserving the text.
         const size_t count = STRB_DFL_SIZE * 3u;
         assert(!strb_puts(sb, "prefix"));
@@ -1154,11 +1154,11 @@ static void test_external_state(void)
         strb_t *buffers[STRB_MAX + 1];
         // Exhaust the pool, then construct another buffer without allocating.
         for (i = 0; i < STRB_MAX; ++i) {
-            buffers[i] = strb_init(&states[i], SIZE_MAX);
+            buffers[i] = strb_make(&states[i], SIZE_MAX);
             assert(!strb_puts(buffers[i], "pool"));
         }
 
-        buffers[STRB_MAX] = strb_init(&states[STRB_MAX], SIZE_MAX);
+        buffers[STRB_MAX] = strb_make(&states[STRB_MAX], SIZE_MAX);
         strb_empty(buffers[STRB_MAX]);
         assert(!strb_error(buffers[STRB_MAX]));
         assert(strb_puts(buffers[STRB_MAX], "pool") == EOF);
@@ -1196,12 +1196,12 @@ int main(void)
 #if !STRB_FREESTANDING
     test_external_state();
 #ifndef __CC65__
-    test_init_macro();
+    test_make_macro();
 #endif
 #endif
     test_reuse_contents();
 #ifndef __CC65__
-    test_alloc_macro();
+    test_buf_macro();
     test_array_macros();
 #endif
     test_output_equivalence();

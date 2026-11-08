@@ -237,7 +237,7 @@ typedef union {
  *       @p sbs or @p buf is deallocated.
  * @post The created string buffer object becomes invalid if the @p sbs object
  *       is modified (other than as a side-effect of calling a strb_... function which
- *       is not @ref strb_init, @ref strb_reuse or @ref strb_use).
+ *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return 0.
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
@@ -271,7 +271,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  * requires no call to @ref strb_free.
  * @see @ref design_state
  */
-#define STRB_TMP_ALLOC(n) \
+#define STRB_TMP(n) \
     STRB_TMP_USE((n) + 1, ((char[(n) + 1]){0}))
 
 /**
@@ -308,7 +308,7 @@ strb_t *strb_use(strbstate_t *restrict sbs, size_t size,
  *       @p sbs or @p buf is deallocated.
  * @post The created string buffer object becomes invalid if the @p sbs object
  *       is modified (other than as a side-effect of calling a strb_... function which
- *       is not @ref strb_init, @ref strb_reuse or @ref strb_use).
+ *       is not @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return the reused string length.
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
@@ -357,7 +357,7 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  * @post The created string buffer object becomes invalid if the @p sbs object
  * is modified (other than as a side-effect of calling a strb_... function which
  * is not
- *       @ref strb_init, @ref strb_reuse or @ref strb_use).
+ *       @ref strb_make, @ref strb_reuse or @ref strb_use).
  * @post @ref strb_tell and @ref strb_len return 0.
  * @post A call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
@@ -365,17 +365,17 @@ strb_t *strb_reuse(strbstate_t *restrict sbs, size_t size,
  *       into the buffer.
  * @post A call to @ref strb_error will return false until an error occurs.
  */
-strb_t *strb_init(strbstate_t *sbs, size_t n);
+strb_t *strb_make(strbstate_t *sbs, size_t n);
 
 /**
- * @brief Call @ref strb_init with unnamed state local to the enclosing block.
+ * @brief Call @ref strb_make with unnamed state local to the enclosing block.
  *
  * The state lasts until the enclosing block ends. Re-evaluating the same
  * invocation of this macro reuses its state.
  * @see @ref design_state
  */
-#define STRB_TMP_INIT(n) \
-    strb_init(&(strbstate_t){.nil = 0}, (n))
+#define STRB_TMP_MAKE(n) \
+    strb_make(&(strbstate_t){.nil = 0}, (n))
 
 #endif // !STRB_FREESTANDING
 
@@ -540,7 +540,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args);
  * must first be copied (e.g., using @c strdup).
  *
  * If state storage was supplied to @ref strb_use, @ref strb_reuse or
- * @ref strb_init, this function never frees that state storage. The state storage may subsequently be used to construct
+ * @ref strb_make, this function never frees that state storage. The state storage may subsequently be used to construct
  * another buffer.
  *
  * May be called with a null pointer, in which case this function has no effect.
@@ -548,7 +548,7 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args);
  * @param[in] sb  String buffer to destroy, or a null pointer.
  * @pre  The given @p sb address is null or was returned by @ref strb_use, @ref
  * strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post @p sb is invalid for use with any function.
@@ -571,7 +571,7 @@ void strb_free(_Optional strb_t *sb);
  * @param[in] sb  String buffer.
  * @return Address of the character stored at position 0 in the string buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
  * @post The returned pointer is valid until the next call to a strb_...
  *       function.
@@ -588,7 +588,7 @@ char *strb_ptr(strb_t *sb);
  * @param[in] sb  String buffer.
  * @return Address of the character stored at position 0 in the string buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
  * @post The returned pointer is valid until the next call to a strb_...
  *       function.
@@ -613,7 +613,7 @@ const char *strb_cptr(strb_t const *sb);
  * @param[in] sb  String buffer.
  * @return Number of characters stored in the string buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or @ref strb_vaprintf.
  */
 size_t strb_len(strb_t const *sb);
@@ -651,7 +651,7 @@ enum {
  * @param         mode New mode.
  * @return Zero if successful, otherwise @c EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post Alters the behaviour of @ref strb_putc, @ref strb_unputc, @ref
@@ -670,7 +670,7 @@ int strb_setmode(strb_t *sb, int mode);
  * @param[in] sb  String buffer.
  * @return Current editing mode.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post The returned value may be passed to @ref strb_setmode.
@@ -700,7 +700,7 @@ int strb_getmode(const strb_t *sb);
  * @param[in,out] sb   String buffer.
  * @param         pos  New position, in characters.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post Alters the behaviour of @ref strb_putc, @ref strb_unputc, @ref
@@ -719,7 +719,7 @@ void strb_seek(strb_t *sb, size_t pos);
  * @param[in] sb  String buffer.
  * @return Current editing position, or @c SIZE_MAX if it is unsupported.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post The returned value may be passed to @ref strb_seek.
@@ -738,7 +738,7 @@ size_t strb_tell(strb_t const *sb);
  * @param[in,out] sb  String buffer.
  * @param         c   Character to put.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @return If successful, the character written, otherwise EOF.
@@ -766,7 +766,7 @@ int strb_putc(strb_t *sb, int c);
  * the buffer.
  * @return If successful, the character written, otherwise EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the position indicator has advanced by @p n characters
@@ -800,7 +800,7 @@ int strb_nputc(strb_t *sb, int c, size_t n);
  * @param[in,out] sb  String buffer.
  * @return If successful, the character removed, otherwise EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the restored character cannot be restored again.
@@ -828,7 +828,7 @@ int strb_unputc(strb_t *sb);
  *         (This is stricter than @c fputs, which returns only 'a nonnegative
  * value' if successful.)
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p str is not derived from the result of calling @ref strb_cptr or
@@ -861,7 +861,7 @@ int strb_puts(strb_t *restrict sb, const char *restrict str);
  *         (This is stricter than @c fputs, which returns only 'a nonnegative
  * value' if successful.)
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p str is not derived from the result of calling @ref strb_cptr or
@@ -897,7 +897,7 @@ int strb_nputs(strb_t *restrict sb, const char *restrict str, size_t n);
  *         (This differs from @c fprintf, which returns 'the number of
  * characters transmitted, or a negative value'.)
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p format and any pointers to strings read through format arguments
@@ -933,7 +933,7 @@ int strb_vputf(strb_t *restrict sb, const char *restrict format, va_list args);
  *         (This differs from @c fprintf, which returns 'the number of
  * characters transmitted, or a negative value'.)
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p format and any pointers to strings read through format arguments
@@ -993,7 +993,7 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * written, or a null pointer on failure, including an unsupported position
  * established by @ref strb_seek.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, existing characters are preserved, moving upward in
@@ -1032,7 +1032,7 @@ _Optional char *strb_write(strb_t *sb, size_t n);
  * @param[in,out] sb  String buffer.
  * @return Zero if successful, otherwise @c EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If successful, the character at the current position is null.
@@ -1076,7 +1076,7 @@ int strb_split(strb_t *sb);
  *
  * @param[in,out] sb  String buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post If there was no intervening call that put, deleted, or restored
@@ -1115,7 +1115,7 @@ void strb_restore(strb_t *sb);
  * @param[in,out] sb  String buffer.
  * @param         pos New position, in characters.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post The position indicator is at the lower of @p pos and the previous
@@ -1135,7 +1135,7 @@ void strb_delto(strb_t *sb, size_t pos);
  *
  * @param[in,out] sb  String buffer.
  * @pre The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *      @ref strb_init, @ref strb_alloc, @ref strb_dup, @ref strb_ndup,
+ *      @ref strb_make, @ref strb_alloc, @ref strb_dup, @ref strb_ndup,
  *      @ref strb_aprintf or @ref strb_vaprintf.
  * @post @ref strb_len and @ref strb_tell return zero.
  * @post @ref strb_cptr returns a pointer to an empty string.
@@ -1153,7 +1153,7 @@ void strb_empty(strb_t *sb);
  * @param[in]     str  A string to be copied as the new content of the buffer.
  * @return Zero if successful, otherwise EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p str is not derived from the result of calling @ref strb_cptr or
@@ -1182,7 +1182,7 @@ int strb_cpy(strb_t *restrict sb, const char *restrict str);
  * @param         n    Maximum number of characters to copy from @p str.
  * @return Zero if successful, otherwise EOF.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p str is not derived from the result of calling @ref strb_cptr or
@@ -1216,7 +1216,7 @@ int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n);
  * characters written in the array, not counting the terminating null character,
  * or a negative value'.)
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p format and any pointers to strings read through format arguments
@@ -1250,7 +1250,7 @@ int strb_vprintf(strb_t *restrict sb, const char *restrict format,
  * characters written in the array, not counting the terminating null character,
  * or a negative value'.)
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @pre  @p format and any pointers to strings read through format arguments
@@ -1293,7 +1293,7 @@ int strb_printf(strb_t *restrict sb, const char *restrict format, ...);
  * @return True if an error occurred since the most recent call to @ref
  * strb_clearerr, otherwise false.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  */
@@ -1304,7 +1304,7 @@ bool strb_error(strb_t const *sb);
  *
  * @param[in,out] sb  String buffer.
  * @pre  The given @p sb address was returned by @ref strb_use, @ref strb_reuse,
- *       @ref strb_init, @ref strb_alloc, @ref strb_dup,
+ *       @ref strb_make, @ref strb_alloc, @ref strb_dup,
  *       @ref strb_ndup, @ref strb_aprintf or
  * @ref strb_vaprintf.
  * @post A call to @ref strb_error will return false until an error occurs.

@@ -51,7 +51,7 @@ static strbsize_t initial_size(size_t n)
     return (strbsize_t)n;
 }
 
-strb_t *strb_init(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
+strb_t *strb_make(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
 {
     return strb__initempty(sbs, initial_size(n));
 }

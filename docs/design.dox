@@ -20,15 +20,15 @@ the library supplies storage for both the state and the characters. The caller m
 the buffer through the returned @ref strb_t pointer and releases it with @ref strb_free.
 Creation can fail if storage is unavailable.
 
-With @ref strb_init, the caller supplies a @ref strbstate_t object and the
+With @ref strb_make, the caller supplies a @ref strbstate_t object and the
 library manages the character storage. Initialisation cannot fail and allocates
 nothing; output obtains character storage when needed and may fail. This is
 useful for a temporary buffer or state embedded in a program object.
 
-The macros @ref STRB_TMP_INIT, @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their
+The macros @ref STRB_TMP_MAKE, @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their
 corresponding functions with unnamed state that lasts until the enclosing block
 ends, avoiding a separate state declaration. Each argument is evaluated once.
-@ref STRB_TMP_ALLOC also provides a character array for a constant maximum string
+@ref STRB_TMP also provides a character array for a constant maximum string
 length; it cannot grow and requires no cleanup.
 A handle must not outlive its state or character array; release any library-owned
 character storage with @ref strb_free before leaving the block or re-evaluating
@@ -46,7 +46,7 @@ unconditionally is valid, including when no character storage was allocated.
 An empty string does not imply that no storage is allocated. The state storage
 itself is never freed. A buffer handle must not outlive its originating state.
 
-This prototype provides @ref strb_init in its dynamic and static-pool
+This prototype provides @ref strb_make in its dynamic and static-pool
 configurations. Its freestanding configuration provides
 @ref strb_use for caller-supplied arrays.
 
@@ -409,7 +409,7 @@ indicator after generation and calls @ref strb_free on both success and failure:
 @snippet design.c fruit_local
 
 To supply an initial size hint, pass it as the second argument to
-@ref strb_init. Construction remains infallible.
+@ref strb_make. Construction remains infallible.
 
 @section design_errors Deferred errors and operation boundaries
 
