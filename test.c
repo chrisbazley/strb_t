@@ -12,6 +12,11 @@
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
+static void check_string(const strb_t *const sb, const char *const expected)
+{
+    assert(strcmp(strb_cptr(sb), expected) == 0);
+}
+
 // Reference output operations prepare space with strb_write, then fill it
 // independently of the library's character, string and formatting wrappers.
 static int ref_nputc(strb_t *const s, const int c, const size_t n)
@@ -338,7 +343,7 @@ static void test_write_zero(void)
     assert(strb_len(&*s) == 3);
     assert(strb_unputc(&*s) == 'q');
     assert(strb_tell(&*s) == 0);
-    assert(!strcmp(strb_cptr(&*s), "abc"));
+    check_string(&*s, "abc");
 #if !STRB_FREESTANDING
     strb_free(s);
 #endif
@@ -483,6 +488,80 @@ static void test_delto_large_target(void)
         }
     }
 }
+
+// Copying external state transfers ownership without moving the character array.
+static void test_state_transfer(void)
+{
+    char buffer[32];
+    strbstate_t source, destination;
+    strb_t *sb = strb_use(&source, sizeof buffer, buffer);
+    int result = strb_puts(sb, "original");
+    assert(result != EOF);
+    strb_seek(sb, 2);
+    {
+        _Optional char *const out = strb_write(sb, 1);
+        assert(out);
+        *out = 'X';
+    }
+    destination = source;
+    memset(&source, 0x5a, sizeof source);
+    sb = strb_from(&destination);
+    assert(strb_tell(sb) == 3);
+#if STRB_HAS_RESTORE
+    strb_restore(sb);
+    check_string(sb, "orXiginal");
+#endif
+    assert(strb_cptr(strb_fromc(&destination)) == buffer);
+#if !STRB_FREESTANDING
+    strb_free(sb);
+#endif
+}
+
+#if !STRB_FREESTANDING
+static void test_state_relocation(void)
+{
+    _Optional strbstate_t *source = malloc(2 * sizeof(strbstate_t));
+    _Optional strbstate_t *destination = malloc(2 * sizeof(strbstate_t));
+    strb_t *sb;
+    int result;
+    assert(source);
+    assert(destination);
+    strb_make(&source[0], 0);
+    sb = strb_make(&source[1], 0);
+    result = strb_puts(sb, "kept");
+    assert(result != EOF);
+    strb_setmode(sb, strb_overwrite);
+    strb_seek(sb, 2);
+    result = strb_setmode(sb, -1);
+    assert(result == EOF);
+    memcpy(&*destination, &*source, 2 * sizeof(strbstate_t));
+    free(&*source);
+    check_string(strb_fromc(&destination[0]), "");
+    sb = strb_from(&destination[0]);
+    result = strb_putc(sb, 'x');
+    assert(result == 'x');
+    sb = strb_from(&destination[1]);
+    check_string(sb, "kept");
+    assert(strb_tell(sb) == 2);
+    assert(strb_getmode(sb) == strb_overwrite);
+    assert(strb_error(sb));
+    strb_clearerr(sb);
+    result = strb_putc(sb, 'X');
+    assert(result == 'X');
+    check_string(sb, "keXt");
+    source = realloc(&*destination, 3 * sizeof(strbstate_t));
+    assert(source);
+    destination = source;
+    strb_make(&destination[2], 0);
+    check_string(strb_fromc(&destination[2]), "");
+    sb = strb_from(&destination[0]);
+    check_string(sb, "x");
+    strb_free(sb);
+    strb_free(strb_from(&destination[1]));
+    strb_free(strb_from(&destination[2]));
+    free(&*destination);
+}
+#endif
 
 // Setters return values that can restore the previous mode and position.
 static void test_setter_restore(void)
@@ -670,7 +749,7 @@ static void test_empty(strb_t *const sb)
     strb_empty(sb);
     assert(strb_len(sb) == 0);
     assert(strb_tell(sb) == 0);
-    assert(!strcmp(strb_cptr(sb), ""));
+    check_string(sb, "");
     assert(strb_ptr(sb) == storage);
     assert(strb_getmode(sb) == strb_overwrite);
     assert(strb_error(sb));
@@ -682,7 +761,7 @@ static void test_empty(strb_t *const sb)
     assert(!strb_split(sb));
     strb_empty(sb);
     strb_restore(sb);
-    assert(!strcmp(strb_cptr(sb), ""));
+    check_string(sb, "");
 #endif
 #if STRB_HAS_UNPUTC
     assert(strb_putc(sb, 'a') == 'a');
@@ -696,7 +775,7 @@ static void test_empty(strb_t *const sb)
     assert(!strb_error(sb));
     assert(!strb_puts(sb, "abc"));
     assert(strb_ptr(sb) == storage);
-    assert(!strcmp(strb_cptr(sb), "abc"));
+    check_string(sb, "abc");
     strb_empty(sb);
     assert(strb_setmode(sb, strb_insert) != EOF);
 }
@@ -1040,13 +1119,13 @@ static void test_decl_macro(void)
     assert(strb_len(first) == 0);
     assert(!strb_puts(first, "abc"));
     assert(strb_putc(first, 'd') == EOF);
-    assert(!strcmp(strb_cptr(first), "abc"));
+    check_string(first, "abc");
     assert(strb_len(second) == 0);
     assert(!strb_puts(second, "xy"));
-    assert(!strcmp(strb_cptr(first), "abc"));
-    assert(!strcmp(strb_cptr(second), "xy"));
+    check_string(first, "abc");
+    check_string(second, "xy");
     assert(strb_putc(empty, 'a') == EOF);
-    assert(!strcmp(strb_cptr(empty), ""));
+    check_string(empty, "");
 }
 
 // Explicit state wrappers derive the whole array extent and evaluate state once.
@@ -1078,7 +1157,7 @@ static void test_array_macros(void)
     assert(next == 1);
     assert(reuse_next == 1);
     assert(empty[0][0] == '\0');
-    assert(!strcmp(strb_cptr(second), "preserve"));
+    check_string(second, "preserve");
     assert(strb_putc(STRB_TMP_USE((char[1]){0}), 'a') == EOF);
     assert(!strb_puts(first, "new"));
     assert(!strb_puts(second, " text"));
@@ -1102,8 +1181,8 @@ static void test_alloc_macro(void)
     assert(hint == 1);
     assert(!strb_puts(first, "first"));
     assert(!strb_puts(second, "second"));
-    assert(!strcmp(strb_cptr(first), "first"));
-    assert(!strcmp(strb_cptr(second), "second"));
+    check_string(first, "first");
+    check_string(second, "second");
     strb_free(first);
     strb_free(second);
 
@@ -1135,7 +1214,7 @@ static void test_external_state(void)
         assert(!strb_tell(sb));
         assert(!strb_error(sb));
         assert(strb_getmode(sb) == strb_insert);
-        assert(!strcmp(strb_cptr(sb), ""));
+        check_string(sb, "");
         assert(strb_ptr(sb)[0] == '\0');
         strb_empty(sb);
         assert(strb_write(sb, 0));
@@ -1157,7 +1236,7 @@ static void test_external_state(void)
         assert(strb_len(&*sb) == 0);
         assert(strb_tell(&*sb) == 0);
         assert(strb_getmode(&*sb) == strb_insert);
-        assert(!strcmp(strb_cptr(&*sb), ""));
+        check_string(&*sb, "");
         // Neither an empty write nor a failed write consumes the hint.
         assert(strb_write(&*sb, 0));
 #if STRB_HAS_RESTORE
@@ -1166,7 +1245,7 @@ static void test_external_state(void)
         assert(!strb_write(&*sb, STRB_MAX_SIZE));
         assert(strb_error(&*sb));
         assert(strb_len(&*sb) == 0);
-        assert(!strcmp(strb_cptr(&*sb), ""));
+        check_string(&*sb, "");
         strb_clearerr(&*sb);
         // Run the existing positioned-output and editing tests on each form.
         test(&*sb);
@@ -1219,14 +1298,14 @@ static void test_external_state(void)
         assert(strb_puts(buffers[STRB_MAX], "pool") == EOF);
         assert(strb_error(buffers[STRB_MAX]));
         assert(strb_len(buffers[STRB_MAX]) == 0);
-        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), ""));
+        check_string(buffers[STRB_MAX], "");
 
         // Failed allocation leaves a usable buffer; cleanup releases a slot.
         strb_free(buffers[0]);
         strb_clearerr(buffers[STRB_MAX]);
         assert(!strb_puts(buffers[STRB_MAX], "pool"));
         assert(!strb_error(buffers[STRB_MAX]));
-        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), "pool"));
+        check_string(buffers[STRB_MAX], "pool");
 
         for (i = 1; i < ARRAY_SIZE(states); ++i) {
             strb_free(buffers[i]);
@@ -1267,6 +1346,10 @@ int main(void)
 #endif
     test_output_failure();
     test_delto_large_target();
+    test_state_transfer();
+#if !STRB_FREESTANDING
+    test_state_relocation();
+#endif
     test_setter_restore();
     test_seek();
 

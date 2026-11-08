@@ -171,3 +171,10 @@ endif()
 add_compile_definitions(
     $<$<CONFIG:Debug>:DEBUGOUT=1>
 )
+
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+    add_executable(test_state_generic tests/state-generic.c)
+    set_target_properties(test_state_generic PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+    target_link_libraries(test_state_generic PRIVATE strb)
+    add_test(NAME check_state_generic COMMAND test_state_generic)
+endif()

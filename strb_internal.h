@@ -76,6 +76,15 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 #endif
 
 #define F_OVERWRITE (1 << 3)
+// Address of the terminator before caller-owned state acquires character storage.
+#if STRB_HAS_RESTORE
+#define STRB_INITIAL_BUFFER(sb) (&(sb)->p.restore_char)
+#elif STRB_HAS_UNPUTC
+#define STRB_INITIAL_BUFFER(sb) (&(sb)->p.unputc_char)
+#else
+#define STRB_INITIAL_BUFFER(sb) ((char *)&(sb)->p.len)
+#endif
+
 #define F_ALLOCATED (1 << 4)
 #define F_EXTERNAL (1 << 5)
 #define F_EXT_STATE (1 << 6)

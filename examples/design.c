@@ -225,17 +225,13 @@ typedef struct {
     int x, y;
     char buffer[32];
     strbstate_t sbs;
-    union {
-        char nil;
-        strb_t *sb;
-    };
 } label2_t;
 
 static void init_label2(label2_t *label, int x, int y)
 {
-    // The compound literal initialises nil; the assignment copies it.
+    // Assign the whole object before initialising its state.
     *label = (label2_t){.x = x, .y = y};
-    label->sb = STRB_USE(&label->sbs, label->buffer);
+    STRB_USE(&label->sbs, label->buffer);
 }
 //! [label_initialisation]
 
@@ -250,9 +246,10 @@ static bool test_label_initialisation(void)
 
     label2_t label;
     init_label2(&label, 10, 20);
+    const strb_t *const sb = strb_fromc(&label.sbs);
     return label.x == 10 && label.y == 20 &&
-           strb_ptr(label.sb) == label.buffer &&
-           strb_len(label.sb) == 0 && !strcmp(label.buffer, "");
+           strb_cptr(sb) == label.buffer &&
+           strb_len(sb) == 0 && !strcmp(label.buffer, "");
 }
 
 int main(void)
