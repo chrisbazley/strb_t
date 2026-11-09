@@ -20,7 +20,7 @@ static strb_t *init_use(strbstate_t *const restrict sbs, const strbsize_t size,
     return (void *)sbs;
 }
 
-strb_t *strb_use(strbstate_t *STRB_CONST restrict sbs, size_t size,
+strb_t *strb_use(strbstate_t *STRB__CONST restrict sbs, size_t size,
     char buf[STRB_SIZE_HINT(size)])
 {
     assert(sbs);
@@ -36,7 +36,7 @@ strb_t *strb_use(strbstate_t *STRB_CONST restrict sbs, size_t size,
     return init_use(sbs, (strbsize_t)size, buf, 0);
 }
 
-strb_t *strb_reuse(strbstate_t *STRB_CONST restrict sbs, size_t size,
+strb_t *strb_reuse(strbstate_t *STRB__CONST restrict sbs, size_t size,
     char buf[STRB_SIZE_HINT(size)])
 {
     assert(sbs);

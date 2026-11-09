@@ -61,9 +61,9 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 
 // cc65 rejects top-level parameter qualifiers that differ from a prototype.
 #if defined(__CC65__)
-#define STRB_CONST
+#define STRB__CONST
 #else
-#define STRB_CONST const
+#define STRB__CONST const
 #endif
 
 #if STRB_HAS_UNPUTC
@@ -92,14 +92,14 @@ struct strb_t {
 // Private external functions use strb__; declarations stay in this header.
 #if STRB_FREESTANDING
 // A zero mask avoids unreachable-code diagnostics for fixed storage.
-#define STRB_DEFERRED_ALLOC(sb) (((sb)->p.flags & 0) != 0)
+#define STRB__DEFERRED_ALLOC(sb) (((sb)->p.flags & 0) != 0)
 // Fixed storage cannot grow. Neither argument is evaluated.
-#define STRB_GROW(sb, minimum_size) false
+#define STRB__GROW(sb, minimum_size) false
 #else
-#define STRB_DEFERRED_ALLOC(sb) \
+#define STRB__DEFERRED_ALLOC(sb) \
     (((sb)->p.flags & (F_EXT_STATE | F_EXTERNAL | F_ALLOCATED)) == F_EXT_STATE)
 bool strb__grow(strb_t *sb, strbsize_t minimum_size);
-#define STRB_GROW(sb, minimum_size) strb__grow(sb, minimum_size)
+#define STRB__GROW(sb, minimum_size) strb__grow(sb, minimum_size)
 #endif
 int strb__seterr(strb_t *sb);
 _Optional char *strb__replace(strb_t *sb, size_t n);

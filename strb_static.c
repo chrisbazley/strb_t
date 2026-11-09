@@ -17,7 +17,7 @@ struct strb_allocation {
 static struct strb_allocation bufs[STRB_MAX];
 static uint8_t nbufs, buf_map;
 
-_Optional strb_t *strb__allocmetadata(STRB_CONST strbsize_t size)
+_Optional strb_t *strb__allocmetadata(STRB__CONST strbsize_t size)
 {
     int free_idx = 0;
     // Every pool slot has a full-sized character array.
@@ -40,7 +40,7 @@ _Optional strb_t *strb__allocmetadata(STRB_CONST strbsize_t size)
     return &bufs[free_idx].state;
 }
 
-static void free_metadata(strb_t *STRB_CONST sb)
+static void free_metadata(strb_t *STRB__CONST sb)
 {
     // The state is the first member of its pool slot.
     const ptrdiff_t alloc_idx = (struct strb_allocation *)sb - bufs;
@@ -50,13 +50,13 @@ static void free_metadata(strb_t *STRB_CONST sb)
     --nbufs;
 }
 
-strb_t *strb_make(strbstate_t *STRB_CONST sbs, STRB_CONST size_t n)
+strb_t *strb_make(strbstate_t *STRB__CONST sbs, STRB__CONST size_t n)
 {
     (void)n;
     return strb__initempty(sbs, STRB_MAX_SIZE);
 }
 
-_Optional strb_t *strb_alloc(STRB_CONST size_t n)
+_Optional strb_t *strb_alloc(STRB__CONST size_t n)
 {
     _Optional strb_t *const sb = strb__allocmetadata(0);
     (void)n;
@@ -72,7 +72,7 @@ _Optional strb_t *strb_alloc(STRB_CONST size_t n)
     return sb;
 }
 
-void strb_free(_Optional strb_t *STRB_CONST sb)
+void strb_free(_Optional strb_t *STRB__CONST sb)
 {
     if (!sb) {
         return;
@@ -90,7 +90,7 @@ void strb_free(_Optional strb_t *STRB_CONST sb)
     }
 }
 
-bool strb__grow(strb_t *STRB_CONST sb, STRB_CONST strbsize_t minimum_size)
+bool strb__grow(strb_t *STRB__CONST sb, STRB__CONST strbsize_t minimum_size)
 {
     _Optional strb_t *backing;
     assert(sb);

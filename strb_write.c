@@ -17,7 +17,7 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
     {
         strbsize_t size = sb->p.size;
 
-        if (STRB_DEFERRED_ALLOC(sb)) {
+        if (STRB__DEFERRED_ALLOC(sb)) {
             // Only the terminator exists; size is still an allocation hint.
             size = 1;
         }
@@ -31,11 +31,11 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
         }
     }
 
-    return STRB_GROW(sb, (strbsize_t)(top + n + 1u));
+    return STRB__GROW(sb, (strbsize_t)(top + n + 1u));
 }
 
 // Prepare whole-string replacement without discarding the old value on failure.
-_Optional char *strb__replace(strb_t *STRB_CONST sb, STRB_CONST size_t n)
+_Optional char *strb__replace(strb_t *STRB__CONST sb, STRB__CONST size_t n)
 {
     if (!strb_ensure(sb, n, 0)) {
         strb__seterr(sb);
@@ -53,7 +53,7 @@ _Optional char *strb__replace(strb_t *STRB_CONST sb, STRB_CONST size_t n)
     return sb->p.buf;
 }
 
-_Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
+_Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
 {
     assert(sb);
     assert(sb->p.len < sb->p.size);
@@ -137,7 +137,7 @@ _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
 }
 
 #if STRB_HAS_RESTORE
-void strb_restore(strb_t *STRB_CONST sb)
+void strb_restore(strb_t *STRB__CONST sb)
 {
     assert(sb);
 

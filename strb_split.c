@@ -4,7 +4,7 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-int strb_split(strb_t *STRB_CONST sb)
+int strb_split(strb_t *STRB__CONST sb)
 {
     _Optional char *const p = strb_write(sb, 0);
 
