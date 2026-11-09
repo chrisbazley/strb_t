@@ -29,8 +29,14 @@ int strb_puts(strb_t *STRB_CONST restrict sb,
 int strb_ncpy(strb_t *STRB_CONST restrict sb,
     const char *STRB_CONST restrict str, STRB_CONST size_t n)
 {
-    strb_empty(sb);
-    return strb_nputs(sb, str, n);
+    const size_t len = strb__strnlen(str, n);
+    _Optional char *const buf = strb__replace(sb, len);
+
+    if (!buf) {
+        return EOF;
+    }
+    memcpy(&*buf, str, len);
+    return 0;
 }
 
 int strb_cpy(strb_t *STRB_CONST restrict sb,

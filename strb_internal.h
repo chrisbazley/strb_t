@@ -10,6 +10,11 @@
 
 #include "strb.h"
 
+#ifdef FORTIFY
+#include <stdlib.h>
+#include "fortify.h"
+#endif
+
 #ifdef USE_OPTIONAL
 #if !STRB_FREESTANDING
 #include <stdarg.h>
@@ -97,6 +102,7 @@ bool strb__grow(strb_t *sb, strbsize_t minimum_size);
 #define STRB_GROW(sb, minimum_size) strb__grow(sb, minimum_size)
 #endif
 int strb__seterr(strb_t *sb);
+_Optional char *strb__replace(strb_t *sb, size_t n);
 
 #if defined(__CC65__) || \
     (!defined(_MSC_VER) && \

@@ -4,11 +4,16 @@
 #undef NDEBUG
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "strb.h"
+
+#ifdef FORTIFY
+#include "fortify.h"
+#endif
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 
@@ -1236,6 +1241,131 @@ static void test_external_state(void)
 }
 #endif
 
+#if !STRB_FREESTANDING
+static int call_vprintf(strb_t *const sb, const char *const format, ...)
+{
+    int result;
+    va_list args;
+    va_start(args, format);
+    result = strb_vprintf(sb, format, args);
+    va_end(args);
+    return result;
+}
+#endif
+
+// Failed replacement must preserve positioned text and pending undo state.
+static void test_replacement_failure(void)
+{
+    static const int modes[] = {strb_insert, strb_overwrite};
+    size_t mode;
+    int operation;
+    for (mode = 0; mode < ARRAY_SIZE(modes); ++mode) {
+        for (operation = 0; operation < 4; ++operation) {
+            char array[8] = {0}, saved[8];
+            strbstate_t state;
+            strb_t *const sb = strb_use(&state, sizeof array, array);
+            _Optional char *out;
+            size_t length;
+            int result;
+            strb_cpy(sb, "abcdef");
+            strb_setmode(sb, modes[mode]);
+            strb_seek(sb, 2);
+            out = strb_write(sb, 1);
+            assert(out);
+            *out = 'X';
+#if STRB_HAS_RESTORE
+            strb_split(sb);
+#endif
+            length = strb_len(sb);
+            memcpy(saved, array, sizeof saved);
+            switch (operation) {
+            case 0: result = strb_cpy(sb, "too long"); break;
+            case 1: result = strb_ncpy(sb, "too longTAIL", 8); break;
+#if !STRB_FREESTANDING
+            case 2: result = strb_printf(sb, "%s", "too long"); break;
+            default: result = call_vprintf(sb, "%s", "too long"); break;
+#else
+            default: continue;
+#endif
+            }
+            assert(result == EOF);
+            assert(strb_error(sb));
+            assert(strb_tell(sb) == 3);
+            assert(strb_len(sb) == length);
+            assert(strb_getmode(sb) == modes[mode]);
+            assert(!memcmp(saved, array, sizeof saved));
+#if STRB_HAS_RESTORE
+            strb_restore(sb);
+#endif
+#if STRB_HAS_UNPUTC
+            result = strb_unputc(sb);
+            assert(result == 'X');
+            assert(!strcmp(strb_cptr(sb), "abcdef"));
+#endif
+#if !STRB_FREESTANDING
+            strb_free(sb);
+#endif
+        }
+    }
+}
+
+#if defined(FORTIFY) && !STRB_FREESTANDING && !STRB_STATIC_ALLOC
+static int replace_for_test(strb_t *const sb, const int operation, const char *const text)
+{
+    switch (operation) {
+    case 0: return strb_cpy(sb, text);
+    case 1: return strb_ncpy(sb, text, strlen(text));
+    default: return strb_printf(sb, "%s", text);
+    }
+}
+
+// Allocation failure preserves the previous string and editing state.
+static void test_replacement_allocation_failure(void)
+{
+    char longer[300];
+    int operation;
+    memset(longer, 'A', sizeof longer - 1);
+    longer[sizeof longer - 1] = '\0';
+    for (operation = 0; operation < 4; ++operation) {
+        strbstate_t state;
+        strb_t *const sb = strb_make(&state, 0);
+        int result;
+        strb_setmode(sb, strb_overwrite);
+        strb_seek(sb, 4);
+        Fortify_SetNumAllocationsLimit(0);
+        result = operation == 3 ? call_vprintf(sb, "%s", "new")
+                                : replace_for_test(sb, operation, "new");
+        Fortify_SetNumAllocationsLimit(ULONG_MAX);
+        assert(result == EOF);
+        assert(!strcmp(strb_cptr(sb), ""));
+        assert(strb_len(sb) == 0);
+        assert(strb_tell(sb) == 4);
+        assert(strb_getmode(sb) == strb_overwrite);
+        assert(strb_error(sb));
+        strb_clearerr(sb);
+        result = strb_cpy(sb, "old");
+        assert(result == 0);
+        strb_seek(sb, 1);
+        strb_split(sb);
+        Fortify_SetNumAllocationsLimit(0);
+        result = operation == 3 ? call_vprintf(sb, "%s", longer)
+                                : replace_for_test(sb, operation, longer);
+        Fortify_SetNumAllocationsLimit(ULONG_MAX);
+        assert(result == EOF);
+        assert(!strcmp(strb_cptr(sb), "o"));
+        assert(strb_len(sb) == 3);
+        assert(strb_tell(sb) == 1);
+        assert(strb_getmode(sb) == strb_overwrite);
+        assert(strb_error(sb));
+#if STRB_HAS_RESTORE
+        strb_restore(sb);
+        assert(!strcmp(strb_cptr(sb), "old"));
+#endif
+        strb_free(sb);
+    }
+}
+#endif
+
 int main(void)
 {
     static char array[1000];
@@ -1266,6 +1396,10 @@ int main(void)
     test_output_growth();
 #endif
     test_output_failure();
+    test_replacement_failure();
+#if defined(FORTIFY) && !STRB_FREESTANDING && !STRB_STATIC_ALLOC
+    test_replacement_allocation_failure();
+#endif
     test_delto_large_target();
     test_setter_restore();
     test_seek();
