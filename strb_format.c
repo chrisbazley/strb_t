@@ -57,8 +57,8 @@ _Optional strb_t *strb_aprintf(const char *STRB_CONST restrict format, ...)
     }
 }
 
-int strb_vputf(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict format, va_list args)
+static int vputf(strb_t *STRB_CONST restrict sb,
+    const char *STRB_CONST restrict format, va_list args, STRB_CONST bool replace)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -66,13 +66,15 @@ int strb_vputf(strb_t *STRB_CONST restrict sb,
         const int len = vnprintf(format, args);
 
         if (len >= 0) {
-            _Optional char *const buf = strb_write(
-                sb, (size_t)len); // move tail by +len and keep buf[len]
+            _Optional char *const buf = replace ? strb__replace(sb, (size_t)len)
+                : strb_write(sb, (size_t)len);
 
             if (buf) {
                 char const tmp = buf[len];
-                vsnprintf(buf, (size_t)len + 1u, format, args_copy);
+                const int written = vsnprintf(buf, (size_t)len + 1u, format, args_copy);
                 buf[len] = tmp;
+                assert(written == len);
+                (void)written;
                 DEBUGF("String is now %s\n", strb_ptr(sb));
                 va_end(args_copy);
                 return 0;
@@ -81,6 +83,12 @@ int strb_vputf(strb_t *STRB_CONST restrict sb,
     }
     va_end(args_copy);
     return strb__seterr(sb);
+}
+
+int strb_vputf(strb_t *STRB_CONST restrict sb,
+    const char *STRB_CONST restrict format, va_list args)
+{
+    return vputf(sb, format, args, false);
 }
 
 int strb_putf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict format, ...)
@@ -97,8 +105,7 @@ int strb_putf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict fo
 int strb_vprintf(strb_t *STRB_CONST restrict sb,
     const char *STRB_CONST restrict format, va_list args)
 {
-    strb_empty(sb);
-    return strb_vputf(sb, format, args);
+    return vputf(sb, format, args, true);
 }
 
 int strb_printf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict format, ...)

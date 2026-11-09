@@ -34,6 +34,25 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
     return STRB_GROW(sb, (strbsize_t)(top + n + 1u));
 }
 
+// Prepare whole-string replacement without discarding the old value on failure.
+_Optional char *strb__replace(strb_t *STRB_CONST sb, STRB_CONST size_t n)
+{
+    if (!strb_ensure(sb, n, 0)) {
+        strb__seterr(sb);
+        return NULL;
+    }
+    strb_empty(sb);
+    sb->p.len = sb->p.pos = (strbsize_t)n;
+    sb->p.buf[n] = '\0';
+#if STRB_HAS_UNPUTC
+    if (n) {
+        sb->p.unputc_char = '\0';
+        sb->p.flags |= F_CAN_UNPUTC;
+    }
+#endif
+    return sb->p.buf;
+}
+
 _Optional char *strb_write(strb_t *STRB_CONST sb, STRB_CONST size_t n)
 {
     assert(sb);

@@ -449,6 +449,13 @@ its previous contents, mode and position intact. This guarantee applies to the
 individual operation. A helper making several output calls is not a transaction:
 if a later call fails, earlier successful calls have already modified the buffer.
 
+Whole-string replacement by @ref strb_cpy, @ref strb_ncpy, @ref strb_printf or
+@ref strb_vprintf determines the required size and secures storage before
+replacing any characters. Allocation failure therefore preserves the old string
+and editing state. The error indicator still records that replacement failed.
+Formatted replacement also preserves the old value if the measuring pass fails.
+
+
 @section design_strings Using existing string functions
 
 The interface produces ordinary null-terminated character arrays. Read-only

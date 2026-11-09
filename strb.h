@@ -1246,6 +1246,7 @@ void strb_empty(strb_t *sb);
  * @ref strb_unputc.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
+ * @post On failure, the contents, editing mode and position are unchanged.
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
@@ -1275,6 +1276,7 @@ int strb_cpy(strb_t *restrict sb, const char *restrict str);
  * @ref strb_unputc.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
+ * @post On failure, the contents, editing mode and position are unchanged.
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
@@ -1310,6 +1312,7 @@ int strb_ncpy(strb_t *restrict sb, const char *restrict str, size_t n);
  * strb_unputc.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
+ * @post On failure, the contents, editing mode and position are unchanged.
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */
@@ -1344,6 +1347,7 @@ int strb_vprintf(strb_t *restrict sb, const char *restrict format,
  * strb_unputc.
  * @post If successful, a call to @ref strb_restore will have no effect until
  *       @ref strb_write has been called.
+ * @post On failure, the contents, editing mode and position are unchanged.
  * @post On failure, a call to @ref strb_error will return true until
  *       @ref strb_clearerr has been called.
  */

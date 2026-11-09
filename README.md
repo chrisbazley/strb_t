@@ -126,6 +126,9 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+Configure with `-DUSE_FORTIFY=ON` to check allocations with Fortify and run
+allocation-failure tests in the existing test suite.
+
 ## Documentation
 
 [Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface is generated using Doxygen.

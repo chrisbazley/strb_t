@@ -4,6 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     enable_testing()
 endif()
 
+option(USE_FORTIFY "Enable Fortify memory-allocation checking" OFF)
 option(USE_OPTIONAL "Enable the _Optional qualifier" OFF)
 option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
@@ -25,6 +26,14 @@ endif()
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_XCODE_ATTRIBUTE_RUN_CLANG_STATIC_ANALYZER "YES")
+
+if(USE_FORTIFY)
+    include(FetchContent)
+    FetchContent_Declare(Fortify
+        GIT_REPOSITORY https://github.com/chrisbazley/Fortify.git
+        GIT_TAG main)
+    FetchContent_MakeAvailable(Fortify)
+endif()
 
 if(WARNINGS_AS_ERRORS AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     if(MSVC)
@@ -104,6 +113,9 @@ function(add_strb_variant suffix definitions sources)
     # These definitions select the interface as well as the implementation.
     target_compile_definitions(${lib_target} PUBLIC ${definitions})
     target_include_directories(${lib_target} PUBLIC .)
+    if(USE_FORTIFY AND NOT "STRB_FREESTANDING" IN_LIST definitions)
+        target_link_libraries(${lib_target} PUBLIC Fortify)
+    endif()
     
     set_target_properties(${lib_target} PROPERTIES
         PUBLIC_HEADER "${PUBLIC_HEADERS}"
@@ -171,3 +183,4 @@ endif()
 add_compile_definitions(
     $<$<CONFIG:Debug>:DEBUGOUT=1>
 )
+
