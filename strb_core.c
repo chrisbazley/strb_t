@@ -7,7 +7,7 @@
 #include "strb_internal.h"
 
 #undef strb_ptr
-char *strb_ptr(strb_t *STRB_CONST sb)
+char *strb_ptr(strb_t *STRB__CONST sb)
 {
     assert(sb);
     return sb->p.buf;
@@ -17,7 +17,7 @@ char *strb_ptr(strb_t *STRB_CONST sb)
 // With assertions disabled, both accessors have the same implementation.
 const char *strb_cptr(strb_t const *sb) __attribute__((alias("strb_ptr")));
 #else
-const char *strb_cptr(strb_t const *STRB_CONST sb)
+const char *strb_cptr(strb_t const *STRB__CONST sb)
 {
 #ifdef NDEBUG
     return strb_ptr((strb_t *)sb);
@@ -28,13 +28,13 @@ const char *strb_cptr(strb_t const *STRB_CONST sb)
 }
 #endif
 
-size_t strb_len(strb_t const *STRB_CONST sb)
+size_t strb_len(strb_t const *STRB__CONST sb)
 {
     assert(sb);
     return sb->p.len;
 }
 
-void strb_empty(strb_t *STRB_CONST sb)
+void strb_empty(strb_t *STRB__CONST sb)
 {
     assert(sb);
     sb->p.len = sb->p.pos = 0;
@@ -45,7 +45,7 @@ void strb_empty(strb_t *STRB_CONST sb)
 }
 
 #if !STRB_FREESTANDING
-strb_t *strb__initempty(strbstate_t *STRB_CONST sbs, STRB_CONST strbsize_t hint)
+strb_t *strb__initempty(strbstate_t *STRB__CONST sbs, STRB__CONST strbsize_t hint)
 {
     assert(sbs);
     sbs->p.len = sbs->p.pos = 0;

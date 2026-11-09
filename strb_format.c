@@ -10,7 +10,7 @@
 
 #define vnprintf(fmt, ap) vsnprintf(NULL, 0, fmt, ap)
 
-_Optional strb_t *strb_vaprintf(const char *STRB_CONST restrict format, va_list args)
+_Optional strb_t *strb_vaprintf(const char *STRB__CONST restrict format, va_list args)
 {
     _Optional strb_t *sb = NULL;
     va_list args_copy;
@@ -46,7 +46,7 @@ _Optional strb_t *strb_vaprintf(const char *STRB_CONST restrict format, va_list 
     return sb;
 }
 
-_Optional strb_t *strb_aprintf(const char *STRB_CONST restrict format, ...)
+_Optional strb_t *strb_aprintf(const char *STRB__CONST restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -57,8 +57,8 @@ _Optional strb_t *strb_aprintf(const char *STRB_CONST restrict format, ...)
     }
 }
 
-static int vputf(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict format, va_list args, STRB_CONST bool replace)
+static int vputf(strb_t *STRB__CONST restrict sb,
+    const char *STRB__CONST restrict format, va_list args, STRB__CONST bool replace)
 {
     va_list args_copy;
     va_copy(args_copy, args);
@@ -85,13 +85,13 @@ static int vputf(strb_t *STRB_CONST restrict sb,
     return strb__seterr(sb);
 }
 
-int strb_vputf(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict format, va_list args)
+int strb_vputf(strb_t *STRB__CONST restrict sb,
+    const char *STRB__CONST restrict format, va_list args)
 {
     return vputf(sb, format, args, false);
 }
 
-int strb_putf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict format, ...)
+int strb_putf(strb_t *STRB__CONST restrict sb, const char *STRB__CONST restrict format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -102,13 +102,13 @@ int strb_putf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict fo
     }
 }
 
-int strb_vprintf(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict format, va_list args)
+int strb_vprintf(strb_t *STRB__CONST restrict sb,
+    const char *STRB__CONST restrict format, va_list args)
 {
     return vputf(sb, format, args, true);
 }
 
-int strb_printf(strb_t *STRB_CONST restrict sb, const char *STRB_CONST restrict format, ...)
+int strb_printf(strb_t *STRB__CONST restrict sb, const char *STRB__CONST restrict format, ...)
 {
     va_list args;
     va_start(args, format);

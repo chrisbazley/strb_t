@@ -4,12 +4,12 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-int strb_putc(strb_t *STRB_CONST sb, STRB_CONST int c)
+int strb_putc(strb_t *STRB__CONST sb, STRB__CONST int c)
 {
     return strb_nputc(sb, c, 1);
 }
 
-int strb_nputc(strb_t *STRB_CONST sb, STRB_CONST int c, STRB_CONST size_t n)
+int strb_nputc(strb_t *STRB__CONST sb, STRB__CONST int c, STRB__CONST size_t n)
 {
     _Optional char *const buf = strb_write(sb, n);
 

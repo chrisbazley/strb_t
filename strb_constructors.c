@@ -8,7 +8,7 @@
 #error "Do not compile strb_constructors.c with STRB_FREESTANDING"
 #endif
 
-_Optional strb_t *strb_ndup(const char *STRB_CONST str, STRB_CONST size_t n)
+_Optional strb_t *strb_ndup(const char *STRB__CONST str, STRB__CONST size_t n)
 {
     const size_t len = strb__strnlen(str, n);
 
@@ -37,7 +37,7 @@ _Optional strb_t *strb_ndup(const char *STRB_CONST str, STRB_CONST size_t n)
     }
 }
 
-_Optional strb_t *strb_dup(const char *STRB_CONST str)
+_Optional strb_t *strb_dup(const char *STRB__CONST str)
 {
     return strb_ndup(str, STRB_MAX_SIZE);
 }

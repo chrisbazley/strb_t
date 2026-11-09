@@ -4,7 +4,7 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-int strb_setmode(strb_t *STRB_CONST sb, STRB_CONST int mode)
+int strb_setmode(strb_t *STRB__CONST sb, STRB__CONST int mode)
 {
     assert(sb);
 
@@ -23,7 +23,7 @@ int strb_setmode(strb_t *STRB_CONST sb, STRB_CONST int mode)
     }
 }
 
-int strb_getmode(const strb_t *STRB_CONST sb)
+int strb_getmode(const strb_t *STRB__CONST sb)
 {
     assert(sb);
     return (sb->p.flags & F_OVERWRITE) ? strb_overwrite : strb_insert;

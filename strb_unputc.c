@@ -8,7 +8,7 @@
 #error "Compile strb_unputc.c only when STRB_HAS_UNPUTC is enabled"
 #endif
 
-int strb_unputc(strb_t *STRB_CONST sb)
+int strb_unputc(strb_t *STRB__CONST sb)
 {
     assert(sb);
 

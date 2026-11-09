@@ -4,7 +4,7 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-void strb_delto(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
+void strb_delto(strb_t *STRB__CONST sb, STRB__CONST size_t pos)
 {
     size_t hi, lo;
 

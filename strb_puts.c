@@ -4,8 +4,8 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-int strb_nputs(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict str, STRB_CONST size_t n)
+int strb_nputs(strb_t *STRB__CONST restrict sb,
+    const char *STRB__CONST restrict str, STRB__CONST size_t n)
 {
     const size_t len = strb__strnlen(str, n);
     _Optional char *const buf = strb_write(sb, len);
@@ -20,14 +20,14 @@ int strb_nputs(strb_t *STRB_CONST restrict sb,
     return 0;
 }
 
-int strb_puts(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict str)
+int strb_puts(strb_t *STRB__CONST restrict sb,
+    const char *STRB__CONST restrict str)
 {
     return strb_nputs(sb, str, STRB_MAX_SIZE);
 }
 
-int strb_ncpy(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict str, STRB_CONST size_t n)
+int strb_ncpy(strb_t *STRB__CONST restrict sb,
+    const char *STRB__CONST restrict str, STRB__CONST size_t n)
 {
     const size_t len = strb__strnlen(str, n);
     _Optional char *const buf = strb__replace(sb, len);
@@ -39,8 +39,8 @@ int strb_ncpy(strb_t *STRB_CONST restrict sb,
     return 0;
 }
 
-int strb_cpy(strb_t *STRB_CONST restrict sb,
-    const char *STRB_CONST restrict str)
+int strb_cpy(strb_t *STRB__CONST restrict sb,
+    const char *STRB__CONST restrict str)
 {
     return strb_ncpy(sb, str, STRB_MAX_SIZE);
 }

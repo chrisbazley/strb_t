@@ -4,7 +4,7 @@
 #define _GNU_SOURCE
 #include "strb_internal.h"
 
-size_t strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
+size_t strb_seek(strb_t *STRB__CONST sb, STRB__CONST size_t pos)
 {
     const size_t old_pos = strb_tell(sb);
     assert(sb);
@@ -17,7 +17,7 @@ size_t strb_seek(strb_t *STRB_CONST sb, STRB_CONST size_t pos)
     return old_pos;
 }
 
-size_t strb_tell(strb_t const *STRB_CONST sb)
+size_t strb_tell(strb_t const *STRB__CONST sb)
 {
     assert(sb);
     // Only static allocation has a position limit below the storage type
