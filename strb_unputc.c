@@ -23,14 +23,15 @@ int strb_unputc(strb_t *STRB__CONST sb)
 
     {
         const strbsize_t new_pos = sb->p.pos - 1;
-        const char removed = sb->p.buf[new_pos];
+        char *const buf = STRB__BUF(sb);
+        const char removed = buf[new_pos];
 
         if (!(sb->p.flags & F_OVERWRITE)) {
-            memmove(sb->p.buf + new_pos, sb->p.buf + sb->p.pos,
+            memmove(buf + new_pos, buf + sb->p.pos,
                     sb->p.len - new_pos);
             --sb->p.len;
         } else {
-            sb->p.buf[new_pos] = sb->p.unputc_char;
+            buf[new_pos] = sb->p.unputc_char;
         }
 
         sb->p.pos = new_pos;

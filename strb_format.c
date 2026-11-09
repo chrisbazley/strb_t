@@ -12,37 +12,13 @@
 
 _Optional strb_t *strb_vaprintf(const char *STRB__CONST restrict format, va_list args)
 {
-    _Optional strb_t *sb = NULL;
-    va_list args_copy;
-    va_copy(args_copy, args);
+    _Optional strb_t *const sb = strb_alloc(0);
 
-    do {
-        const int len = vnprintf(format, args);
+    if (sb && strb_vprintf(&*sb, format, args)) {
+        strb_destroy(sb);
+        return NULL;
+    }
 
-        if (len < 0 || (size_t)len >= STRB_MAX_SIZE) {
-            break; // formatting failed or result too long
-        }
-
-        sb = strb_alloc((size_t)len + 1u);
-
-        if (!sb) {
-            break;
-        }
-
-        assert(sb->p.size > len);
-        vsprintf(sb->p.buf, format, args_copy);
-
-        sb->p.len = sb->p.pos = (strbsize_t)len;
-#if STRB_HAS_UNPUTC
-        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set unputc_char
-
-        if (len) {
-            sb->p.flags |= F_CAN_UNPUTC;
-        }
-#endif
-    } while (0);
-
-    va_end(args_copy);
     return sb;
 }
 

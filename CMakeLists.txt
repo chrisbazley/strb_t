@@ -143,15 +143,12 @@ endfunction()
 
 ## Build all variants
 set(DYNAMIC_SOURCES strb_constructors.c strb_format.c strb_dynamic.c)
-set(STATIC_SOURCES strb_constructors.c strb_format.c strb_static.c)
 add_strb_variant("" "" "${DYNAMIC_SOURCES}")
-add_strb_variant("static" "STRB_STATIC_ALLOC" "${STATIC_SOURCES}")
 add_strb_variant("freestanding" "STRB_FREESTANDING" "")
 # Consumers build the installed libraries without the standalone test matrix.
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     # Exercise split strings without restoring their overwritten characters.
     add_strb_variant("no_restore" "STRB_HAS_RESTORE=0" "${DYNAMIC_SOURCES}")
-    add_strb_variant("static_no_restore" "STRB_STATIC_ALLOC;STRB_HAS_RESTORE=0" "${STATIC_SOURCES}" TEST_ONLY)
     add_strb_variant("freestanding_no_restore" "STRB_FREESTANDING;STRB_HAS_RESTORE=0" "" TEST_ONLY)
 
     # Exercise optional interfaces independently and together, without changing
@@ -164,7 +161,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
         endif()
 
         add_strb_variant("${configuration}" "${definitions}" "${DYNAMIC_SOURCES}" TEST_ONLY)
-        add_strb_variant("static_${configuration}" "STRB_STATIC_ALLOC;${definitions}" "${STATIC_SOURCES}" TEST_ONLY)
         add_strb_variant("freestanding_${configuration}" "STRB_FREESTANDING;${definitions}" "" TEST_ONLY)
     endforeach()
 

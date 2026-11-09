@@ -81,23 +81,18 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 #endif
 
 #define F_OVERWRITE (1 << 3)
-#define F_ALLOCATED (1 << 4)
+#define F_HEAP (1 << 4)
 #define F_EXTERNAL (1 << 5)
-#define F_EXT_STATE (1 << 6)
 
-struct strb_t {
-    strbprivate_t p;
-};
+// No self-pointer is stored for the initial empty string. The fallback byte
+// belongs to whichever instance is being used, including after relocation.
+#define STRB__BUF(sb) ((sb)->p.buf ? &*(sb)->p.buf : &(sb)->p.empty_char)
 
 // Private external functions use strb__; declarations stay in this header.
 #if STRB_FREESTANDING
-// A zero mask avoids unreachable-code diagnostics for fixed storage.
-#define STRB__DEFERRED_ALLOC(sb) (((sb)->p.flags & 0) != 0)
 // Fixed storage cannot grow. Neither argument is evaluated.
 #define STRB__GROW(sb, minimum_size) false
 #else
-#define STRB__DEFERRED_ALLOC(sb) \
-    (((sb)->p.flags & (F_EXT_STATE | F_EXTERNAL | F_ALLOCATED)) == F_EXT_STATE)
 bool strb__grow(strb_t *sb, strbsize_t minimum_size);
 #define STRB__GROW(sb, minimum_size) strb__grow(sb, minimum_size)
 #endif
@@ -111,11 +106,6 @@ _Optional char *strb__replace(strb_t *sb, size_t n);
 size_t strb__strnlen(const char *s, size_t n);
 #else
 #define strb__strnlen strnlen
-#endif
-
-#if !STRB_FREESTANDING
-_Optional strb_t *strb__allocmetadata(strbsize_t size);
-strb_t *strb__initempty(strbstate_t *sbs, strbsize_t hint);
 #endif
 
 #endif

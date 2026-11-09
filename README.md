@@ -8,6 +8,16 @@ See the [slides](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3276.pdf) pre
 to WG14 and the [latest paper](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf)
 submitted to WG14.
 
+This experimental interface uses one complete `strb_t` object instead of
+separate state and handle types. `strb_init(&sb, hint)` and
+`STRB_INITIALIZER(hint)` initialise an empty buffer without allocation and
+supply a hint for the first character allocation. Implicit zero-initialisation
+selects the default hint. `strb_destroy` releases character storage and frees the
+object only when a library constructor allocated it. Caller-resident objects may
+be relocated by ownership transfer; library-allocated objects must not be copied
+or relocated. The static-pool backend is not provided in this experiment. The
+Compiler Explorer example and size measurements below describe the published interface.
+
 ## Configuration
 
 The common sources are split so that linking a static archive pulls in only the
@@ -15,8 +25,8 @@ required groups of operations:
 
 | Source | Responsibility |
 | --- | --- |
-| `strb_core.c` | Buffer access, length, emptying and private initialisation helpers |
-| `strb_external.c` | Construction with caller-supplied state and character storage |
+| `strb_core.c` | Buffer access, length and emptying |
+| `strb_external.c` | Initialisation with caller-supplied character storage |
 | `strb_strnlen.c` | Private bounded-length fallback, where the platform needs it |
 | `strb_mode.c` | Setting and getting the editing mode |
 | `strb_pos.c` | Setting and getting the current position |
@@ -32,14 +42,12 @@ These are the shared operation sources. CMake omits `strb_unputc.c` when
 `STRB_HAS_UNPUTC=0`, because that unit then has no enabled function definitions.
 Editing mode and current
 position each have their setter and getter in the same translation unit. Error
-indicator operations are grouped together. The core retains buffer access,
-length and private initialisation helpers.
+indicator operations are grouped together. The core provides buffer access,
+length and emptying.
 
-Additional functions are grouped by responsibility. `strb_constructors.c`
-provides duplication functions; `strb_format.c` provides formatted construction
-and output. Their availability
-in this prototype is a configuration choice, not a restriction on what
-freestanding implementations may provide.
+Additional functions are grouped by responsibility. `strb_constructors.c` provides
+duplication functions; `strb_format.c` provides formatted construction and output. Their availability in this prototype is a configuration
+choice, not a restriction on what freestanding implementations may provide.
 
 Each configuration selects one implementation of storage allocation, growth and
 release:
@@ -47,16 +55,14 @@ release:
 | Configuration | Additional sources | Definition |
 | --- | --- | --- |
 | Dynamic allocation | `strb_constructors.c`, `strb_format.c`, `strb_dynamic.c` | None |
-| Static pool | `strb_constructors.c`, `strb_format.c`, `strb_static.c` | `STRB_STATIC_ALLOC` |
 | Freestanding | None | `STRB_FREESTANDING` |
 
 Storage selection and optional features serve different purposes:
 
-- **Storage backend:** choose the dynamic, static-pool or freestanding build.
+- **Storage backend:** choose the dynamic or freestanding build.
   Its source list and matching storage macro must agree, because the macro also
   controls the public interface and shared state layout. CMake targets and Make
-  recipes select this combination together; the two allocation backends are
-  alternative implementations and must not be linked together.
+  recipes select this combination together; allocation functions are omitted from the freestanding build.
 - **Optional features:** define `STRB_HAS_UNPUTC` and `STRB_HAS_RESTORE` consistently
   for every library and client translation unit. Omitting a source file alone
   does not disable a feature: for example,
@@ -111,14 +117,13 @@ I haven't written a full test suite or anything, but it seems pretty solid for t
 CMake builds and runs the existing suite with each optional interface disabled:
 `STRB_HAS_UNPUTC` and `STRB_HAS_RESTORE`. It also
 tests a minimal configuration with both disabled. These variants cover
-dynamic allocation, the static pool, and freestanding storage where applicable.
-Caller-allocated buffer state is always supported, so all three storage configurations
-can run the minimal-feature tests.
+dynamic allocation and freestanding storage. Caller-allocated buffer state is
+always supported, so both storage configurations can run the minimal-feature tests.
 
 The feature-off targets use their own interface definitions; the design examples
-continue to use the full-interface `strb` target. Definitions propagate from each
+use the full-interface `strb` target. Definitions propagate from each
 library target to its consumers. The additional test-only archives are not
-installed. Run all 13 registered tests with:
+installed. Run all 9 registered tests with:
 
 ```
 cmake -S . -B build -DWARNINGS_AS_ERRORS=ON
@@ -131,7 +136,7 @@ allocation-failure tests in the existing test suite.
 
 ## Documentation
 
-[Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface is generated using Doxygen.
+[Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface is generated using Doxygen (`doxygen Doxyfile`).
 
 [Interface design and usage](https://chrisbazley.github.io/strb_t/interface_design.html) explains the positional output model, why there are no separate append/prepend/insert functions, and how to use the same text producer in different editing contexts.
 

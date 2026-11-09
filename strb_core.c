@@ -10,7 +10,7 @@
 char *strb_ptr(strb_t *STRB__CONST sb)
 {
     assert(sb);
-    return sb->p.buf;
+    return STRB__BUF(sb);
 }
 
 #if defined(NDEBUG) && defined(__GNUC__) && defined(__ELF__)
@@ -23,7 +23,11 @@ const char *strb_cptr(strb_t const *STRB__CONST sb)
     return strb_ptr((strb_t *)sb);
 #else
     assert(sb);
-    return sb->p.buf;
+    {
+        // cc65 requires matching pointed-to qualifiers in the conditional.
+        _Optional const char *const buf = sb->p.buf;
+        return buf ? &*buf : &sb->p.empty_char;
+    }
 #endif
 }
 #endif
@@ -38,34 +42,8 @@ void strb_empty(strb_t *STRB__CONST sb)
 {
     assert(sb);
     sb->p.len = sb->p.pos = 0;
-    sb->p.buf[0] = '\0';
+    STRB__BUF(sb)[0] = '\0';
 #if STRB_HAS_UNPUTC || STRB_HAS_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif
 }
-
-#if !STRB_FREESTANDING
-strb_t *strb__initempty(strbstate_t *STRB__CONST sbs, STRB__CONST strbsize_t hint)
-{
-    assert(sbs);
-    sbs->p.len = sbs->p.pos = 0;
-
-    // Reuse a saved-character byte for the initial writable terminator.
-    // Zero-length writes can only save/restore null while this buffer is used;
-    // strb_ensure obtains character storage before a nonempty write uses it.
-#if STRB_HAS_RESTORE
-    sbs->p.buf = &sbs->p.restore_char;
-#elif STRB_HAS_UNPUTC
-    sbs->p.buf = &sbs->p.unputc_char;
-#else
-    // The unsigned length is zero until character storage is acquired. Its
-    // first byte can therefore supply the terminator without another field.
-    sbs->p.buf = (char *)&sbs->p.len;
-#endif
-    // Until F_ALLOCATED is set, size records the deferred allocation hint.
-    sbs->p.size = hint;
-    sbs->p.buf[0] = '\0';
-    sbs->p.flags = F_EXT_STATE;
-    return (void *)sbs;
-}
-#endif

@@ -20,11 +20,6 @@ size_t strb_seek(strb_t *STRB__CONST sb, STRB__CONST size_t pos)
 size_t strb_tell(strb_t const *STRB__CONST sb)
 {
     assert(sb);
-    // Only static allocation has a position limit below the storage type
-    // maximum.
-#if STRB_STATIC_ALLOC && !STRB_FREESTANDING
-    assert(sb->p.pos <= STRB_MAX_SIZE);
-#endif
     DEBUGF("Pos %" PRIstrbsize ", len %" PRIstrbsize ", size %" PRIstrbsize
            "\n",
            sb->p.pos, sb->p.len, sb->p.size);

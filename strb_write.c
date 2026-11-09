@@ -17,8 +17,8 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
     {
         strbsize_t size = sb->p.size;
 
-        if (STRB__DEFERRED_ALLOC(sb)) {
-            // Only the terminator exists; size is still an allocation hint.
+        if (!sb->p.buf) {
+            // Only the per-object empty terminator exists.
             size = 1;
         }
         {
@@ -42,28 +42,33 @@ _Optional char *strb__replace(strb_t *STRB__CONST sb, STRB__CONST size_t n)
         return NULL;
     }
     strb_empty(sb);
-    sb->p.len = sb->p.pos = (strbsize_t)n;
-    sb->p.buf[n] = '\0';
-#if STRB_HAS_UNPUTC
-    if (n) {
-        sb->p.unputc_char = '\0';
-        sb->p.flags |= F_CAN_UNPUTC;
+    if (!sb->p.buf) {
+        assert(n == 0);
+        return &sb->p.empty_char;
     }
+    {
+        char *const buf = STRB__BUF(sb);
+        sb->p.len = sb->p.pos = (strbsize_t)n;
+        buf[n] = '\0';
+#if STRB_HAS_UNPUTC
+        if (n) {
+            sb->p.unputc_char = '\0';
+            sb->p.flags |= F_CAN_UNPUTC;
+        }
 #endif
-    return sb->p.buf;
+        return buf;
+    }
 }
 
 _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
 {
     assert(sb);
-    assert(sb->p.len < sb->p.size);
-#if STRB_STATIC_ALLOC && !STRB_FREESTANDING
-    assert(sb->p.pos <= STRB_MAX_SIZE);
-#endif
-    assert(sb->p.buf[sb->p.len] == '\0');
+    assert(sb->p.len < sb->p.size || !sb->p.buf);
+    assert(STRB__BUF(sb)[sb->p.len] == '\0');
     DEBUGF("About to write %zu chars\n", n);
 
     {
+        char *base;
         const strbsize_t old_len = sb->p.len, old_pos = sb->p.pos;
         const strbsize_t top = (sb->p.flags & F_OVERWRITE) || old_pos > old_len
                                    ? old_pos
@@ -75,6 +80,17 @@ _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
             return NULL;
         }
 
+        base = STRB__BUF(sb);
+        if (!sb->p.buf) {
+            assert(n == 0);
+            assert(old_pos == 0);
+#if STRB_HAS_RESTORE
+            sb->p.restore_char = '\0';
+            sb->p.flags |= F_CAN_RESTORE;
+#endif
+            return base;
+        }
+
         assert(old_pos < sb->p.size);
 
         if (old_pos > old_len) {
@@ -82,14 +98,14 @@ _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
                    "\n",
                    old_len, old_pos + 1u);
             // +1 because there is no null terminator at pos yet
-            memset(sb->p.buf + old_len, '\0', old_pos - old_len + 1u);
+            memset(base + old_len, '\0', old_pos - old_len + 1u);
             sb->p.len = old_pos;
         }
 
         assert(old_pos <= sb->p.len);
 
         {
-            char *const buf = sb->p.buf + old_pos;
+            char *const buf = base + old_pos;
 
             if (!(sb->p.flags & F_OVERWRITE)) {
                 DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf,
@@ -144,7 +160,7 @@ void strb_restore(strb_t *STRB__CONST sb)
     if (sb->p.flags & F_CAN_RESTORE) {
         DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char,
                sb->p.restore_char, sb->p.pos);
-        sb->p.buf[sb->p.pos] = sb->p.restore_char;
+        STRB__BUF(sb)[sb->p.pos] = sb->p.restore_char;
         sb->p.flags &= ~F_CAN_RESTORE;
     }
 }

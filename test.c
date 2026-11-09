@@ -277,7 +277,7 @@ static void test_output_equivalence(void)
                          state_index < ARRAY_SIZE(initial_states); ++state_index) {
                         const unsigned flags = initial_states[state_index];
                         static char actual_array[128], reference_array[128];
-                        strbstate_t actual_state, reference_state;
+                        strb_t actual_state, reference_state;
                         strb_t *const actual = strb_use(&actual_state, sizeof actual_array,
                                                   actual_array);
                         strb_t *const reference = strb_use(&reference_state,
@@ -297,30 +297,28 @@ static void test_output_equivalence(void)
 #endif
                         check_output(&*actual, &*reference, &output_cases[t]);
 #if !STRB_FREESTANDING
-                        strb_free(actual);
-                        strb_free(reference);
+                        strb_destroy(actual);
+                        strb_destroy(reference);
 #endif
-#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
+#if !STRB_FREESTANDING
                         // Exercise owned storage as well as external arrays.
                         {
-                            _Optional strb_t *const owned_actual = strb_alloc(10);
-                            _Optional strb_t *const owned_reference = strb_alloc(10);
-                            assert(owned_actual);
-                            assert(owned_reference);
-                            prepare_output(&*owned_actual, initial, pos, modes[m],
+                            strb_t owned_actual = STRB_INITIALIZER(0),
+                                   owned_reference = STRB_INITIALIZER(0);
+                            prepare_output(&owned_actual, initial, pos, modes[m],
                                            flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
-                            prepare_output(&*owned_reference, initial, pos, modes[m],
+                            prepare_output(&owned_reference, initial, pos, modes[m],
                                            flags & HAS_PENDING_UNDO, flags & HAS_ERROR);
 #if STRB_HAS_RESTORE
                             if (flags & HAS_PENDING_RESTORE) {
-                                assert(!strb_split(&*owned_actual));
-                                assert(!strb_split(&*owned_reference));
+                                assert(!strb_split(&owned_actual));
+                                assert(!strb_split(&owned_reference));
                             }
 #endif
-                            check_output(&*owned_actual, &*owned_reference,
+                            check_output(&owned_actual, &owned_reference,
                                          &output_cases[t]);
-                            strb_free(owned_actual);
-                            strb_free(owned_reference);
+                            strb_destroy(&owned_actual);
+                            strb_destroy(&owned_reference);
                         }
 #endif
                     }
@@ -334,7 +332,7 @@ static void test_output_equivalence(void)
 static void test_write_zero(void)
 {
     char array[128];
-    strbstate_t state;
+    strb_t state;
     strb_t *const s = strb_use(&state, sizeof array, array);
     assert(s);
     prepare_output(&*s, "abc", 0, strb_overwrite, true, false);
@@ -345,12 +343,12 @@ static void test_write_zero(void)
     assert(strb_tell(&*s) == 0);
     assert(!strcmp(strb_cptr(&*s), "abc"));
 #if !STRB_FREESTANDING
-    strb_free(s);
+    strb_destroy(s);
 #endif
 }
 #endif
 
-#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
+#if !STRB_FREESTANDING
 static void test_output_growth(void)
 {
     size_t i, t;
@@ -361,37 +359,33 @@ static void test_output_growth(void)
     for (t = 0; t < ARRAY_SIZE(output_cases); ++t) {
         size_t m;
         for (m = 0; m < ARRAY_SIZE(modes); ++m) {
-            _Optional strb_t *const actual = strb_alloc(STRB_DFL_SIZE);
-            _Optional strb_t *const reference = strb_alloc(STRB_DFL_SIZE);
-            assert(actual);
-            assert(reference);
+            strb_t actual = STRB_INITIALIZER(0), reference = STRB_INITIALIZER(0);
             // Nonempty output at the end must exceed the initial capacity.
-            prepare_output(&*actual, initial, strlen(initial), modes[m],
+            prepare_output(&actual, initial, strlen(initial), modes[m],
                            false, false);
-            prepare_output(&*reference, initial, strlen(initial), modes[m],
+            prepare_output(&reference, initial, strlen(initial), modes[m],
                            false, false);
-            check_output(&*actual, &*reference, &output_cases[t]);
-            strb_free(actual);
-            strb_free(reference);
+            check_output(&actual, &reference, &output_cases[t]);
+            strb_destroy(&actual);
+            strb_destroy(&reference);
         }
     }
     // Seeking beyond allocated storage is allowed; the write obtains storage.
     {
-        _Optional strb_t *const s = strb_alloc(0);
+        strb_t sb = STRB_INITIALIZER(0);
         const size_t pos = STRB_DFL_SIZE + sizeof "gap";
-        assert(s);
-        strb_seek(&*s, pos);
-        assert(strb_tell(&*s) == pos);
-        assert(strb_len(&*s) == 0);
-        assert(!strb_error(&*s));
-        assert(strb_putc(&*s, 'X') == 'X');
-        assert(strb_tell(&*s) == pos + 1);
-        assert(strb_len(&*s) == pos + 1);
+        strb_seek(&sb, pos);
+        assert(strb_tell(&sb) == pos);
+        assert(strb_len(&sb) == 0);
+        assert(!strb_error(&sb));
+        assert(strb_putc(&sb, 'X') == 'X');
+        assert(strb_tell(&sb) == pos + 1);
+        assert(strb_len(&sb) == pos + 1);
         for (i = 0; i < pos; ++i)
-            assert(strb_cptr(&*s)[i] == '\0');
-        assert(strb_cptr(&*s)[pos] == 'X');
-        assert(strb_cptr(&*s)[pos + 1] == '\0');
-        strb_free(s);
+            assert(strb_cptr(&sb)[i] == '\0');
+        assert(strb_cptr(&sb)[pos] == 'X');
+        assert(strb_cptr(&sb)[pos + 1] == '\0');
+        strb_destroy(&sb);
     }
 }
 #endif
@@ -422,7 +416,7 @@ static void test_output_failure(void)
             size_t m;
             for (m = 0; m < ARRAY_SIZE(modes); ++m) {
                 char actual_array[capacity], reference_array[capacity];
-                strbstate_t actual_state, reference_state;
+                strb_t actual_state, reference_state;
                 strb_t *const actual = strb_use(&actual_state, sizeof actual_array,
                                           actual_array);
                 strb_t *const reference = strb_use(&reference_state,
@@ -442,8 +436,8 @@ static void test_output_failure(void)
                 compare_output(&*actual, &*reference, testcase);
 #endif
 #if !STRB_FREESTANDING
-                strb_free(actual);
-                strb_free(reference);
+                strb_destroy(actual);
+                strb_destroy(reference);
 #endif
             }
         }
@@ -464,7 +458,7 @@ static void test_delto_large_target(void)
             size_t m;
             for (m = 0; m < ARRAY_SIZE(modes); ++m) {
                 char array[128];
-                strbstate_t state;
+                strb_t state;
                 strb_t *const s = strb_use(&state, sizeof array, array);
                 assert(s);
                 assert(!strb_puts(&*s, "abcdef"));
@@ -481,7 +475,7 @@ static void test_delto_large_target(void)
                     assert(strb_cptr(&*s)[expected_len] == '\0');
                     assert(!strb_error(&*s));
 #if !STRB_FREESTANDING
-                    strb_free(s);
+                    strb_destroy(s);
 #endif
                 }
             }
@@ -493,7 +487,7 @@ static void test_delto_large_target(void)
 static void test_setter_restore(void)
 {
     char array[16];
-    strbstate_t state;
+    strb_t state;
     strb_t *const sb = strb_use(&state, sizeof array, array);
     int old_mode, result;
     size_t old_pos, previous;
@@ -526,7 +520,7 @@ static void test_setter_restore(void)
     assert(strb_tell(sb) == SIZE_MAX);
     assert(!strb_error(sb));
 #if !STRB_FREESTANDING
-    strb_free(sb);
+    strb_destroy(sb);
 #endif
 }
 
@@ -537,7 +531,7 @@ static void test_seek(void)
     static const size_t unsupported[] = {STRB_MAX_SIZE, (size_t)STRB_MAX_SIZE + 1, SIZE_MAX};
     static const int modes[] = {strb_insert, strb_overwrite};
     char array[64];
-    strbstate_t state;
+    strb_t state;
     strb_t *const s = strb_use(&state, sizeof array, array);
     assert(s);
     for (m = 0; m < ARRAY_SIZE(modes); ++m) {
@@ -658,7 +652,7 @@ static void test_seek(void)
         assert(strb_error(&*s));
         assert(!memcmp(strb_cptr(&*s), initial, sizeof initial));
 #if !STRB_FREESTANDING
-        strb_free(s);
+        strb_destroy(s);
 #endif
     }
 }
@@ -994,7 +988,7 @@ static void test_reuse_contents(void)
         const size_t size = cases[i].size, terminator = cases[i].terminator;
         const size_t len = terminator < size ? terminator : 0;
         size_t j;
-        strbstate_t state;
+        strb_t state;
 
         array.before = 'b';
         array.after = 'c';
@@ -1030,7 +1024,7 @@ static void test_reuse_contents(void)
         }
 
 #if !STRB_FREESTANDING
-        strb_free(sb);
+        strb_destroy(sb);
 #endif
     }
 }
@@ -1058,7 +1052,7 @@ static void test_decl_macro(void)
 static void test_array_state_macros(void)
 {
     char empty[16] = "discard", existing[16] = "preserve";
-    strbstate_t states[2], *next = states;
+    strb_t states[2], *next = states;
     strb_t *const first = STRB_USE(next++, empty),
            *const second = STRB_REUSE(next++, existing);
 
@@ -1077,24 +1071,64 @@ static void test_array_macros(void)
     // SDCC Z80 r17140 miscompiles *p++ when p points to an array.
     char empty[1][64] = {"discard"}, existing[1][64] = {"preserve"};
     size_t next = 0, reuse_next = 0;
+#ifdef __SDCC
+    // SDCC r17140 reinitialises the temporary wrappers' compound-literal
+    // state after the call. Use named state until that compiler bug is fixed.
+    strb_t first_state, second_state;
+    strb_t *const first = STRB_USE(&first_state, empty[next++]),
+           *const second = STRB_REUSE(&second_state, existing[reuse_next++]);
+#else
     strb_t *const first = STRB_TMP_USE(empty[next++]),
            *const second = STRB_TMP_REUSE(existing[reuse_next++]);
+#endif
 
     assert(next == 1);
     assert(reuse_next == 1);
     assert(empty[0][0] == '\0');
     assert(!strcmp(strb_cptr(second), "preserve"));
+#ifdef __SDCC
+    {
+        STRB_DECL_FIXED(single, 0);
+        assert(strb_putc(single, 'a') == EOF);
+    }
+#else
     assert(strb_putc(STRB_TMP_USE((char[1]){0}), 'a') == EOF);
+#endif
     assert(!strb_puts(first, "new"));
     assert(!strb_puts(second, " text"));
     assert(!strcmp(empty[0], "new"));
     assert(!strcmp(existing[0], "preserve text"));
 #if !STRB_FREESTANDING
-    strb_free(first);
-    strb_free(second);
+    strb_destroy(first);
+    strb_destroy(second);
 #endif
 }
 #endif
+
+// Zero-initialisation supplies usable empty metadata in every configuration.
+static void test_initial_value(void)
+{
+    static strb_t empty;
+    strb_t local = STRB_INITIALIZER(0), copy;
+    const strb_t *const readonly = &empty;
+
+    copy = local;
+    assert(!strcmp(strb_cptr(readonly), ""));
+    assert(!strb_len(&local));
+    assert(!strb_tell(&local));
+    assert(strb_getmode(&local) == strb_insert);
+    assert(!strb_error(&local));
+    assert(strb_ptr(&local) != strb_ptr(&copy));
+    assert(strb_write(&local, 0));
+#if STRB_HAS_RESTORE
+    strb_restore(&local);
+#endif
+#if !STRB_FREESTANDING
+    strb_destroy(&local);
+#endif
+    assert(!strcmp(strb_cptr(&copy), ""));
+    assert(!strb_error(&copy));
+}
 
 #if !STRB_FREESTANDING
 static void test_alloc_macro(void)
@@ -1109,135 +1143,59 @@ static void test_alloc_macro(void)
     assert(!strb_puts(second, "second"));
     assert(!strcmp(strb_cptr(first), "first"));
     assert(!strcmp(strb_cptr(second), "second"));
-    strb_free(first);
-    strb_free(second);
+    strb_destroy(first);
+    strb_destroy(second);
 
     for (i = 0; i < 3; ++i) {
         STRB_DECL_ALLOC(sb, 0);
         // Exercise the handle after its declaration's full expression ends.
         test(sb);
-        strb_free(sb);
+        strb_destroy(sb);
     }
 }
 
-// All constructors share the same editing operations. Repeated construction
-// and cleanup must release character storage without freeing embedded state.
-static void test_external_state(void)
+// Initial values are independently usable; live relocation transfers ownership.
+static void test_object_lifetime(void)
 {
+    static strb_t static_empty;
+    strb_t first = STRB_INITIALIZER(0), second = first, moved;
     struct {
-        unsigned before;
-        strbstate_t state;
-        unsigned after;
-    } owner = {0};
-    static const size_t hints[] = {0, 5, 5000, SIZE_MAX};
+        int x, y;
+        strb_t text;
+    } label = {0};
     size_t i;
-    owner.before = 123;
-    owner.after = 456;
 
-    {
-        strb_t *const sb = strb_make(&owner.state, 0);
-        assert(!strb_len(sb));
-        assert(!strb_tell(sb));
-        assert(!strb_error(sb));
-        assert(strb_getmode(sb) == strb_insert);
-        assert(!strcmp(strb_cptr(sb), ""));
-        assert(strb_ptr(sb)[0] == '\0');
-        strb_empty(sb);
-        assert(strb_write(sb, 0));
-        assert(strb_len(sb) == 0);
-        assert(strb_tell(sb) == 0);
-        assert(!strb_error(sb));
-#if STRB_HAS_RESTORE
-        strb_restore(sb);
-#endif
-        // Cleanup is also valid before any character storage is allocated.
-        strb_free(sb);
+    assert(!strcmp(strb_cptr(&static_empty), ""));
+    assert(!strcmp(strb_cptr(&label.text), ""));
+    assert(strb_ptr(&first) != strb_ptr(&second));
+    assert(strb_write(&first, 0));
+    assert(!strb_error(&first));
+    strb_destroy(&first);
+    strb_init(&first, 0);
+    assert(!strb_puts(&first, "first"));
+    assert(!strb_puts(&second, "second"));
+    assert(!strcmp(strb_cptr(&first), "first"));
+    assert(!strcmp(strb_cptr(&second), "second"));
+
+    // Abandon first after transfer; do not destroy both representations.
+    moved = first;
+    strb_init(&first, 0);
+    assert(!strcmp(strb_cptr(&moved), "first"));
+    assert(strb_nputc(&moved, 'x', STRB_DFL_SIZE * 3u) == 'x');
+    assert(strb_len(&moved) == 5 + STRB_DFL_SIZE * 3u);
+    for (i = 5; i < strb_len(&moved); ++i) {
+        assert(strb_cptr(&moved)[i] == 'x');
     }
+    strb_destroy(&moved);
+    strb_destroy(&second);
 
-    for (i = 0; i < ARRAY_SIZE(hints); ++i) {
-        strb_t *const sb = strb_make(&owner.state, hints[i]);
-        strb_empty(sb);
-        assert(sb);
-        assert(!strb_error(&*sb));
-        assert(strb_len(&*sb) == 0);
-        assert(strb_tell(&*sb) == 0);
-        assert(strb_getmode(&*sb) == strb_insert);
-        assert(!strcmp(strb_cptr(&*sb), ""));
-        // Neither an empty write nor a failed write consumes the hint.
-        assert(strb_write(&*sb, 0));
-#if STRB_HAS_RESTORE
-        strb_restore(&*sb);
-#endif
-        assert(!strb_write(&*sb, STRB_MAX_SIZE));
-        assert(strb_error(&*sb));
-        assert(strb_len(&*sb) == 0);
-        assert(!strcmp(strb_cptr(&*sb), ""));
-        strb_clearerr(&*sb);
-        // Run the existing positioned-output and editing tests on each form.
-        test(&*sb);
-        strb_free(sb);
-        assert(owner.before == 123);
-        assert(owner.after == 456);
-    }
-
-    {
-        strb_t *const sb = strb_make(&owner.state, 64);
-        // A zero-length write away from the origin still needs real storage.
-        strb_seek(sb, 3);
-        assert(strb_write(sb, 0));
-        assert(strb_len(sb) == 3);
-        assert(strb_tell(sb) == 3);
-        assert(!memcmp(strb_cptr(sb), "\0\0\0", 4));
-        assert(!strb_error(sb));
-        strb_free(sb);
-    }
-
-#if !STRB_STATIC_ALLOC
-    {
-        strb_t *const sb = strb_make(&owner.state, 0);
-        // Force first allocation, then reallocation, preserving the text.
-        const size_t count = STRB_DFL_SIZE * 3u;
-        assert(!strb_puts(sb, "prefix"));
-        assert(strb_nputc(sb, 'x', count) == 'x');
-        assert(strb_len(sb) == strlen("prefix") + count);
-        assert(!memcmp(strb_cptr(sb), "prefix", strlen("prefix")));
-
-        for (i = strlen("prefix"); i < strb_len(sb); ++i) {
-            assert(strb_cptr(sb)[i] == 'x');
-        }
-
-        strb_free(sb);
-    }
-#else
-    {
-        strbstate_t states[STRB_MAX + 1];
-        strb_t *buffers[STRB_MAX + 1];
-        // Exhaust the pool, then construct another buffer without allocating.
-        for (i = 0; i < STRB_MAX; ++i) {
-            buffers[i] = strb_make(&states[i], SIZE_MAX);
-            assert(!strb_puts(buffers[i], "pool"));
-        }
-
-        buffers[STRB_MAX] = strb_make(&states[STRB_MAX], SIZE_MAX);
-        strb_empty(buffers[STRB_MAX]);
-        assert(!strb_error(buffers[STRB_MAX]));
-        assert(strb_puts(buffers[STRB_MAX], "pool") == EOF);
-        assert(strb_error(buffers[STRB_MAX]));
-        assert(strb_len(buffers[STRB_MAX]) == 0);
-        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), ""));
-
-        // Failed allocation leaves a usable buffer; cleanup releases a slot.
-        strb_free(buffers[0]);
-        strb_clearerr(buffers[STRB_MAX]);
-        assert(!strb_puts(buffers[STRB_MAX], "pool"));
-        assert(!strb_error(buffers[STRB_MAX]));
-        assert(!strcmp(strb_cptr(buffers[STRB_MAX]), "pool"));
-
-        for (i = 1; i < ARRAY_SIZE(states); ++i) {
-            strb_free(buffers[i]);
-        }
-    }
-#endif
+    strb_seek(&first, 3);
+    assert(strb_write(&first, 0));
+    assert(strb_len(&first) == 3);
+    assert(!memcmp(strb_cptr(&first), "\0\0\0", 4));
+    strb_destroy(&first);
+    test(&label.text);
+    strb_destroy(&label.text);
 }
 #endif
 
@@ -1262,7 +1220,7 @@ static void test_replacement_failure(void)
     for (mode = 0; mode < ARRAY_SIZE(modes); ++mode) {
         for (operation = 0; operation < 4; ++operation) {
             char array[8] = {0}, saved[8];
-            strbstate_t state;
+            strb_t state;
             strb_t *const sb = strb_use(&state, sizeof array, array);
             _Optional char *out;
             size_t length;
@@ -1303,19 +1261,67 @@ static void test_replacement_failure(void)
             assert(!strcmp(strb_cptr(sb), "abcdef"));
 #endif
 #if !STRB_FREESTANDING
-            strb_free(sb);
+            strb_destroy(sb);
 #endif
         }
     }
 }
 
-#if defined(FORTIFY) && !STRB_FREESTANDING && !STRB_STATIC_ALLOC
+#if defined(FORTIFY) && !STRB_FREESTANDING
 static int replace_for_test(strb_t *const sb, const int operation, const char *const text)
 {
     switch (operation) {
     case 0: return strb_cpy(sb, text);
     case 1: return strb_ncpy(sb, text, strlen(text));
     default: return strb_printf(sb, "%s", text);
+    }
+}
+
+// Failed constructors and cleanup must release every library-owned allocation.
+static void test_constructor_cleanup(void)
+{
+    const unsigned long before = Fortify_GetCurrentAllocation();
+    unsigned long limit;
+    int constructor;
+
+    void (*const old_destroy)(_Optional strb_t *) = &strb_free;
+    old_destroy(NULL);
+    for (constructor = 0; constructor < 4; ++constructor) {
+        for (limit = 0; limit < 3; ++limit) {
+            _Optional strb_t *sb;
+            Fortify_SetNumAllocationsLimit(limit);
+            switch (constructor) {
+            case 0: sb = strb_alloc(0); break;
+            case 1: sb = strb_dup("text"); break;
+            case 2: sb = strb_ndup("text tail", 4); break;
+            default: sb = strb_aprintf("%s", "text"); break;
+            }
+            Fortify_SetNumAllocationsLimit(ULONG_MAX);
+            assert((sb != NULL) == (limit > (constructor ? 1u : 0u)));
+            if (sb && constructor) {
+                assert(!strcmp(strb_cptr(&*sb), "text"));
+            }
+            strb_destroy(sb);
+            assert(Fortify_GetCurrentAllocation() == before);
+        }
+    }
+}
+
+// Both initialisation forms use their hint for the first character allocation.
+static void test_allocation_hint(void)
+{
+    int constructor;
+    for (constructor = 0; constructor < 2; ++constructor) {
+        strb_t sb = STRB_INITIALIZER(1024);
+        if (constructor) {
+            strb_init(&sb, 1024);
+        }
+        assert(strb_putc(&sb, 'x') == 'x');
+        Fortify_SetNumAllocationsLimit(0);
+        assert(strb_nputc(&sb, 'x', 1023) == 'x');
+        Fortify_SetNumAllocationsLimit(ULONG_MAX);
+        assert(strb_len(&sb) == 1024);
+        strb_destroy(&sb);
     }
 }
 
@@ -1327,8 +1333,7 @@ static void test_replacement_allocation_failure(void)
     memset(longer, 'A', sizeof longer - 1);
     longer[sizeof longer - 1] = '\0';
     for (operation = 0; operation < 4; ++operation) {
-        strbstate_t state;
-        strb_t *const sb = strb_make(&state, 0);
+        STRB_DECL_ALLOC(sb, 0);
         int result;
         strb_setmode(sb, strb_overwrite);
         strb_seek(sb, 4);
@@ -1361,7 +1366,7 @@ static void test_replacement_allocation_failure(void)
         strb_restore(sb);
         assert(!strcmp(strb_cptr(sb), "old"));
 #endif
-        strb_free(sb);
+        strb_destroy(sb);
     }
 }
 #endif
@@ -1376,12 +1381,13 @@ int main(void)
 #endif
     int c;
 
-    strbstate_t state;
+    strb_t state;
 
 #if !STRB_FREESTANDING
-    test_external_state();
+    test_object_lifetime();
     test_alloc_macro();
 #endif
+    test_initial_value();
     test_reuse_contents();
     test_decl_macro();
     test_array_state_macros();
@@ -1392,13 +1398,15 @@ int main(void)
 #if STRB_HAS_UNPUTC
     test_write_zero();
 #endif
-#if !STRB_STATIC_ALLOC && !STRB_FREESTANDING
+#if !STRB_FREESTANDING
     test_output_growth();
 #endif
     test_output_failure();
     test_replacement_failure();
-#if defined(FORTIFY) && !STRB_FREESTANDING && !STRB_STATIC_ALLOC
+#if defined(FORTIFY) && !STRB_FREESTANDING
     test_replacement_allocation_failure();
+    test_allocation_hint();
+    test_constructor_cleanup();
 #endif
     test_delto_large_target();
     test_setter_restore();
@@ -1479,7 +1487,7 @@ int main(void)
 
     test_empty(&*s);
     test(&*s);
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_alloc(5);
     assert(s);
@@ -1488,7 +1496,7 @@ int main(void)
 #endif
 
     test(&*s);
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_alloc(5000);
     assert(s);
@@ -1502,14 +1510,14 @@ int main(void)
 #endif
 
     test(&*s);
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_ndup("", 0);
     assert(s);
 #if STRB_HAS_UNPUTC
     assert(strb_unputc(&*s) == EOF);
 #endif
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_dup("");
     assert(s);
@@ -1527,7 +1535,7 @@ int main(void)
     assert(strb_unputc(&*s) == EOF);
 #endif
 
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_aprintf("");
     assert(s);
@@ -1539,7 +1547,7 @@ int main(void)
     assert(strb_unputc(&*s) == EOF);
 #endif
 
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_dup("DUPLICATE");
     assert(s);
@@ -1548,7 +1556,7 @@ int main(void)
     assert(strb_unputc(&*s) == EOF);
 #endif
     test(&*s);
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_ndup("DUPLICATE", 3);
     assert(s);
@@ -1558,7 +1566,7 @@ int main(void)
 #endif
 
     test(&*s);
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_aprintf("Hello %d", 99);
     assert(s);
@@ -1568,12 +1576,12 @@ int main(void)
 #endif
 
     test(&*s);
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_dup("Lorem ipsum dolor sit amet");
     assert(s);
     puts(strb_ptr(&*s));
-    strb_free(s);
+    strb_destroy(s);
 
     s = strb_dup("Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
                  "Curabitur lacinia mi "
@@ -1588,7 +1596,7 @@ int main(void)
     assert(s);
     puts(strb_ptr(&*s));
 #endif
-    strb_free(s);
+    strb_destroy(s);
 
 #endif // !STRB_FREESTANDING
     return 0;

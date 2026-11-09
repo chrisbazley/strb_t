@@ -6,7 +6,7 @@ INPUT                  = strb.h strb_core.c strb_external.c strb_strnlen.c \
                          strb_write.c strb_split.c \
                          strb_delto.c strb_unputc.c strb_puts.c strb_putc.c \
                          strb_constructors.c strb_format.c \
-                         strb_dynamic.c strb_static.c \
+                         strb_dynamic.c \
                          docs/design.dox
 FILE_PATTERNS          = *.h *.c *.dox
 EXAMPLE_PATH           = examples

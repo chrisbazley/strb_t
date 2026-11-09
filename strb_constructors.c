@@ -17,22 +17,13 @@ _Optional strb_t *strb_ndup(const char *STRB__CONST str, STRB__CONST size_t n)
     }
 
     {
-        _Optional strb_t *const sb = strb_alloc(len + 1u);
+        _Optional strb_t *const sb = strb_alloc(len);
 
-        if (!sb) {
+        if (sb && strb_ncpy(&*sb, str, len)) {
+            strb_destroy(sb);
             return NULL;
         }
 
-        memcpy(sb->p.buf, str, len); // more efficient than strncpy
-        sb->p.buf[len] = '\0';
-        sb->p.len = sb->p.pos = (strbsize_t)len;
-#if STRB_HAS_UNPUTC
-        assert(!(sb->p.flags & F_OVERWRITE)); // needn't set unputc_char
-
-        if (len) {
-            sb->p.flags |= F_CAN_UNPUTC;
-        }
-#endif
         return sb;
     }
 }

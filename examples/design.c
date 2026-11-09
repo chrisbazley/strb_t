@@ -127,7 +127,7 @@ static bool fruit_rows_example(void)
             break;
         }
     }
-    strb_free(sb);
+    strb_destroy(sb);
     return success;
 }
 //! [fruit_caller]
@@ -140,7 +140,7 @@ static bool fruit_local_example(void)
 
     put_fruit_list(sb, ARRAY_SIZE(indices), indices);
     const bool success = !strb_error(sb) && puts(strb_cptr(sb)) != EOF;
-    strb_free(sb);
+    strb_destroy(sb);
     return success;
 }
 //! [fruit_local]
@@ -192,67 +192,50 @@ static bool test_short_write(void)
     return true;
 }
 
-// This example deliberately demonstrates the implicit-null diagnostic.
-#if defined(__clang__)
-#if __has_warning("-Wimplicit-null-initialization")
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wimplicit-null-initialization"
-#endif
-#endif
-//! [label_implicit_null]
+//! [label_value]
 typedef struct {
     int x, y;
-    char buffer[32];
-    strbstate_t sbs;
-    strb_t *sb;
+    strb_t text;
 } label_t;
 
 static void init_label(label_t *label, int x, int y)
 {
-    // Implicitly initialises sb to null.
     *label = (label_t){.x = x, .y = y};
-    label->sb = STRB_USE(&label->sbs, label->buffer);
 }
-//! [label_implicit_null]
-#if defined(__clang__)
-#if __has_warning("-Wimplicit-null-initialization")
-#pragma clang diagnostic pop
-#endif
-#endif
+//! [label_value]
 
 //! [label_initialisation]
 typedef struct {
     int x, y;
     char buffer[32];
-    strbstate_t sbs;
-    union {
-        char nil;
-        strb_t *sb;
-    };
+    strb_t sb;
 } label2_t;
 
 static void init_label2(label2_t *label, int x, int y)
 {
-    // The compound literal initialises nil; the assignment copies it.
     *label = (label2_t){.x = x, .y = y};
-    label->sb = STRB_USE(&label->sbs, label->buffer);
+    STRB_USE(&label->sb, label->buffer);
 }
 //! [label_initialisation]
 
 static bool test_label_initialisation(void)
 {
-    label_t plain;
-    init_label(&plain, 10, 20);
-    if (plain.x != 10 || plain.y != 20 ||
-        strb_ptr(plain.sb) != plain.buffer ||
-        strb_len(plain.sb) != 0 || strcmp(plain.buffer, ""))
+    label_t label;
+    init_label(&label, 10, 20);
+    if (strb_printf(&label.text, "Label at (%d, %d)", label.x, label.y)) {
+        strb_destroy(&label.text);
+        return false;
+    }
+    const bool success = !strcmp(strb_cptr(&label.text), "Label at (10, 20)");
+    strb_destroy(&label.text);
+    if (!success)
         return false;
 
-    label2_t label;
-    init_label2(&label, 10, 20);
-    return label.x == 10 && label.y == 20 &&
-           strb_ptr(label.sb) == label.buffer &&
-           strb_len(label.sb) == 0 && !strcmp(label.buffer, "");
+    label2_t fixed;
+    init_label2(&fixed, 10, 20);
+    return fixed.x == 10 && fixed.y == 20 &&
+           strb_cptr(&fixed.sb) == fixed.buffer &&
+           strb_len(&fixed.sb) == 0 && !strcmp(fixed.buffer, "");
 }
 
 int main(void)
