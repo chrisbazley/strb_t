@@ -42,6 +42,8 @@ static inline _Optional void *strb__optional_realloc(_Optional void *const p, co
 #undef realloc
 #define realloc(p, n) strb__optional_realloc(p, n)
 
+// SDCC's library omits vsnprintf. Unformatted dynamic buffers still work.
+#ifndef __SDCC
 static inline int strb__optional_vsnprintf(_Optional char *const buffer, const size_t sz,
                                      const char *const format, va_list vlist)
 {
@@ -50,6 +52,7 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 #undef vsnprintf
 #define vsnprintf(buffer, sz, format, vlist)                                   \
     strb__optional_vsnprintf(buffer, sz, format, vlist)
+#endif // !__SDCC
 #endif // !STRB_FREESTANDING
 #endif
 
