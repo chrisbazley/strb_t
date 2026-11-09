@@ -1,35 +1,39 @@
 /**
 @page interface_design Interface design and usage
 
-@section design_state Why do some constructors need a state object?
+This experiment uses one complete @ref strb_t type for the buffer object and
+its state. It differs from
+<a href="https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf">N3306</a>
+in providing a complete object type that can hold caller-resident metadata.
+The allocation-hint facility, allocating constructors, and output, positioning,
+editing and error model follow the proposal. The static-pool backend is not
+provided here.
+
+@section design_state Who supplies storage for a buffer?
 
 Even the most trivial string buffer implementation needs state, typically
 a pointer to a character array; the state for a string buffer
 of type @ref strb_t combines a character array, a recorded length, an error
-indicator, an editing position and an editing mode.  The choice is who
-supplies storage for that state.
+indicator, an editing position and an editing mode.
 
 With @ref strb_use or @ref strb_reuse, the caller supplies
-both a character array and a @ref strbstate_t object. No allocation is needed,
+both a character array and a @ref strb_t object. No allocation is needed,
 so initialisation cannot fail. Both objects must remain alive for as long as the
-buffer is used.  Because no storage is allocated by the library, these constructors
+buffer is used. Because no storage is allocated by the library, these constructors
 can be provided even by freestanding implementations that do not provide @c malloc.
 
-With @ref strb_alloc and similar functions such as @ref strb_dup and @ref strb_aprintf,
-the library supplies storage for both the state and the characters. The caller manages
-the buffer through the returned @ref strb_t pointer and releases it with @ref strb_free.
-Creation can fail if storage is unavailable.
-
-With @ref strb_make, the caller supplies a @ref strbstate_t object and the
+With @ref strb_init, the caller supplies a @ref strb_t object and the
 library manages the character storage. Initialisation cannot fail and allocates
 nothing; output obtains character storage when needed and may fail. This is
 useful for a temporary buffer or state embedded in a program object.
 
-The size hint passed to @ref strb_make has the same meaning as for
-@ref strb_alloc, but is used when character storage is first allocated. It does not make construction fallible.
+The size hint passed to @ref strb_init specifies an initial character capacity,
+excluding the terminator, where zero selects the default size. It is used when
+character storage is first allocated and does not make construction fallible.
 The existing capacity field records the hint until storage is obtained, so
 remembering it requires no additional state. The hint is not a guarantee of
-initial capacity.
+initial capacity. @ref STRB_INITIALIZER supplies a hint in an object declaration;
+implicit zero-initialisation selects the default hint.
 
 The macros @ref STRB_TMP_USE and @ref STRB_TMP_REUSE call their corresponding
 functions with unnamed state that lasts until the enclosing block ends. The
@@ -37,109 +41,53 @@ array extent is obtained with @c sizeof, so the argument must be an array rather
 than a pointer. @ref STRB_DECL_FIXED declares a constant handle,
 state and an uninitialised character array of fixed capacity; it requires no
 cleanup. @ref STRB_DECL_ALLOC declares a constant handle and state, with character
-storage supplied by the library. Release that storage with @ref strb_free before
+storage supplied by the library. Release that storage with @ref strb_destroy before
 leaving the block, including after output failure. A handle must not outlive its
 state or character array.
 
-Any library-owned character storage must be released with @ref strb_free before
-the supplied state storage ceases to exist or is reused. Calling @ref strb_free
-unconditionally is valid, including when no character storage was allocated.
-An empty string does not imply that no storage is allocated. The state storage
-itself is never freed. A buffer handle must not outlive its originating state.
+With @ref strb_alloc and similar functions such as @ref strb_dup and @ref strb_aprintf,
+the library supplies storage for both the object and the characters. The caller manages
+the buffer through the returned @ref strb_t pointer and releases it with @ref strb_destroy.
+Creation can fail if storage is unavailable.
 
-This prototype provides @ref strb_make in its dynamic and static-pool
-configurations. Its freestanding configuration provides
-@ref strb_use for caller-supplied arrays.
+Any library-owned storage must be released with @ref strb_destroy before
+caller-supplied object storage ceases to exist or is reused. An empty string does
+not imply that no storage is allocated. The function frees the buffer object
+only if a library constructor allocated it; caller-supplied object storage is
+not freed. After cleanup, caller-supplied storage may be initialised again before
+use. Freestanding builds
+provide @ref strb_use and @ref strb_reuse for caller-supplied arrays and require
+no destruction function.
 
 The output and editing functions use the same interface in all these cases.
 A text producer therefore need not know how its caller created the buffer.
 
-@section design_embedded_state Why not allocate buffer state for an external array?
+@section design_embedded_state Buffer state inside a structure
 
-A program's struct type can contain both a character array and a @ref strbstate_t
-member to manage that array. Passing their addresses to @ref strb_use or
-@ref strb_reuse allocates nothing and cannot fail. If the library instead allocated
-storage for the buffer state, separately from the program's structure,
-initialisation would need to obtain storage from the library's allocator and could
-fail when that storage was exhausted. The program would also have to release
-that storage. The examples below show why the order of initialisation matters
-and how to keep both the characters and buffer state in an object of that type.
+A program's struct type can contain a @ref strb_t member, whose address is
+passed directly to text producers. The example below shows how to initialise
+such an object by assigning a compound literal:
 
-Suppose a program initialises a label's coordinates and character array by
-assigning a compound literal to a structure containing those members, a
-@ref strbstate_t member and a @ref strb_t pointer member. Calling @ref strb_use
-in the compound literal would assign values to the destination structure's
-@c sbs member before the structure assignment overwrote that member with the
-compound literal's implicitly initialised @c sbs member. Instead, first assign
-the compound literal to the label structure, then call @ref strb_use :
+@snippet design.c label_value
 
-@snippet design.c label_implicit_null
+The omitted buffer member is implicitly initialised to an empty value.
+No allocation occurs until output requires character storage.
 
-This example demonstrates the implicit-null diagnostics, rather than the
-preferred initialisation pattern. Between the two statements, @c sb is null despite its referenced type lacking
-@c _Optional qualification. The call to @ref strb_use initialises @c label->sbs
-with state describing an empty string in @c label->buffer; its returned address
-is assigned to @c label->sb.
-Here, the assignment to @c *label finishes before @ref strb_use is called.
-The function writes the terminating null to the destination label's @c buffer
-array after the assignment; no later structure assignment overwrites it.
+An empty initial value in caller-supplied storage can be copied independently.
+Relocating an object in caller-supplied storage transfers ownership: abandon the old instance and
+use or destroy only the new instance. Copying does not create independent
+owners. Previously obtained pointers to the old object and its characters must
+be discarded. Release any allocation owned by a destination before assigning
+a different buffer to it. Objects returned by allocating constructors must not
+be copied, relocated or reinitialised; use them at their original addresses until
+passing them to @ref strb_destroy.
 
-A compound literal that provides no initialiser for a member of pointer type
-implicitly initialises that member to null. The
-<a href="https://github.com/chrisbazley/llvm-project">Clang fork with _Optional
-support</a> can diagnose this when the referenced type is not
-<code>_Optional</code>-qualified. Enable @c -Wimplicit-null-initialization for these
-implicit initialisations; @c -Wnull-to-nonoptional diagnoses conversions of
-explicit null pointer constants. For the @c sb member above, the diagnostic is:
-
-@verbatim
-pointer '<anonymous>.sb' implicitly initialized to null; referenced type is not '_Optional'-qualified
-@endverbatim
-
-Allocating the buffer state in the library would solve the state-overwrite problem:
-the label structure would have no @c sbs member, so assigning a compound literal
-to the label could not overwrite that state. A state-allocating function could
-be called in the @c sb initialiser for an initially empty @c buffer array. It
-would write a terminating null to the destination label's array before the
-structure assignment, which would then replace that array with the compound
-literal's zero-initialised array. (Such a function would need the same permission
-as @ref strb_use to modify the array before the buffer object is first used,
-provided the first character remains null.)
-
-Allocating the buffer state in the library would also avoid implicitly initialising
-@c sb to null, because the
-compound literal would contain no buffer state and would explicitly initialise
-@c sb with the function's return value; however, allocation could return a null
-pointer, so the program would need to check the result before using @c sb.
-It would also need to release the allocated state. If @c sb stores the possibly null result, its referenced type must be
-<code>_Optional</code>-qualified. That type permits null even after successful
-initialisation, although every successfully initialised label is intended to
-refer to a valid buffer object. The member declaration would therefore no
-longer express that invariant, and code using the label could need further
-checks or assertions to establish it.
-
-The example below shows how to keep the buffer state inside the label structure
-and retain a pointer to a non-optional object, without allocation failure or
-cleanup obligations.
-
-In @c label2_t below, the anonymous union can hold either @c nil or @c sb.
-The @c sbs member is separate: @ref strbstate_t is already a union whose implicit
-initialisation does not initialise any pointers. The compound literal initialises
-@c nil; the structure assignment copies its value to the label. The subsequent
-call to @ref strb_use assigns values to @c sbs, and its return value is assigned
-to @c sb. The pointer needs no <code>_Optional</code>-qualified referenced type,
-and the member access syntax stays the same:
+A structure can also contain both the buffer object and a character array.
+Initialise the structure first, then pass the addresses of those members to
+@ref strb_use or @ref strb_reuse. The array must stay alive at that address:
+copying or relocating the buffer object does not relocate the array it manages.
 
 @snippet design.c label_initialisation
-
-The @c label2_t definition requires C11 for the anonymous union;
-compound literals and designated initialisers require C99. The @c _Optional
-qualifier is a compiler extension. Naming the union
-would allow the same deferred initialisation pattern in C99, with longer member
-access paths.
-
-<a href="https://godbolt.org/z/oq13j1xen">Compare the examples and their diagnostics
-in Compiler Explorer</a>.
 
 @section design_reuse_contents Reusing an array
 
@@ -165,7 +113,7 @@ construction error. The user must call @ref strb_clearerr explicitly to recover.
 @section design_immutable Why not wrap a constant string in a buffer object?
 
 An immutable string needs no editing position, editing mode or capacity for
-future output. Requiring a caller-allocated @ref strbstate_t object just to wrap
+future output. Requiring a caller-allocated @ref strb_t object just to wrap
 that string would make the caller provide mutable buffer state for text that
 cannot be edited. Library allocation of that state would introduce storage
 management for the same adaptation.
@@ -411,13 +359,12 @@ lime,orange,apple
 
 This consumer keeps its state local while allowing the character storage to
 grow. Initialisation requires no failure check; the consumer checks the error
-indicator after generation and calls @ref strb_free on both success and failure:
+indicator after generation and calls @ref strb_destroy on both success and failure:
 
 @snippet design.c fruit_local
 
-To supply an initial size hint, pass it as the second argument to
-@ref STRB_DECL_ALLOC. Construction remains
-infallible.
+To supply an initial size hint in this declaration, pass it to
+@ref STRB_INITIALIZER. Construction is infallible.
 
 @section design_errors Deferred errors and operation boundaries
 
@@ -595,4 +542,61 @@ any previously available character. It does not undo a whole output call.
 discusses insertion, positioning and editing on pages 42-44 and gives
 additional usage examples on pages 47-51. The function documentation in
 @ref strb.h specifies the requirements and guarantees for each function.
+@section design_applications Application experience with complete objects
+
+The application changes in
+<a href="https://github.com/chrisbazley/SFEditor/pull/64">SFEditor PR 64</a> and
+<a href="https://github.com/chrisbazley/SF3KUtils/pull/34">SF3KUtils PR 34</a>
+use embedded buffers directly, rather than merely adopting the compatibility names.
+
+SFEditor's @c Text type replaces an optional pointer to a library-allocated
+buffer with a @ref strb_t member. Its existing compound-literal assignment
+initialises an empty string without allocation. The setter and loader no longer
+need metadata-allocation branches, and getters no longer distinguish a null
+handle from an empty string. The existing target-info replacement code transfers
+@c Text values by assignment; this remains valid for both populated and empty
+embedded buffers. The source value is abandoned after ownership transfer.
+This matters because the earlier caller-resident state held a pointer into itself
+while empty, so merely embedding that earlier state would not preserve these
+ordinary structure assignments.
+
+A controlled comparison used GCC 13.3 on x86-64, with assertions and Fortify.
+The baseline was SFEditor commit @c a21db69357fe2b8f5b8ae50479829358083c6049
+and strb_t commit @c 6f71328a1fd113e4b1a5d134ea35231405d034ee with
+@c STRB_MAX_INTERNAL_SIZE changed to zero. Setting an initially empty
+@c Text to 256 characters required two allocations before the change and one
+afterwards. With an allocation limit of one, the baseline returned @c NoMem;
+the embedded implementation succeeded. The application regression test covers
+that case, alongside existing empty-string, failed-growth and ownership-transfer
+tests.
+
+For that string, requested live heap storage fell from 281 to 257 bytes.
+The @c Text object itself grew from 32 to 48 bytes, giving 313 versus 305 bytes
+for the object plus its allocations, excluding allocator overhead. An empty
+@c Text therefore costs 16 additional resident bytes; it still allocates nothing.
+This is a space tradeoff rather than an unconditional memory reduction.
+
+The session and batch-scan changes address a different cost: these objects
+already supplied buffer state, but also stored two handles pointing back into
+that state. Two direct @ref strb_t members replace the state/handle pairs.
+The surrounding compound-literal assignment supplies their empty values,
+eliminating the two subsequent constructor calls and the handle unions.
+Measured sizes on the same host were:
+
+| Application object | Before (bytes) | After (bytes) |
+| --- | ---: | ---: |
+| SFEditor @c EditSession, per-view selection enabled | 848 | 832 |
+| FednetCmp @c ScanData | 208 | 192 |
+| SFToSpr @c ScanData | 4136 | 4120 |
+
+These are host ABI measurements, not measurements of the 32-bit RISC OS target.
+No allocation-count improvement is claimed for the session or scan buffers:
+their caller-resident state already deferred character allocation.
+
+The application members are caller-supplied buffer objects even when their
+containing application object is on the heap. They may transfer ownership as
+described above. This does not make copying an object returned by @ref strb_alloc
+valid; that separate restriction remains part of the complete-type interface's
+tradeoff.
+
 */
