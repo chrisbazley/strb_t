@@ -13,17 +13,17 @@ int strb_unputc(strb_t *STRB__CONST sb)
     _Optional char *buf;
 
     assert(sb);
+
+    buf = sb->p.buf;
+    if (!(sb->p.flags & F_CAN_UNPUTC) || !buf) {
+        return strb__seterr(sb);
+    }
+
     assert(sb->p.pos > 0);
     assert(sb->p.pos < STRB_MAX_SIZE);
     assert(sb->p.pos < sb->p.size);
     assert(sb->p.pos <= sb->p.len);
 
-    buf = sb->p.buf;
-
-    if (!(sb->p.flags & F_CAN_UNPUTC) || !buf) {
-        return strb__seterr(sb);
-    }
-    else
     {
         const strbsize_t new_pos = sb->p.pos - 1;
         const char removed = buf[new_pos];
