@@ -139,10 +139,10 @@ void strb_restore(strb_t *STRB__CONST sb)
 {
     assert(sb);
 
-    if (sb->p.flags & F_CAN_RESTORE) {
+    if ((sb->p.flags & F_CAN_RESTORE) && sb->p.buf) {
         DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char,
                sb->p.restore_char, sb->p.pos);
-        STRB__BUF(sb)[sb->p.pos] = sb->p.restore_char;
+        sb->p.buf[sb->p.pos] = sb->p.restore_char;
         sb->p.flags &= ~F_CAN_RESTORE;
     }
 }
