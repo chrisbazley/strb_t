@@ -176,9 +176,9 @@ functions, and how to use the same text producer in different editing contexts.
    requested number of characters (which is an intended use-case), the
    extra character written by the caller is not null (which is not an
    intended use-case), and the terminator is not immediately reinstated
-   by a call to `strb_restore` to repair the boundary. Similarly, a caller
-   of `strb_ptr` gains direct write access to the string buffer, therefore
-   both functions must be used with care.
+   by a call to `strb_restore`. Similarly, a caller of `strb_ptr` gains
+   direct write access to the string buffer, therefore both functions must
+   be used with care.
 
 5. **Why not use slices instead?**
 
