@@ -79,12 +79,12 @@ only `strb.h`. Private functions with external linkage use the `strb__` prefix;
 public functions use a single underscore after `strb`. `DEBUGOUT` enables
 messages to stderr, and `NDEBUG` disables assertions.
 
-The [freestanding implementation example](https://godbolt.org/z/6PcvqWvrx)
+The [freestanding implementation example](https://godbolt.org/z/KWM96q3v7)
 includes all applicable operation sources at commit
-[`848cb11`](https://github.com/chrisbazley/strb_t/commit/848cb11b419c73016fe63f199b7b840ea2ba0220).
-Measured on 9 November 2026, it produces 1,918 bytes in the `CODE` area for the
-65C02 with SDCC 4.6.4 r17150, or a 730-byte `.text` section for Cortex-M0 with
-ARM GCC trunk (17.0.0, 20261108). These sizes were obtained by assembling the
+[`1f76798`](https://github.com/chrisbazley/strb_t/commit/1f767987ef9e4a8ec6ce1da498c501958f53d1a0).
+Measured on 10 November 2026, it produces 2,016 bytes in the `CODE` area for the
+65C02 with SDCC 4.6.4 r17153, or a 744-byte `.text` section for Cortex-M0 with
+ARM GCC trunk (17.0.0, 20261109). These sizes were obtained by assembling the
 compiler output. The example compiles the sources together as one translation
 unit; linking a static archive can include fewer functions.
 

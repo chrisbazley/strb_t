@@ -80,7 +80,11 @@ jobs:
       run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
 
   optional-clang:
-    name: Build and analyze with _Optional Clang
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release]
+    name: _Optional Clang ${{ matrix.build_type }}
     runs-on: ubuntu-22.04
     timeout-minutes: 60
 
@@ -146,7 +150,7 @@ jobs:
             -S "$GITHUB_WORKSPACE" \
             -B "$GITHUB_WORKSPACE/build-optional" \
             -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_C_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang" \
             -DCMAKE_C_FLAGS="-Werror=null-to-nonoptional -Werror=implicit-null-initialization" \
             -DCMAKE_CXX_COMPILER="$OPTIONAL_CLANG_ROOT/bin/clang++" \
@@ -168,5 +172,5 @@ jobs:
         run: |
           ctest \
             --test-dir "$GITHUB_WORKSPACE/build-optional" \
-            --build-config Debug \
+            --build-config ${{ matrix.build_type }} \
             --output-on-failure

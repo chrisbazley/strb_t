@@ -499,6 +499,19 @@ This would require extra storage, including for caller-supplied arrays.
 
 @subsection design_restore Direct writing, splitting and restoration
 
+Unlike @ref strb_ptr, @ref strb_write never exposes the per-object fallback
+byte used for an unallocated empty string. Even a zero-count preparation obtains
+real character storage, and may therefore fail to allocate. In freestanding
+builds, storage must already have been supplied by the caller. Whole-string
+replacement uses the same preparation rule, including replacement by an empty
+string.
+
+A direct writer may temporarily overwrite the final terminator. It must repair
+that boundary before treating the array as a string or continuing editing:
+use @ref strb_restore when enabled, or preserve and restore the character
+explicitly. Emptying or replacing the whole string discards unfinished output.
+The null-termination guarantee does not cover an unfinished direct write.
+
 A successful @ref strb_write saves the character at the new position so that
 @ref strb_restore can put it back later. This happens even with a count of zero;
 each call replaces the previously saved character. If a direct writer puts its

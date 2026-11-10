@@ -348,6 +348,83 @@ static void test_write_zero(void)
 }
 #endif
 
+// Zero-count preparation exposes real storage, including its writable boundary.
+static void test_write_zero_storage(void)
+{
+    static const int modes[] = {strb_insert, strb_overwrite};
+    size_t mode;
+
+    for (mode = 0; mode < ARRAY_SIZE(modes); ++mode) {
+        char array[1];
+        strb_t state;
+        strb_t *const sb = strb_use(&state, sizeof array, array);
+        _Optional char *output;
+
+        strb_setmode(sb, modes[mode]);
+        output = strb_write(sb, 0);
+        assert(output == array);
+        assert(output);
+        *output = 'x';
+#if STRB_HAS_RESTORE
+        strb_restore(sb);
+        assert(array[0] == '\0');
+#else
+        *output = '\0';
+#endif
+        assert(strb_len(sb) == 0);
+        assert(strb_tell(sb) == 0);
+        assert(!strb_error(sb));
+#if !STRB_FREESTANDING
+        strb_destroy(sb);
+#endif
+    }
+}
+
+// Unallocated storage cannot be exposed by any zero-length preparation.
+static void test_empty_preparation(void)
+{
+    int operation;
+
+    for (operation = 0; operation < 3; ++operation) {
+        strb_t sb = STRB_INITIALIZER(0);
+        char *const fallback = strb_ptr(&sb);
+        int result;
+
+        switch (operation) {
+        case 0: result = strb_write(&sb, 0) ? 0 : EOF; break;
+        case 1: result = strb_split(&sb); break;
+        default: result = strb_cpy(&sb, ""); break;
+        }
+#if STRB_FREESTANDING
+        assert(result == EOF);
+        assert(strb_ptr(&sb) == fallback);
+        assert(strb_error(&sb));
+#else
+        assert(result == 0);
+        assert(strb_ptr(&sb) != fallback);
+        assert(!strb_error(&sb));
+        {
+            _Optional char *const output = strb_write(&sb, 0);
+            assert(output);
+            *output = 'x';
+#if STRB_HAS_RESTORE
+            strb_restore(&sb);
+            assert(*output == '\0');
+#else
+            *output = '\0';
+#endif
+        }
+#endif
+        assert(*fallback == '\0');
+        assert(!strcmp(strb_cptr(&sb), ""));
+        assert(strb_len(&sb) == 0);
+        assert(strb_tell(&sb) == 0);
+#if !STRB_FREESTANDING
+        strb_destroy(&sb);
+#endif
+    }
+}
+
 #if !STRB_FREESTANDING
 static void test_output_growth(void)
 {
@@ -1119,9 +1196,14 @@ static void test_initial_value(void)
     assert(strb_getmode(&local) == strb_insert);
     assert(!strb_error(&local));
     assert(strb_ptr(&local) != strb_ptr(&copy));
+#if STRB_FREESTANDING
+    assert(!strb_write(&local, 0));
+    assert(strb_error(&local));
+#else
     assert(strb_write(&local, 0));
 #if STRB_HAS_RESTORE
     strb_restore(&local);
+#endif
 #endif
 #if !STRB_FREESTANDING
     strb_destroy(&local);
@@ -1268,6 +1350,39 @@ static void test_replacement_failure(void)
 }
 
 #if defined(FORTIFY) && !STRB_FREESTANDING
+// A failed zero-length preparation preserves the fallback and permits retry.
+static void test_empty_preparation_failure(void)
+{
+    int operation;
+
+    for (operation = 0; operation < 3; ++operation) {
+        strb_t sb = STRB_INITIALIZER(0);
+        char *const fallback = strb_ptr(&sb);
+        int result;
+
+        Fortify_SetNumAllocationsLimit(0);
+        switch (operation) {
+        case 0: result = strb_write(&sb, 0) ? 0 : EOF; break;
+        case 1: result = strb_split(&sb); break;
+        default: result = strb_cpy(&sb, ""); break;
+        }
+        Fortify_SetNumAllocationsLimit(ULONG_MAX);
+        assert(result == EOF);
+        assert(strb_error(&sb));
+        assert(strb_ptr(&sb) == fallback);
+        assert(*fallback == '\0');
+        assert(strb_len(&sb) == 0);
+        assert(strb_tell(&sb) == 0);
+        strb_clearerr(&sb);
+        assert(strb_write(&sb, 0));
+        Fortify_SetNumAllocationsLimit(0);
+        assert(strb_write(&sb, 0));
+        Fortify_SetNumAllocationsLimit(ULONG_MAX);
+        assert(!strb_error(&sb));
+        strb_destroy(&sb);
+    }
+}
+
 static int replace_for_test(strb_t *const sb, const int operation, const char *const text)
 {
     switch (operation) {
@@ -1395,6 +1510,8 @@ int main(void)
     test_array_macros();
 #endif
     test_output_equivalence();
+    test_write_zero_storage();
+    test_empty_preparation();
 #if STRB_HAS_UNPUTC
     test_write_zero();
 #endif
@@ -1405,6 +1522,7 @@ int main(void)
     test_replacement_failure();
 #if defined(FORTIFY) && !STRB_FREESTANDING
     test_replacement_allocation_failure();
+    test_empty_preparation_failure();
     test_allocation_hint();
     test_constructor_cleanup();
 #endif

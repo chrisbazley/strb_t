@@ -154,15 +154,15 @@ typedef uint16_t strbsize_t;
 typedef struct strb_t {
     /** @privatesection */
     struct {
-        strbsize_t size;
+        char empty_char;
 #if STRB_HAS_UNPUTC
         char unputc_char;
 #endif
 #if STRB_HAS_RESTORE
         char restore_char;
 #endif
-        char flags, empty_char;
-        strbsize_t len, pos;
+        char flags;
+        strbsize_t size, len, pos;
         _Optional char *buf;
     } p;
 } strb_t;
@@ -198,8 +198,9 @@ typedef strb_t strbstate_t;
 #define STRB_INITIALIZER(n) {{0}}
 #else
 #define STRB_INITIALIZER(n) \
-    {{(strbsize_t)((size_t)(n) >= STRB_MAX_SIZE ? STRB_MAX_SIZE : (size_t)(n) + 1u), \
-      STRB__SAVED_INIT 0, 0, 0, 0, NULL}}
+    {{0, STRB__SAVED_INIT 0, \
+      (strbsize_t)((size_t)(n) >= STRB_MAX_SIZE ? STRB_MAX_SIZE : (size_t)(n) + 1u), \
+      0, 0, NULL}}
 #endif
 
 /**
@@ -644,8 +645,11 @@ void strb_destroy(_Optional strb_t *sb);
 /**
  * @brief Get a pointer to the character array underlying a string buffer.
  *
- * The returned pointer is guaranteed to be usable as a string (i.e. null
- * terminated).
+ * The returned pointer designates a null-terminated string, provided the caller
+ * has preserved termination when modifying the array. In particular, complete
+ * any boundary repair required by @ref strb_write before treating it as a string.
+ * Functions such as @c strtok may replace existing characters with nulls without
+ * changing the recorded length or editing position.
  *
  * In C11 and later, a function-like macro also permits @c strb_ptr(sb) when
  * @p sb has type @c const @c strb_t*. For a @c strb_t* argument it calls the
@@ -1023,6 +1027,11 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * position and, in insertion mode, remove unused space. See
  * @ref design_short_write for an example and the limits in overwrite mode.
  *
+ * A successful call always returns character-array storage, never the initial
+ * empty-string fallback used by @ref strb_ptr. A zero count therefore allocates
+ * storage if none exists; in a freestanding build it fails unless storage was
+ * supplied by the caller.
+ *
  * A zero count still prepares the buffer. If the position is beyond the old
  * end, the intervening gap is filled with null characters and the length grows
  * to the position. Any previous @ref strb_restore boundary is replaced by the
@@ -1052,6 +1061,12 @@ int strb_putf(strb_t *restrict sb, const char *restrict format, ...);
  * In insertion mode, the new length is @p n plus the greater of the old length
  * and old position. In overwrite mode, it is the greater of the old length
  * and old position plus @p n.
+ * The caller may temporarily overwrite the character at offset @p n, including
+ * the final null terminator. Before using the result as a string or performing
+ * further editing, restore that boundary character with @ref strb_restore, or
+ * preserve or repair it explicitly when @ref STRB_HAS_RESTORE is disabled.
+ * Emptying or replacing the whole string also discards the unfinished output.
+ *
  * @post After copying up to @p n + 1 characters (including any null terminator)
  * into the buffer at the returned address, the user may call @ref strb_restore
  * to restore the character that was at offset @p n from the current position

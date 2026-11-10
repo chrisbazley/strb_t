@@ -42,7 +42,9 @@ void strb_empty(strb_t *STRB__CONST sb)
 {
     assert(sb);
     sb->p.len = sb->p.pos = 0;
-    STRB__BUF(sb)[0] = '\0';
+    if (sb->p.buf) {
+        sb->p.buf[0] = '\0';
+    }
 #if STRB_HAS_UNPUTC || STRB_HAS_RESTORE
     sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #endif

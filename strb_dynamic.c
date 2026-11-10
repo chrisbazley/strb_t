@@ -47,13 +47,21 @@ void strb_destroy(_Optional strb_t *STRB__CONST sb)
     }
 }
 
-bool strb__grow(strb_t *STRB__CONST sb, STRB__CONST strbsize_t minimum_size)
+bool strb__grow(strb_t *STRB__CONST sb, STRB__CONST size_t n,
+    STRB__CONST strbsize_t top)
 {
     strbsize_t new_size;
     _Optional char *new_buf;
     const bool first_allocation = !sb->p.buf;
 
     assert(sb);
+
+    if (n >= (size_t)STRB_MAX_SIZE - top) {
+        DEBUGF("Integer range exhausted (top=%" PRIstrbsize ", n=%zu)\n", top,
+               n);
+        return false; // can't represent new length
+    }
+    const strbsize_t minimum_size = (strbsize_t)(top + n + 1u);
 
     if (sb->p.flags & F_EXTERNAL) {
         DEBUGF("External buffer exhausted\n");
