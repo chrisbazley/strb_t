@@ -555,18 +555,21 @@ any previously available character. It does not undo a whole output call.
 discusses insertion, positioning and editing on pages 42-44 and gives
 additional usage examples on pages 47-51. The function documentation in
 @ref strb.h specifies the requirements and guarantees for each function.
+
 @section design_applications Application experience with complete objects
 
-The application changes in
+Pull requests
 <a href="https://github.com/chrisbazley/SFEditor/pull/64">SFEditor PR 64</a> and
 <a href="https://github.com/chrisbazley/SF3KUtils/pull/34">SF3KUtils PR 34</a>
-use embedded buffers directly, rather than merely adopting the compatibility names.
+changed existing users of @c strb.h to declare objects of type @ref strb_t directly
+instead of accessing string buffers only via pointers to an incomplete type, as
+required by the original interface.
 
-SFEditor's @c Text type replaces an optional pointer to a library-allocated
-buffer with a @ref strb_t member. Its existing compound-literal assignment
-initialises an empty string without allocation. The setter and loader no longer
-need metadata-allocation branches, and getters no longer distinguish a null
-handle from an empty string. The existing target-info replacement code transfers
+SFEditor's @c Text type replaces a pointer to a library-allocated @ref strb_t
+object with a @c struct member of type @ref strb_t. Its existing compound-literal
+assignment initialises an empty string without allocation. The setter and loader
+no longer need metadata-allocation branches, and getters no longer distinguish a null
+pointer from an empty string. The existing target-info replacement code transfers
 @c Text values by assignment; this remains valid for both populated and empty
 embedded buffers. The source value is abandoned after ownership transfer.
 This matters because the earlier caller-resident state held a pointer into itself
@@ -579,9 +582,7 @@ and strb_t commit @c 6f71328a1fd113e4b1a5d134ea35231405d034ee with
 @c STRB_MAX_INTERNAL_SIZE changed to zero. Setting an initially empty
 @c Text to 256 characters required two allocations before the change and one
 afterwards. With an allocation limit of one, the baseline returned @c NoMem;
-the embedded implementation succeeded. The application regression test covers
-that case, alongside existing empty-string, failed-growth and ownership-transfer
-tests.
+the embedded implementation succeeded.
 
 For that string, requested live heap storage fell from 281 to 257 bytes.
 The @c Text object itself grew from 32 to 48 bytes, giving 313 versus 305 bytes
@@ -590,7 +591,7 @@ for the object plus its allocations, excluding allocator overhead. An empty
 This is a space tradeoff rather than an unconditional memory reduction.
 
 The session and batch-scan changes address a different cost: these objects
-already supplied buffer state, but also stored two handles pointing back into
+already supplied buffer state, but also stored two pointers pointing back into
 that state. Two direct @ref strb_t members replace the state/handle pairs.
 The surrounding compound-literal assignment supplies their empty values,
 eliminating the two subsequent constructor calls and the handle unions.
@@ -606,8 +607,8 @@ These are host ABI measurements, not measurements of the 32-bit RISC OS target.
 No allocation-count improvement is claimed for the session or scan buffers:
 their caller-resident state already deferred character allocation.
 
-The application members are caller-supplied buffer objects even when their
-containing application object is on the heap. They may transfer ownership as
+The new @c struct members are caller-supplied buffer objects even when their
+containing @c struct is on the heap. Their ownership may be transferred as
 described above. This does not make copying an object returned by @ref strb_alloc
 valid; that separate restriction remains part of the complete-type interface's
 tradeoff.
