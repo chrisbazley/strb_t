@@ -179,9 +179,10 @@ functions, and how to use the same text producer in different editing contexts.
    intended use-case), and the terminator is not immediately reinstated
    by a call to `strb_restore`. Similarly, a caller of `strb_ptr` gains
    direct write access to the string buffer, therefore both functions must
-   be used with care.
+   be used with care. Normal editing operations can be done without
+   recourse to either function.
 
-4. **Why not use slices instead?**
+5. **Why not use slices instead?**
    
    This interface does not propose a replacement for C's string representation.
    Its purpose is to let functions produce ordinary C strings without committing
@@ -190,7 +191,7 @@ functions, and how to use the same text producer in different editing contexts.
    See [the author's reply in the original proposal discussion](https://www.reddit.com/r/C_Programming/comments/1ctoh24/)
    and [N3306, “String representation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
 
-5. **Why put this interface in the standard library?**
+6. **Why put this interface in the standard library?**
    
    Standardisation would let independently written libraries agree on a string
    buffer interface, rather than each inventing its own. The proposal also aims
@@ -199,7 +200,7 @@ functions, and how to use the same text producer in different editing contexts.
    not seek to replace every use of character arrays or user-designed libraries.
    See [N3306, “Rationale”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=3).
 
-6. **Does `strb_t` require dynamic memory allocation?**
+7. **Does `strb_t` require dynamic memory allocation?**
    
    No. `strb_use` and `strb_reuse` can manage caller-supplied character storage
    using caller-supplied state. The same output functions also work with buffers
@@ -208,7 +209,7 @@ functions, and how to use the same text producer in different editing contexts.
    dynamic allocation.
    See [N3306, “External buffers” and “Internal buffers”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=42).
 
-7. **Must every output call be checked immediately?**
+8. **Must every output call be checked immediately?**
    
    No. A stored error indicator permits deferred checking with `strb_error`
    after a sequence of operations. It remains set until explicitly cleared with
@@ -217,7 +218,7 @@ functions, and how to use the same text producer in different editing contexts.
    See [N3306, “Errors”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=46)
    and [“Error handling”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=68).
 
-8. **Does `strb_t` require changes to the C language?**
+9. **Does `strb_t` require changes to the C language?**
    
    No. It is a library interface, with a prototype implementation in this
    repository. The `_Optional` qualifier used in the proposal clarifies pointer
@@ -225,6 +226,6 @@ functions, and how to use the same text producer in different editing contexts.
    changing the meaning of the code.
    See [N3306, “Pointer notation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
 
-9. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
+10. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
     
     Calling it strb was also an in-joke, because that's what it does.
