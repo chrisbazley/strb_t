@@ -8,15 +8,14 @@ See the [slides](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3276.pdf) pre
 to WG14 and the [latest paper](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf)
 submitted to WG14.
 
-This experimental interface uses one complete `strb_t` object instead of
+This implementation uses one complete `strb_t` type instead of
 separate state and handle types. `strb_init(&sb, hint)` and
 `STRB_INITIALIZER(hint)` initialise an empty buffer without allocation and
 supply a hint for the first character allocation. Implicit zero-initialisation
 selects the default hint. `strb_destroy` releases character storage and frees the
 object only when a library constructor allocated it. Caller-resident objects may
 be relocated by ownership transfer; library-allocated objects must not be copied
-or relocated. The static-pool backend is not provided in this experiment. The
-Compiler Explorer example and size measurements below describe the published interface.
+or relocated. The static-pool backend is not provided in this experiment.
 
 ## Configuration
 
