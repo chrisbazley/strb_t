@@ -12,7 +12,7 @@ int strb_unputc(strb_t *STRB__CONST sb)
 {
     assert(sb);
 
-    if (!(sb->p.flags & F_CAN_UNPUTC)) {
+    if (!(sb->p.flags & F_CAN_UNPUTC) || !sb->p.buf) {
         return strb__seterr(sb);
     }
 
@@ -23,7 +23,7 @@ int strb_unputc(strb_t *STRB__CONST sb)
 
     {
         const strbsize_t new_pos = sb->p.pos - 1;
-        char *const buf = STRB__BUF(sb);
+        char *const buf = sb->p.buf;
         const char removed = buf[new_pos];
 
         if (!(sb->p.flags & F_OVERWRITE)) {
