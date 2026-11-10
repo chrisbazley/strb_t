@@ -10,20 +10,22 @@
 
 int strb_unputc(strb_t *STRB__CONST sb)
 {
+    _Optional char *buf;
+
     assert(sb);
-
-    if (!(sb->p.flags & F_CAN_UNPUTC) || !sb->p.buf) {
-        return strb__seterr(sb);
-    }
-
     assert(sb->p.pos > 0);
     assert(sb->p.pos < STRB_MAX_SIZE);
     assert(sb->p.pos < sb->p.size);
     assert(sb->p.pos <= sb->p.len);
 
+    buf = sb->p.buf;
+
+    if (!(sb->p.flags & F_CAN_UNPUTC) || !buf) {
+        return strb__seterr(sb);
+    }
+    else
     {
         const strbsize_t new_pos = sb->p.pos - 1;
-        char *const buf = sb->p.buf;
         const char removed = buf[new_pos];
 
         if (!(sb->p.flags & F_OVERWRITE)) {
