@@ -154,9 +154,13 @@ functions, and how to use the same text producer in different editing contexts.
    overwrite by choosing the position and mode. This abstracts those decisions
    instead of requiring a different producer for each operation.
    See [N3306, “Positioning” and “Editing”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=43).
-   A stored editing position can also be useful in other ways. For example, CBUtilLib uses strb_tell() as the logical string length, with the editing position acting as a boundary between visible and temporarily hidden text. Truncation and restoration can therefore change the visible string without copying the hidden characters into separate undo storage.
+   A stored editing position can also be useful in other ways. For example,
+   CBUtilLib uses strb_tell() as the logical string length, with the editing
+   position acting as a boundary between visible and temporarily hidden text.
+   Truncation and restoration can therefore change the visible string without
+   copying the hidden characters into separate undo storage.
 
-3. **Why does `strb_t` have an editing mode?**
+2. **Why does `strb_t` have an editing mode?**
 
    A stored mode avoids providing insertion and overwrite variants of every
    output function. Insertion makes room for new characters; overwriting replaces
@@ -164,6 +168,15 @@ functions, and how to use the same text producer in different editing contexts.
    insertion, starting at the end of the string, so successive output calls
    naturally append.
    See [N3306, “Insertion and overwriting”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=43).
+
+3. **Is the string guaranteed to be null terminated?**
+
+   Yes, except in the specific circumstance where a caller of `strb_write`
+   overwrites the null terminator by storing one more than the
+   requested number of characters (which is an intended use-case), the
+   last character stored by the user code is not null (which is not
+   an intended use-case), and the user does not then restore the null
+   terminator by calling `strb_restore`.
 
 4. **Why not use slices instead?**
 
