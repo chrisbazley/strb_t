@@ -8,18 +8,12 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
 {
     assert(sb);
 
-    if (n >= (size_t)STRB_MAX_SIZE - top) {
-        DEBUGF("Integer range exhausted (top=%" PRIstrbsize ", n=%zu)\n", top,
-               n);
-        return false; // can't represent new length
-    }
-
     {
         strbsize_t size = sb->p.size;
 
         if (!sb->p.buf) {
-            // Only the per-object empty terminator exists.
-            size = 1;
+            // Writable preparation requires actual character storage.
+            size = 0;
         }
         {
             const strbsize_t room = size > top ? size - top : 0;
@@ -31,33 +25,30 @@ static bool strb_ensure(strb_t *const sb, const size_t n, const strbsize_t top)
         }
     }
 
-    return STRB__GROW(sb, (strbsize_t)(top + n + 1u));
+    return STRB__GROW(sb, n, top);
 }
 
 // Prepare whole-string replacement without discarding the old value on failure.
 _Optional char *strb__replace(strb_t *STRB__CONST sb, STRB__CONST size_t n)
 {
-    if (!strb_ensure(sb, n, 0)) {
+    char *buf;
+
+    if (!strb_ensure(sb, n, 0) || !sb->p.buf) {
         strb__seterr(sb);
         return NULL;
     }
-    strb_empty(sb);
-    if (!sb->p.buf) {
-        assert(n == 0);
-        return &sb->p.empty_char;
-    }
-    {
-        char *const buf = STRB__BUF(sb);
-        sb->p.len = sb->p.pos = (strbsize_t)n;
-        buf[n] = '\0';
+    buf = &*sb->p.buf;
+    buf[n] = '\0';
+
+    sb->p.len = sb->p.pos = (strbsize_t)n;
+    sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
 #if STRB_HAS_UNPUTC
-        if (n) {
-            sb->p.unputc_char = '\0';
-            sb->p.flags |= F_CAN_UNPUTC;
-        }
-#endif
-        return buf;
+    if (n) {
+        sb->p.unputc_char = '\0';
+        sb->p.flags |= F_CAN_UNPUTC;
     }
+#endif
+    return buf;
 }
 
 _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
@@ -74,24 +65,15 @@ _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
                                    ? old_pos
                                    : old_len;
 
-        if (!strb_ensure(sb, n, top)) {
+        if (!strb_ensure(sb, n, top) ||
+            !sb->p.buf) {
             DEBUGF("No room\n");
             strb__seterr(sb);
             return NULL;
         }
 
-        base = STRB__BUF(sb);
-        if (!sb->p.buf) {
-            assert(n == 0);
-            assert(old_pos == 0);
-#if STRB_HAS_RESTORE
-            sb->p.restore_char = '\0';
-            sb->p.flags |= F_CAN_RESTORE;
-#endif
-            return base;
-        }
-
-        assert(old_pos < sb->p.size);
+        base = &*sb->p.buf;
+        assert(old_pos < sb->p.size || !sb->p.buf);
 
         if (old_pos > old_len) {
             DEBUGF("Zeroing between len %" PRIstrbsize " and pos %" PRIstrbsize
@@ -125,7 +107,7 @@ _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
 
             sb->p.pos = (strbsize_t)(old_pos + n);
             DEBUGF("Pos advanced by %zu to %" PRIstrbsize "\n", n, sb->p.pos);
-            assert(sb->p.pos < sb->p.size);
+            assert(sb->p.pos < sb->p.size || !sb->p.buf);
 
             if (sb->p.pos > sb->p.len) {
                 DEBUGF("Bumping length from %" PRIstrbsize " to %" PRIstrbsize

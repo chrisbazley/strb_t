@@ -93,11 +93,11 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 
 // Private external functions use strb__; declarations stay in this header.
 #if STRB_FREESTANDING
-// Fixed storage cannot grow. Neither argument is evaluated.
-#define STRB__GROW(sb, minimum_size) false
+// Fixed storage cannot grow. None of the arguments is evaluated.
+#define STRB__GROW(sb, n, top) false
 #else
-bool strb__grow(strb_t *sb, strbsize_t minimum_size);
-#define STRB__GROW(sb, minimum_size) strb__grow(sb, minimum_size)
+bool strb__grow(strb_t *sb, size_t n, strbsize_t top);
+#define STRB__GROW(sb, n, top) strb__grow(sb, n, top)
 #endif
 int strb__seterr(strb_t *sb);
 _Optional char *strb__replace(strb_t *sb, size_t n);
