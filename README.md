@@ -2,7 +2,10 @@
 
 ## Overview
 
-A new type and functions to manage strings, as proposed in [WG14](https://www.open-std.org/jtc1/sc22/wg14/) papers N3250, N3296 and N3306. Its goal is to eliminate a source of many common programmer errors. The new interface is designed to be as familiar and ergonomic as possible.
+A new type and functions to manage strings, as proposed in
+[WG14](https://www.open-std.org/jtc1/sc22/wg14/) papers N3250, N3296 and N3306.
+Its goal is to eliminate a source of many common programmer errors. The new interface
+is designed to be as familiar and ergonomic as possible.
 
 See the [slides](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3276.pdf) presented
 to WG14 and the [latest paper](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf)
@@ -15,7 +18,7 @@ supply a hint for the first character allocation. Implicit zero-initialisation
 selects the default hint. `strb_destroy` releases character storage and frees the
 object only when a library constructor allocated it. Caller-resident objects may
 be relocated by ownership transfer; library-allocated objects must not be copied
-or relocated. The static-pool backend is not provided in this experiment.
+or relocated.
 
 ## Configuration
 
@@ -45,8 +48,9 @@ indicator operations are grouped together. The core provides buffer access,
 length and emptying.
 
 Additional functions are grouped by responsibility. `strb_constructors.c` provides
-duplication functions; `strb_format.c` provides formatted construction and output. Their availability in this prototype is a configuration
-choice, not a restriction on what freestanding implementations may provide.
+duplication functions; `strb_format.c` provides formatted construction and output.
+Their availability is a configuration choice, not a restriction on what freestanding
+implementations may provide.
 
 Each configuration selects one implementation of storage allocation, growth and
 release:
@@ -111,9 +115,7 @@ For example, use the following commands to build and test on Linux:
 
 ## Testing
 
-I haven't written a full test suite or anything, but it seems pretty solid for the use-cases I've tried so far. It also gives a good idea of the size of the code likely to be required for an implementation, or different subsets of the specified functionality.
-
-CMake builds and runs the existing suite with each optional interface disabled:
+CMake builds and runs the test suite with each optional interface disabled:
 `STRB_HAS_UNPUTC` and `STRB_HAS_RESTORE`. It also
 tests a minimal configuration with both disabled. These variants cover
 dynamic allocation and freestanding storage. Caller-allocated buffer state is
@@ -135,9 +137,12 @@ allocation-failure tests in the existing test suite.
 
 ## Documentation
 
-[Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface is generated using Doxygen (`doxygen Doxyfile`).
+[Documentation](https://chrisbazley.github.io/strb_t/strb_8h.html) for the interface
+is generated using Doxygen (`doxygen Doxyfile`).
 
-[Interface design and usage](https://chrisbazley.github.io/strb_t/interface_design.html) explains the positional output model, why there are no separate append/prepend/insert functions, and how to use the same text producer in different editing contexts.
+[Interface design and usage](https://chrisbazley.github.io/strb_t/interface_design.html)
+explains the positional output model, why there are no separate append/prepend/insert
+functions, and how to use the same text producer in different editing contexts.
 
 
 ## FAQ
