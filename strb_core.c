@@ -19,16 +19,7 @@ const char *strb_cptr(strb_t const *sb) __attribute__((alias("strb_ptr")));
 #else
 const char *strb_cptr(strb_t const *STRB__CONST sb)
 {
-#ifdef NDEBUG
     return strb_ptr((strb_t *)sb);
-#else
-    assert(sb);
-    {
-        // cc65 requires matching pointed-to qualifiers in the conditional.
-        _Optional const char *const buf = sb->p.buf;
-        return buf ? &*buf : &sb->p.empty_char;
-    }
-#endif
 }
 #endif
 
