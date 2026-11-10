@@ -155,12 +155,13 @@ functions, and how to use the same text producer in different editing contexts.
    instead of requiring a different producer for each operation.
    See [N3306, “Positioning” and “Editing”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=43).
    A stored editing position can also be useful in other ways. For example,
-   CBUtilLib uses strb_tell() as the logical string length, with the editing
-   position acting as a boundary between visible and temporarily hidden text.
+   [CBUtilLib](https://github.com/chrisbazley/CBUtilLib) uses `strb_tell` as
+   the logical string length, with the editing position acting as a boundary
+   between visible and temporarily hidden text.
    Truncation and restoration can therefore change the visible string without
    copying the hidden characters into separate undo storage.
 
-2. **Why does `strb_t` have an editing mode?**
+3. **Why does `strb_t` have an editing mode?**
 
    A stored mode avoids providing insertion and overwrite variants of every
    output function. Insertion makes room for new characters; overwriting replaces
@@ -169,7 +170,7 @@ functions, and how to use the same text producer in different editing contexts.
    naturally append.
    See [N3306, “Insertion and overwriting”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=43).
 
-3. **Is the string guaranteed to be null terminated?**
+4. **Is the string guaranteed to be null terminated?**
 
    Yes, except in the specific circumstance where a caller of `strb_write`
    overwrites the terminating null character by storing one more than the
