@@ -13,9 +13,6 @@ int strb_unputc(strb_t *STRB__CONST sb)
     _Optional char *buf;
 
     assert(sb);
-    assert(sb->p.pos < STRB_MAX_SIZE);
-    assert(sb->p.pos < sb->p.size);
-    assert(sb->p.pos <= sb->p.len);
 
     buf = sb->p.buf;
     if (!(sb->p.flags & F_CAN_UNPUTC) || !buf) {
@@ -23,6 +20,9 @@ int strb_unputc(strb_t *STRB__CONST sb)
     }
 
     assert(sb->p.pos > 0);
+    assert(sb->p.pos < STRB_MAX_SIZE);
+    assert(sb->p.pos < sb->p.size);
+    assert(sb->p.pos <= sb->p.len);
 
     {
         const strbsize_t new_pos = sb->p.pos - 1;
