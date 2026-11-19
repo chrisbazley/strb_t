@@ -174,3 +174,27 @@ jobs:
             --test-dir "$GITHUB_WORKSPACE/build-optional" \
             --build-config ${{ matrix.build_type }} \
             --output-on-failure
+
+  optional-tcc:
+    name: _Optional TCC
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: TinyCC/tinycc
+          ref: 0f004a0883c640528d69a006706f867d56c809e5
+          path: .ci/tinycc
+          persist-credentials: false
+      - name: Build TCC
+        working-directory: .ci/tinycc
+        run: |
+          ./configure --prefix="$RUNNER_TEMP/tcc"
+          make -j2
+          make install
+      - name: Configure with _Optional
+        run: cmake -S . -B build-tcc -DCMAKE_C_COMPILER="$RUNNER_TEMP/tcc/bin/tcc" -DUSE_OPTIONAL=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build-tcc --parallel 2
+      - name: Test
+        run: ctest --test-dir build-tcc --no-tests=error --output-on-failure
