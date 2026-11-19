@@ -175,7 +175,7 @@ static bool test_short_write(void)
         if (strb_cpy(sb, original) || strb_setmode(sb, modes[i]) == EOF)
             return false;
         strb_seek(sb, 0);
-        if (!put_character(sb, U'A'))
+        if (!put_character(sb, 0x41))
             return false;
         if (strb_tell(sb) != 1)
             return false;

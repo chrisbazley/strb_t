@@ -10,9 +10,11 @@ option(ENABLE_CLANG_TIDY "Run clang-tidy during compilation" OFF)
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
 if(USE_OPTIONAL)
-    if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang|AppleClang")
-        message(FATAL_ERROR
-            "USE_OPTIONAL requires Christopher Bazley's Clang fork")
+    include(CheckCSourceCompiles)
+    check_c_source_compiles("_Optional int *p; int main(void) { return p != 0; }"
+        HAVE_C_OPTIONAL_QUALIFIER)
+    if(NOT HAVE_C_OPTIONAL_QUALIFIER)
+        message(FATAL_ERROR "USE_OPTIONAL requires compiler support for _Optional")
     endif()
 
     add_compile_definitions(USE_OPTIONAL)
