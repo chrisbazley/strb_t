@@ -119,12 +119,11 @@ typedef uint16_t strbsize_t;
  * <a href="https://mailmanlists.uk/mailman/listinfo/optional-study-group">_Optional
  * study group mailing list</a>.
  */
-#ifdef USE_OPTIONAL
+#ifndef USE_OPTIONAL
+#define _Optional
+#elif !defined(__clang__)
 #undef NULL
 #define NULL ((_Optional void *)0)
-
-#else
-#define _Optional
 #endif
 
 /**

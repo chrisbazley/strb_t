@@ -134,12 +134,15 @@ jobs:
             grep -F 'clang-analyzer-optionality.OptionalityChecker'
 
           cat > "$RUNNER_TEMP/optional-smoke-test.c" <<'EOF'
+          #include "strb.h"
+          typedef void Callback(void);
+          _Optional Callback *callback = NULL;
           int value_or_zero(_Optional int *value) {
             return value ? *value : 0;
           }
           EOF
 
-          clang -std=c99 \
+          clang -std=c99 -DUSE_OPTIONAL -I. -Werror=pedantic \
             -fsyntax-only \
             "$RUNNER_TEMP/optional-smoke-test.c"
 
