@@ -186,8 +186,8 @@ jobs:
       - name: Fetch upstream TCC
         run: |
           git init -q .ci/tinycc
-          git -C .ci/tinycc fetch --depth=1 https://repo.or.cz/tinycc.git 205f264b9e01b47d18f9182e4009eadfc4019219
-          git -C .ci/tinycc checkout -q --detach FETCH_HEAD
+          git -C .ci/tinycc fetch --no-tags https://repo.or.cz/tinycc.git refs/heads/mob
+          git -C .ci/tinycc checkout -q --detach 205f264b9e01b47d18f9182e4009eadfc4019219
       - name: Build TCC
         working-directory: .ci/tinycc
         run: |
