@@ -14,7 +14,7 @@ submitted to WG14.
 This implementation uses one complete `strb_t` type instead of
 separate state and handle types. `strb_init(&sb, hint)` and
 `STRB_INITIALIZER(hint)` initialise an empty buffer without allocation and
-supply a hint for the first character allocation. Implicit zero-initialisation
+supply a hint for the first character storage allocation. Implicit zero-initialisation
 selects the default hint. `strb_destroy` releases character storage and frees the
 object only when a library constructor allocated it. Caller-resident objects may
 be relocated by ownership transfer; library-allocated objects must not be copied
@@ -68,7 +68,7 @@ functions, and how to use the same text producer in different editing contexts.
    be used with care. Normal editing operations can be done without
    recourse to either function.
 
-5. **Why not use slices instead?**
+4. **Why not use slices instead?**
    
    This interface does not propose a replacement for C's string representation.
    Its purpose is to let functions produce ordinary C strings without committing
@@ -77,7 +77,7 @@ functions, and how to use the same text producer in different editing contexts.
    See [the author's reply in the original proposal discussion](https://www.reddit.com/r/C_Programming/comments/1ctoh24/)
    and [N3306, “String representation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
 
-6. **Why put this interface in the standard library?**
+5. **Why put this interface in the standard library?**
    
    Standardisation would let independently written libraries agree on a string
    buffer interface, rather than each inventing its own. The proposal also aims
@@ -86,7 +86,7 @@ functions, and how to use the same text producer in different editing contexts.
    not seek to replace every use of character arrays or user-designed libraries.
    See [N3306, “Rationale”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=3).
 
-7. **Does `strb_t` require dynamic memory allocation?**
+6. **Does `strb_t` require dynamic memory allocation?**
    
    No. `strb_use` and `strb_reuse` can manage caller-supplied character storage
    using caller-supplied state. The same output functions also work with buffers
@@ -94,6 +94,13 @@ functions, and how to use the same text producer in different editing contexts.
    strategy its caller chose. Freestanding implementations need not provide
    dynamic allocation.
    See [N3306, “External buffers” and “Internal buffers”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=42).
+
+7. **How is a dynamically allocated memory resized without invalidating pointers?**
+
+   Pointers directly into the dynamically allocated character storage (e.g. returned by `strb_ptr`)
+   are invalidated by replacement of the allocated storage with a larger allocation, therefore
+   it is best not to keep copies of such pointers for longer than needed.  In contrast, the address
+   of a `strb_t` never changes.
 
 8. **Must every output call be checked immediately?**
    
