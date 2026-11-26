@@ -95,14 +95,25 @@ functions, and how to use the same text producer in different editing contexts.
    dynamic allocation.
    See [N3306, “External buffers” and “Internal buffers”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=42).
 
-7. **How is a dynamically allocated memory resized without invalidating pointers?**
+7. **How is allocated character storage resized without invalidating pointers?**
 
-   Pointers directly into the dynamically allocated character storage (e.g. returned by `strb_ptr`)
+   Pointers directly into dynamically allocated character storage (e.g., returned by `strb_ptr`)
    are invalidated by replacement of the allocated storage with a larger allocation, therefore
-   it is best not to keep copies of such pointers for longer than needed.  In contrast, the address
-   of a `strb_t` never changes.
+   it is best not to keep copies of such pointers for longer than needed.  In contrast, the
+   address of a `strb_t` never changes.
 
-8. **Must every output call be checked immediately?**
+8. **If the address of `strb_t` never changes, characters must stored separately; isn't that inefficient?**
+
+   Not necessarily. Firstly, a caller of `strb_use` or `strb_reuse` can position
+   caller-supplied character storage wherever they choose relative to the
+   caller-supplied state. Secondly, an implementation of `strb_dup` (or similar)
+   can choose to dynamically allocate one block of memory for a `strb_t` and
+   its initial character storage; the amount of acceptable internal fragmentation
+   if the character storage later becomes disused is a trade-off chosen by the
+   implementer. [`g_string_new`](https://docs.gtk.org/glib/ctor.String.new.html)
+   makes the same compromise.
+
+9. **Must every output call be checked immediately?**
    
    No. A stored error indicator permits deferred checking with `strb_error`
    after a sequence of operations. It remains set until explicitly cleared with
@@ -111,7 +122,7 @@ functions, and how to use the same text producer in different editing contexts.
    See [N3306, “Errors”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=46)
    and [“Error handling”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=68).
 
-9. **Does `strb_t` require changes to the C language?**
+10. **Does `strb_t` require changes to the C language?**
    
    No. It is a library interface, with a prototype implementation in this
    repository. The `_Optional` qualifier used in the proposal clarifies pointer
@@ -119,7 +130,7 @@ functions, and how to use the same text producer in different editing contexts.
    changing the meaning of the code.
    See [N3306, “Pointer notation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
 
-10. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
+11. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
     
     Calling it strb was also an in-joke, because that's what it does.
 
