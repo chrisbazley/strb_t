@@ -102,19 +102,20 @@ functions, and how to use the same text producer in different editing contexts.
    it is best not to keep copies of such pointers for longer than needed.  In contrast, the
    address of a `strb_t` never changes.
 
-8. **If the address of `strb_t` never changes, characters must stored separately; isn't that inefficient?**
+8. **If `strb_t` never moves, characters must be stored separately; isn't that inefficient?**
 
-   Not necessarily. Firstly, a caller of `strb_use` or `strb_reuse` can position
-   caller-supplied character storage wherever they choose relative to the
-   caller-supplied state. Secondly, an implementation of `strb_dup` (or similar)
-   can choose to dynamically allocate one block of memory for a `strb_t` and
-   its initial character storage; the amount of acceptable internal fragmentation
-   if the character storage later becomes disused is a trade-off chosen by the
-   implementer. [`g_string_new`](https://docs.gtk.org/glib/ctor.String.new.html)
-   makes the same compromise.
+   Not necessarily. Firstly, a caller of `strb_use` or `strb_reuse` can allocate
+   character storage wherever they choose relative to its associated `strb_t`.
+   Secondly, an implementation of `strb_dup` (or similar) can choose to dynamically
+   allocate a single block of memory for a `strb_t` and its initial character storage;
+   the amount of acceptable internal fragmentation if the character storage later
+   needs to be replaced is a trade-off chosen by the implementer.
+   [`g_string_new`](https://docs.gtk.org/glib/ctor.String.new.html) is a
+   similar abstraction, but the `GString` interface does not provide a non-allocating
+   alternative.
 
-9. **Must every output call be checked immediately?**
-   
+10. **Must every output call be checked immediately?**
+
    No. A stored error indicator permits deferred checking with `strb_error`
    after a sequence of operations. It remains set until explicitly cleared with
    `strb_clearerr`. The buffer remains null-terminated even on failure, but the
@@ -122,7 +123,7 @@ functions, and how to use the same text producer in different editing contexts.
    See [N3306, “Errors”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=46)
    and [“Error handling”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=68).
 
-10. **Does `strb_t` require changes to the C language?**
+11. **Does `strb_t` require changes to the C language?**
    
    No. It is a library interface, with a prototype implementation in this
    repository. The `_Optional` qualifier used in the proposal clarifies pointer
