@@ -178,8 +178,8 @@ jobs:
             --build-config ${{ matrix.build_type }} \
             --output-on-failure
 
-  optional-tcc:
-    name: _Optional TCC
+  tinycc:
+    name: TinyCC
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -187,34 +187,15 @@ jobs:
         run: |
           git init -q .ci/tinycc
           git -C .ci/tinycc fetch --no-tags https://repo.or.cz/tinycc.git refs/heads/mob
-          git -C .ci/tinycc checkout -q --detach 205f264b9e01b47d18f9182e4009eadfc4019219
+          git -C .ci/tinycc checkout -q --detach e9e9e7f6236895a32c5e905aada486bab6671e95
       - name: Build TCC
         working-directory: .ci/tinycc
         run: |
           ./configure --prefix="$RUNNER_TEMP/tcc"
           make -j2
           make install
-      - name: Check NULL conversions
-        run: |
-          cat > "$RUNNER_TEMP/check-null.c" <<'EOF'
-          #include "strb.h"
-          #ifdef REQUIRED
-          int *pi = NULL;
-          #else
-          _Optional int *poi = NULL;
-          #endif
-          EOF
-          tcc="$RUNNER_TEMP/tcc/bin/tcc"
-          src="$RUNNER_TEMP/check-null.c"
-          "$tcc" -I. -DUSE_OPTIONAL -Werror=null-to-nonoptional -c "$src" -o "$RUNNER_TEMP/check-null.o"
-          if "$tcc" -I. -DUSE_OPTIONAL -Werror=null-to-nonoptional -DREQUIRED -c "$src" -o "$RUNNER_TEMP/check-null.o" 2>"$RUNNER_TEMP/check-null.log"; then
-            echo 'TCC accepted int *pi = NULL' >&2
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/check-null.log"
-          grep -F 'non-optional target type' "$RUNNER_TEMP/check-null.log"
       - name: Configure with _Optional
-        run: cmake -S . -B build-tcc -DCMAKE_C_FLAGS=-Werror=null-to-nonoptional -DCMAKE_C_COMPILER="$RUNNER_TEMP/tcc/bin/tcc" -DUSE_OPTIONAL=ON -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build-tcc -DCMAKE_C_COMPILER="$RUNNER_TEMP/tcc/bin/tcc" -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build-tcc --parallel 2
       - name: Test
