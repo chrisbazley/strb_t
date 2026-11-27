@@ -18,7 +18,7 @@ int strb_nputc(strb_t *STRB__CONST sb, STRB__CONST int c, STRB__CONST size_t n)
     }
 
     memset(&*buf, c, n);
-    // assume F_CAN_RESTORE isn't user-visible. Don't bother calling
+    // assume STRB__F_CAN_RESTORE isn't user-visible. Don't bother calling
     // strb_restore.
     return c;
 }

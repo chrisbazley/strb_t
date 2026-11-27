@@ -10,11 +10,11 @@ static strb_t *init_use(strb_t *const restrict sb, const strbsize_t size,
     sb->p.len = sb->p.pos = len;
     sb->p.size = size;
     sb->p.buf = buf;
-    sb->p.flags = F_EXTERNAL;
+    sb->p.flags = STRB__F_EXTERNAL;
 
 #if STRB_HAS_UNPUTC
     if (len) {
-        sb->p.flags |= F_CAN_UNPUTC;
+        sb->p.flags |= STRB__F_CAN_UNPUTC;
     }
 #endif
     sb->p.empty_char = 0;
@@ -63,7 +63,7 @@ strb_t *strb_reuse(strb_t *STRB__CONST restrict sb, size_t size,
                 init_use(sb, (strbsize_t)size, buf, (strbsize_t)len);
 
             if (failed) {
-                result->p.flags |= F_ERR;
+                result->p.flags |= STRB__F_ERR;
             }
 
             return result;

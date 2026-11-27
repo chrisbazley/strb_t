@@ -41,11 +41,11 @@ _Optional char *strb__replace(strb_t *STRB__CONST sb, STRB__CONST size_t n)
     buf[n] = '\0';
 
     sb->p.len = sb->p.pos = (strbsize_t)n;
-    sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+    sb->p.flags &= ~(STRB__F_CAN_UNPUTC | STRB__F_CAN_RESTORE);
 #if STRB_HAS_UNPUTC
     if (n) {
         sb->p.unputc_char = '\0';
-        sb->p.flags |= F_CAN_UNPUTC;
+        sb->p.flags |= STRB__F_CAN_UNPUTC;
     }
 #endif
     return buf;
@@ -55,13 +55,13 @@ _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
 {
     assert(sb);
     assert(sb->p.len < sb->p.size || !sb->p.buf);
-    assert(STRB__BUF(sb)[sb->p.len] == '\0');
+    assert(strb_ptr(sb)[sb->p.len] == '\0');
     DEBUGF("About to write %zu chars\n", n);
 
     {
         char *base;
         const strbsize_t old_len = sb->p.len, old_pos = sb->p.pos;
-        const strbsize_t top = (sb->p.flags & F_OVERWRITE) || old_pos > old_len
+        const strbsize_t top = (sb->p.flags & STRB__F_OVERWRITE) || old_pos > old_len
                                    ? old_pos
                                    : old_len;
 
@@ -89,7 +89,7 @@ _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
         {
             char *const buf = base + old_pos;
 
-            if (!(sb->p.flags & F_OVERWRITE)) {
+            if (!(sb->p.flags & STRB__F_OVERWRITE)) {
                 DEBUGF("Moving tail '%s' (%d) from %p to %p\n", buf, *buf,
                        (void *)buf, (void *)(buf + n));
                 memmove(buf + n, buf, sb->p.len + 1u - old_pos);
@@ -119,14 +119,14 @@ _Optional char *strb_write(strb_t *STRB__CONST sb, STRB__CONST size_t n)
 
 #if STRB_HAS_RESTORE
             sb->p.restore_char = buf[n];
-            sb->p.flags |= F_CAN_RESTORE;
+            sb->p.flags |= STRB__F_CAN_RESTORE;
             DEBUGF("Stored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char,
                    sb->p.restore_char, sb->p.pos);
 #endif
 
 #if STRB_HAS_UNPUTC
             if (n) {
-                sb->p.flags |= F_CAN_UNPUTC;
+                sb->p.flags |= STRB__F_CAN_UNPUTC;
             }
 #endif
             return buf;
@@ -139,11 +139,11 @@ void strb_restore(strb_t *STRB__CONST sb)
 {
     assert(sb);
 
-    if ((sb->p.flags & F_CAN_RESTORE) && sb->p.buf) {
+    if ((sb->p.flags & STRB__F_CAN_RESTORE) && sb->p.buf) {
         DEBUGF("Restored %d ('%c') at %" PRIstrbsize "\n", sb->p.restore_char,
                sb->p.restore_char, sb->p.pos);
         sb->p.buf[sb->p.pos] = sb->p.restore_char;
-        sb->p.flags &= ~F_CAN_RESTORE;
+        sb->p.flags &= ~STRB__F_CAN_RESTORE;
     }
 }
 #endif

@@ -8,6 +8,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#if DEBUGOUT
+#define DEBUGF(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define DEBUGF(...)
+#endif
+
 #include "strb.h"
 
 #ifdef FORTIFY
@@ -56,12 +62,6 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 #endif // !STRB_FREESTANDING
 #endif
 
-#if DEBUGOUT
-#define DEBUGF(...) fprintf(stderr, __VA_ARGS__)
-#else
-#define DEBUGF(...)
-#endif
-
 // cc65 rejects top-level parameter qualifiers that differ from a prototype.
 #if defined(__CC65__)
 #define STRB__CONST
@@ -70,26 +70,17 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 #endif
 
 #if STRB_HAS_UNPUTC
-#define F_CAN_UNPUTC (1 << 0)
+#define STRB__F_CAN_UNPUTC (1 << 0)
 #else
-#define F_CAN_UNPUTC 0
+#define STRB__F_CAN_UNPUTC 0
 #endif
-
-#define F_ERR (1 << 1)
-
 #if STRB_HAS_RESTORE
-#define F_CAN_RESTORE (1 << 2)
+#define STRB__F_CAN_RESTORE (1 << 2)
 #else
-#define F_CAN_RESTORE 0
+#define STRB__F_CAN_RESTORE 0
 #endif
-
-#define F_OVERWRITE (1 << 3)
-#define F_HEAP (1 << 4)
-#define F_EXTERNAL (1 << 5)
-
-// No self-pointer is stored for the initial empty string. The fallback byte
-// belongs to whichever instance is being used, including after relocation.
-#define STRB__BUF(sb) ((sb)->p.buf ? &*(sb)->p.buf : &(sb)->p.empty_char)
+#define STRB__F_HEAP (1 << 4)
+#define STRB__F_EXTERNAL (1 << 5)
 
 // Private external functions use strb__; declarations stay in this header.
 #if STRB_FREESTANDING
@@ -99,7 +90,15 @@ static inline int strb__optional_vsnprintf(_Optional char *const buffer, const s
 bool strb__grow(strb_t *sb, size_t n, strbsize_t top);
 #define STRB__GROW(sb, n, top) strb__grow(sb, n, top)
 #endif
+#if STRB__C99_INLINE
+static inline int strb__seterr(strb_t *sb)
+{
+    sb->p.flags |= STRB__F_ERR;
+    return EOF;
+}
+#else
 int strb__seterr(strb_t *sb);
+#endif
 _Optional char *strb__replace(strb_t *sb, size_t n);
 
 #if defined(__CC65__) || \

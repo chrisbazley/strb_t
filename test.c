@@ -548,8 +548,9 @@ static void test_delto_large_target(void)
                         expected_len = positions[p];
                     assert(strb_len(&*s) == expected_len);
                     assert(strb_tell(&*s) == positions[p]);
-                    assert(!memcmp(strb_cptr(&*s), "abcdef", expected_len));
-                    assert(strb_cptr(&*s)[expected_len] == '\0');
+                    assert(strb_cptr(&*s) == array);
+                    assert(!memcmp(array, "abcdef", expected_len));
+                    assert(array[expected_len] == '\0');
                     assert(!strb_error(&*s));
 #if !STRB_FREESTANDING
                     strb_destroy(s);
@@ -1265,8 +1266,12 @@ static void test_object_lifetime(void)
     assert(!strcmp(strb_cptr(&moved), "first"));
     assert(strb_nputc(&moved, 'x', STRB_DFL_SIZE * 3u) == 'x');
     assert(strb_len(&moved) == 5 + STRB_DFL_SIZE * 3u);
-    for (i = 5; i < strb_len(&moved); ++i) {
-        assert(strb_cptr(&moved)[i] == 'x');
+    {
+        const char *const characters = strb_cptr(&moved);
+        assert(characters != &moved.p.empty_char);
+        for (i = 5; i < strb_len(&moved); ++i) {
+            assert(characters[i] == 'x');
+        }
     }
     strb_destroy(&moved);
     strb_destroy(&second);
