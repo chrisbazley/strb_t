@@ -102,17 +102,15 @@ functions, and how to use the same text producer in different editing contexts.
    it is best not to keep copies of such pointers for longer than needed.  In contrast, the
    address of a `strb_t` never changes.
 
-8. **If `strb_t` never moves, characters must be stored separately; isn't that inefficient?**
+8. **If `strb_t` never moves, character storage must be allocated separately; isn't that inefficient?**
    
-   Not necessarily: a caller of `strb_use` or `strb_reuse` can allocate
-   character storage wherever they choose relative to its associated `strb_t`.
-   An implementation of `strb_dup` can choose to dynamically
+   Not necessarily: an implementation of `strb_alloc` or `strb_dup` can choose to dynamically
    allocate a single block of memory for a `strb_t` and its initial character storage;
    the amount of acceptable internal fragmentation if the character storage later
    needs to be replaced is a trade-off chosen by the implementer.
    [`g_string_new`](https://docs.gtk.org/glib/ctor.String.new.html) is a
-   similar abstraction, but the `GString` interface does not provide a non-allocating
-   alternative.
+   similar abstraction, but the `GString` interface does not provide an infallible
+   non-allocating alternative equivalent to `strb_init`.
 
 9. **Must every output call be checked immediately?**
    
@@ -131,7 +129,7 @@ functions, and how to use the same text producer in different editing contexts.
     changing the meaning of the code.
     See [N3306, “Pointer notation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
 
-12. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
+11. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
    
     Calling it strb was also an in-joke, because that's what it does.
 
