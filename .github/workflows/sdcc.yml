@@ -12,7 +12,7 @@ permissions:
 jobs:
   freestanding:
     name: Z80 freestanding with _Optional
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 10
 
     steps:
@@ -22,18 +22,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ runner.temp }}/sdcc.tar.bz2
-          key: sdcc-linux-amd64-17230-ffcb002b30375f11
+          key: sdcc-linux-arm64-17264-e3b92e3a5a20246d
 
-      - name: Download SDCC trunk r17230
+      - name: Download SDCC trunk r17264
         shell: bash
         run: |
           archive="$RUNNER_TEMP/sdcc.tar.bz2"
           if test ! -f "$archive"; then
             curl --fail --location --retry 3 --max-time 180 \
-              https://downloads.sourceforge.net/project/sdcc/snapshot_builds/amd64-unknown-linux2.5/sdcc-snapshot-amd64-unknown-linux2.5-20261119-17230-cf-x86.tar.bz2 \
+              https://downloads.sourceforge.net/project/sdcc/snapshot_builds/aarch64-linux-gnu/sdcc-snapshot-aarch64-linux-gnu-20261127-17264-alecto.tar.bz2 \
               --output "$archive"
           fi
-          echo "ffcb002b30375f11cfacfc73627ad2ea0105eee04d99b6476793b2eab98c69fb  $archive" | sha256sum --check
+          echo "e3b92e3a5a20246d6d6d0c83a21778e7df0d3dbf025c67989a28982694391de5  $archive" | sha256sum --check
           tar --no-same-owner -xjf "$archive" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/sdcc/bin" >> "$GITHUB_PATH"
 
@@ -43,7 +43,7 @@ jobs:
           sdcc --version
           mkdir -p build-sdcc
           # SDCC warns about constant assertion conditions; keep warnings non-fatal.
-          flags=(-mz80 --std-c99 -DSTRB_FREESTANDING=1 -I.)
+          flags=(-mz80 --std-c99 --enable-warning 378 -DSTRB_FREESTANDING=1 -I.)
           sources=(
             strb_core.c strb_external.c strb_strnlen.c
             strb_mode.c strb_pos.c strb_error.c
