@@ -15,7 +15,7 @@ int strb_nputs(strb_t *STRB__CONST restrict sb,
     }
 
     memcpy(&*buf, str, len); // more efficient than strncpy
-    // assume F_CAN_RESTORE isn't user-visible. Don't bother calling
+    // assume STRB__F_CAN_RESTORE isn't user-visible. Don't bother calling
     // strb_restore.
     return 0;
 }

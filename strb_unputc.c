@@ -15,7 +15,7 @@ int strb_unputc(strb_t *STRB__CONST sb)
     assert(sb);
 
     buf = sb->p.buf;
-    if (!(sb->p.flags & F_CAN_UNPUTC) || !buf) {
+    if (!(sb->p.flags & STRB__F_CAN_UNPUTC) || !buf) {
         return strb__seterr(sb);
     }
 
@@ -28,7 +28,7 @@ int strb_unputc(strb_t *STRB__CONST sb)
         const strbsize_t new_pos = sb->p.pos - 1;
         const char removed = buf[new_pos];
 
-        if (!(sb->p.flags & F_OVERWRITE)) {
+        if (!(sb->p.flags & STRB__F_OVERWRITE)) {
             memmove(buf + new_pos, buf + sb->p.pos,
                     sb->p.len - new_pos);
             --sb->p.len;
@@ -37,7 +37,7 @@ int strb_unputc(strb_t *STRB__CONST sb)
         }
 
         sb->p.pos = new_pos;
-        sb->p.flags &= ~(F_CAN_UNPUTC | F_CAN_RESTORE);
+        sb->p.flags &= ~(STRB__F_CAN_UNPUTC | STRB__F_CAN_RESTORE);
         return removed;
     }
 }

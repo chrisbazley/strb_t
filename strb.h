@@ -126,6 +126,30 @@ typedef uint16_t strbsize_t;
 #define NULL ((_Optional void *)0)
 #endif
 
+/** @cond */
+// Use C99 inline linkage where supported. An extern declaration in the
+// owning source file makes that translation unit supply the exported symbol.
+// STRB__DEFINE_* supplies the same body there in the out-of-line fallback.
+// In particular, TinyCC can give inline functions different addresses in
+// different translation units.
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L && \
+    !defined(__GNUC_GNU_INLINE__) && !defined(_MSC_VER) && \
+    !defined(__CC65__) && !defined(__SDCC) && !defined(__TINYC__)
+#define STRB__C99_INLINE 1
+#define STRB__INLINE inline
+#define STRB__DEFINE_CORE
+#define STRB__DEFINE_MODE
+#define STRB__DEFINE_ERROR
+#define STRB__DEFINE_POS
+#else
+#define STRB__C99_INLINE 0
+#define STRB__INLINE
+#endif
+
+#define STRB__F_ERR (1 << 1)
+#define STRB__F_OVERWRITE (1 << 3)
+/** @endcond */
+
 /**
  * @brief Complete string buffer type.
  *
@@ -662,7 +686,15 @@ void strb_destroy(_Optional strb_t *sb);
  * @post The returned pointer is valid until the next call to a strb_...
  *       function.
  */
+#ifdef STRB__DEFINE_CORE
+STRB__INLINE char *strb_ptr(strb_t *sb)
+{
+    // The empty fallback belongs to the current instance, even after relocation.
+    return sb->p.buf ? &*sb->p.buf : &sb->p.empty_char;
+}
+#else
 char *strb_ptr(strb_t *sb);
+#endif
 
 /**
  * @brief Get read-only access to the underlying character array.
@@ -678,7 +710,17 @@ char *strb_ptr(strb_t *sb);
  *       function.
  * @see strb_ptr
  */
+#ifdef STRB__DEFINE_CORE
+STRB__INLINE const char *strb_cptr(strb_t const *sb)
+{
+    if (sb->p.buf) {
+        return &*sb->p.buf;
+    }
+    return &sb->p.empty_char;
+}
+#else
 const char *strb_cptr(strb_t const *sb);
+#endif
 
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
 #define strb_ptr(sb)                                                           \
@@ -698,7 +740,14 @@ const char *strb_cptr(strb_t const *sb);
  * @return Number of characters stored in the string buffer.
  * @pre @p sb points to an initialised string buffer.
  */
+#ifdef STRB__DEFINE_CORE
+STRB__INLINE size_t strb_len(strb_t const *sb)
+{
+    return sb->p.len;
+}
+#else
 size_t strb_len(strb_t const *sb);
+#endif
 
 /**
  * @brief Editing mode.
@@ -752,7 +801,14 @@ int strb_setmode(strb_t *sb, int mode);
  * @pre @p sb points to an initialised string buffer.
  * @post The returned value may be passed to @ref strb_setmode.
  */
+#ifdef STRB__DEFINE_MODE
+STRB__INLINE int strb_getmode(const strb_t *sb)
+{
+    return (sb->p.flags & STRB__F_OVERWRITE) ? strb_overwrite : strb_insert;
+}
+#else
 int strb_getmode(const strb_t *sb);
+#endif
 
 /**
  * @brief Set the editing position of a string buffer.
@@ -799,7 +855,17 @@ size_t strb_seek(strb_t *sb, size_t pos);
  * @pre @p sb points to an initialised string buffer.
  * @post The returned value may be passed to @ref strb_seek.
  */
+#ifdef STRB__DEFINE_POS
+STRB__INLINE size_t strb_tell(strb_t const *sb)
+{
+#ifdef STRB__TRACE_POSITION
+    STRB__TRACE_POSITION(sb);
+#endif
+    return sb->p.pos == STRB_MAX_SIZE ? SIZE_MAX : sb->p.pos;
+}
+#else
 size_t strb_tell(strb_t const *sb);
+#endif
 
 /**
  * @brief Put a character into a string buffer.
@@ -1337,7 +1403,14 @@ int strb_printf(strb_t *restrict sb, const char *restrict format, ...);
  * strb_clearerr, otherwise false.
  * @pre @p sb points to an initialised string buffer.
  */
+#ifdef STRB__DEFINE_ERROR
+STRB__INLINE bool strb_error(strb_t const *sb)
+{
+    return (sb->p.flags & STRB__F_ERR) != 0;
+}
+#else
 bool strb_error(strb_t const *sb);
+#endif
 
 /**
  * @brief Clear the error indicator of a string buffer.
@@ -1346,6 +1419,19 @@ bool strb_error(strb_t const *sb);
  * @pre @p sb points to an initialised string buffer.
  * @post A call to @ref strb_error will return false until an error occurs.
  */
+#ifdef STRB__DEFINE_ERROR
+STRB__INLINE void strb_clearerr(strb_t *sb)
+{
+    sb->p.flags &= ~STRB__F_ERR;
+}
+#else
 void strb_clearerr(strb_t *sb);
+#endif
+
+#undef STRB__INLINE
+#undef STRB__DEFINE_CORE
+#undef STRB__DEFINE_MODE
+#undef STRB__DEFINE_ERROR
+#undef STRB__DEFINE_POS
 
 #endif // STRB_H

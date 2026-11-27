@@ -22,7 +22,7 @@ void strb_delto(strb_t *STRB__CONST sb, STRB__CONST size_t pos)
     }
     assert(lo <= hi);
 
-    if (sb->p.buf && !(sb->p.flags & F_OVERWRITE)) {
+    if (sb->p.buf && !(sb->p.flags & STRB__F_OVERWRITE)) {
         const strbsize_t len = sb->p.len, chi = hi > len ? len : (strbsize_t)hi,
                          clo = lo > len ? len : (strbsize_t)lo;
         char *const buf = &*sb->p.buf;

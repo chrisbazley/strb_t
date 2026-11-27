@@ -26,7 +26,7 @@ _Optional strb_t *strb_alloc(STRB__CONST size_t n)
 
     if (sb) {
         strb_init(&*sb, n);
-        sb->p.flags |= F_HEAP;
+        sb->p.flags |= STRB__F_HEAP;
     }
 
     return sb;
@@ -38,11 +38,11 @@ void strb_destroy(_Optional strb_t *STRB__CONST sb)
         return;
     }
 
-    if (!(sb->p.flags & F_EXTERNAL)) {
+    if (!(sb->p.flags & STRB__F_EXTERNAL)) {
         free(sb->p.buf);
     }
 
-    if (sb->p.flags & F_HEAP) {
+    if (sb->p.flags & STRB__F_HEAP) {
         free(sb);
     }
 }
@@ -63,7 +63,7 @@ bool strb__grow(strb_t *STRB__CONST sb, STRB__CONST size_t n,
     }
     const strbsize_t minimum_size = (strbsize_t)(top + n + 1u);
 
-    if (sb->p.flags & F_EXTERNAL) {
+    if (sb->p.flags & STRB__F_EXTERNAL) {
         DEBUGF("External buffer exhausted\n");
         return false;
     }
