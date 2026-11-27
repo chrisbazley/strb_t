@@ -1,0 +1,16 @@
+name: Set up SDCC
+description: Install the shared AArch64 SDCC snapshot
+runs:
+  using: composite
+  steps:
+    - id: snapshot
+      shell: bash
+      run: |
+        source "$GITHUB_ACTION_PATH/snapshot.env"
+        echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v4
+      with:
+        path: ${{ runner.temp }}/sdcc-aarch64.tar.bz2
+        key: sdcc-aarch64-${{ steps.snapshot.outputs.sha256 }}
+    - shell: bash
+      run: bash "$GITHUB_ACTION_PATH/install.sh"
