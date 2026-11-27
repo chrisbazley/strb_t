@@ -642,7 +642,8 @@ _Optional strb_t *strb_vaprintf(const char *restrict format, va_list args);
  * @brief Destroy a string buffer object.
  *
  * The associated buffer is also automatically freed, except in the case where
- * its address was passed as a parameter to @ref strb_use or @ref strb_reuse.
+ * its address was passed as a parameter to @ref strb_init, @ref strb_use or
+ * @ref strb_reuse.
  * This must be enforced because storage allocation is abstracted. To pass an
  * internally allocated string to code that needs to take ownership of it, it
  * must first be copied (e.g., using @c strdup).
