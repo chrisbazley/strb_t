@@ -18,24 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache SDCC snapshot
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/sdcc.tar.bz2
-          key: sdcc-linux-arm64-17264-e3b92e3a5a20246d
-
-      - name: Download SDCC trunk r17264
-        shell: bash
-        run: |
-          archive="$RUNNER_TEMP/sdcc.tar.bz2"
-          if test ! -f "$archive"; then
-            curl --fail --location --retry 3 --max-time 180 \
-              https://downloads.sourceforge.net/project/sdcc/snapshot_builds/aarch64-linux-gnu/sdcc-snapshot-aarch64-linux-gnu-20261127-17264-alecto.tar.bz2 \
-              --output "$archive"
-          fi
-          echo "e3b92e3a5a20246d6d6d0c83a21778e7df0d3dbf025c67989a28982694391de5  $archive" | sha256sum --check
-          tar --no-same-owner -xjf "$archive" -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/sdcc/bin" >> "$GITHUB_PATH"
+      - uses: chrisbazley/strb_t/.github/actions/setup-sdcc@sdcc-toolchain
 
       - name: Compile and link the freestanding tests
         shell: bash
