@@ -1,0 +1,31 @@
+name: Publish shared SDCC archive
+on:
+  push:
+    branches: [sdcc-toolchain]
+    paths:
+      - .github/actions/setup-sdcc/snapshot.env
+      - .github/workflows/publish-sdcc.yml
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Archive the pinned snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          source .github/actions/setup-sdcc/snapshot.env
+          tag="sdcc-r$REVISION"
+          if gh release download "$tag" --pattern "$ARCHIVE" --output "$RUNNER_TEMP/$ARCHIVE"; then
+            printf '%s  %s\n' "$SHA256" "$RUNNER_TEMP/$ARCHIVE" | sha256sum --check
+            exit 0
+          fi
+          curl --fail --location --retry 3 --max-time 180 \
+            "https://downloads.sourceforge.net/project/sdcc/snapshot_builds/aarch64-linux-gnu/$ARCHIVE" \
+            --output "$RUNNER_TEMP/$ARCHIVE"
+          printf '%s  %s\n' "$SHA256" "$RUNNER_TEMP/$ARCHIVE" | sha256sum --check
+          gh release create "$tag" "$RUNNER_TEMP/$ARCHIVE" --target "$GITHUB_SHA" \
+            --title "SDCC AArch64 r$REVISION" --notes "Archived upstream AArch64 Linux snapshot for CI." --latest=false
