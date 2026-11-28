@@ -112,12 +112,12 @@ functions, and how to use the same text producer in different editing contexts.
    similar abstraction, but the `GString` interface does not provide an infallible
    non-allocating alternative equivalent to `strb_init`.
 
-9. **Must every output call be checked immediately?**
+9. **Must every output call be checked for errors?**
    
    No. A stored error indicator permits deferred checking with `strb_error`
    after a sequence of operations. It remains set until explicitly cleared with
-   `strb_clearerr`. The buffer remains null-terminated even on failure, but the
-   program must still check for errors before relying on the resulting text.
+   `strb_clearerr`. The buffer remains null-terminated even on failure, and the
+   program can still check for errors before relying on the resulting text.
    See [N3306, “Errors”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=46)
    and [“Error handling”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=68).
 
