@@ -121,9 +121,6 @@ typedef uint16_t strbsize_t;
  */
 #ifndef USE_OPTIONAL
 #define _Optional
-#elif !defined(__clang__) && !defined(__TINYC__)
-#undef NULL
-#define NULL ((_Optional void *)0)
 #endif
 
 /** @cond */
