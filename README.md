@@ -77,16 +77,7 @@ functions, and how to use the same text producer in different editing contexts.
    See [the author's reply in the original proposal discussion](https://www.reddit.com/r/C_Programming/comments/1ctoh24/)
    and [N3306, “String representation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
 
-5. **Why put this interface in the standard library?**
-   
-   Standardisation would let independently written libraries agree on a string
-   buffer interface, rather than each inventing its own. The proposal also aims
-   to standardise existing best practice, reduce the experience needed to write
-   correct programs, and provide a better precedent for other interfaces. It does
-   not seek to replace every use of character arrays or user-designed libraries.
-   See [N3306, “Rationale”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=3).
-
-6. **Does `strb_t` require dynamic memory allocation?**
+5. **Does `strb_t` require dynamic memory allocation?**
    
    No. `strb_use` and `strb_reuse` can manage caller-supplied character storage
    using caller-supplied state. The same output functions also work with buffers
@@ -95,14 +86,14 @@ functions, and how to use the same text producer in different editing contexts.
    dynamic allocation.
    See [N3306, “External buffers” and “Internal buffers”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=42).
 
-7. **How is allocated character storage resized without invalidating pointers?**
+6. **How is allocated character storage resized without invalidating pointers?**
    
    Pointers directly into dynamically allocated character storage (e.g., returned by `strb_ptr`)
    are invalidated by replacement of the allocated storage with a larger allocation, therefore
    it is best not to keep copies of such pointers for longer than needed.  In contrast, the
    address of a `strb_t` never changes.
 
-8. **If `strb_t` never moves, character storage must be allocated separately; isn't that inefficient?**
+7. **If `strb_t` never moves, character storage must be allocated separately; isn't that inefficient?**
    
    Not necessarily: an implementation of `strb_alloc` or `strb_dup` can choose to dynamically
    allocate a single block of memory for a `strb_t` and its initial character storage;
@@ -112,7 +103,7 @@ functions, and how to use the same text producer in different editing contexts.
    similar abstraction, but the `GString` interface does not provide an infallible
    non-allocating alternative equivalent to `strb_init`.
 
-9. **Must every output call be checked for errors?**
+8. **Must every function call be checked for failure?**
    
    No. A stored error indicator permits deferred checking with `strb_error`
    after a sequence of operations. It remains set until explicitly cleared with
@@ -121,13 +112,22 @@ functions, and how to use the same text producer in different editing contexts.
    See [N3306, “Errors”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=46)
    and [“Error handling”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=68).
 
-10. **Does `strb_t` require changes to the C language?**
+9. **Does `strb_t` require changes to the C language?**
+   
+   No. It is purely a library interface, with a C89/C90-compatible implementation
+   in this repository. The `_Optional` qualifier used in the proposal clarifies
+   pointer declarations; it can be defined as an empty macro without substantially
+   changing the meaning of the code.
+   See [N3306, “Pointer notation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
+
+10. **Why put this interface in the standard library?**
     
-    No. It is a library interface, with a prototype implementation in this
-    repository. The `_Optional` qualifier used in the proposal clarifies pointer
-    declarations; it can be defined as an empty macro without substantially
-    changing the meaning of the code.
-    See [N3306, “Pointer notation”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=4).
+    Standardisation would let independently written libraries agree on a string
+    buffer interface, rather than each inventing its own. The proposal also aims
+    to standardise existing best practice, reduce the experience needed to write
+    correct programs, and provide a better precedent for other interfaces. It does
+    not seek to replace every use of character arrays or user-designed libraries.
+    See [N3306, “Rationale”](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3306.pdf#page=3).
 
 11. **Won't people confuse it with the ARM instruction [STRB](https://developer.arm.com/documentation/ddi0602/2025-12/Base-Instructions/STRB--immediate---Store-register-byte--immediate--)?**
    
